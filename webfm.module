@@ -1,0 +1,1055 @@
+<?php
+
+/**
+ * Implementation of hook_init()
+ *
+ */
+function webfm_init(){
+  require_once 'webfm_file.inc';
+
+  // forbidden filenames to hide from listing
+  global $frbdn;
+  $frbdn = explode(',',variable_get('webfm_frbdn', ''));
+
+}
+
+/**
+ * Implementation of hook_help().
+ */
+function webfm_help($section) {
+  switch ($section) {
+    case 'admin/help#webfm':
+      $output = '<p>'.t('Webfm is a hierarchical file system manager. Webfm burrows the upload
+                functionality from the upload module, however the storage model is very different
+                between the two modules. Unlike the flat file system utilized by the upload module
+                (a single directory indexed by a database) webfm allows users to arrange files on
+                the server in the same way they do on their local storage drives.  This ability
+                to heirarchically arrange files greatly enhances the managability of large
+                collections of data.').'</p>'.
+                '<p>'.t('Note that webfm uses <b>includes/file.inc</b> which manages the file system
+                path (<a href="%admin-file" title="admin/settings"> admin &gt;&gt; settings ->
+                File system settings</a>).  The <b>Root Directory</b> and <b>Ftp root directory</b>
+                paths in <a href="%admin-webfm" title="administer webfm">admin &gt;&gt; settings &gt;&gt; webfm
+                </a> are relative to this file system path and must be prefaced with a "/".',
+                array('%admin-file' => url('admin/settings'), '%admin-webfm' => url('admin/settings/webfm'))).'</p>'.
+                '<p>'.t('Webfm uses ajax and javascript extensively to provide application intensive
+                functionality such as file/dir move and ordering of attachments via drag-and-drop.  The
+                context menuing provided by the right mouse button click provides context sensitive menus
+                for user selection.').'</p>'.
+                '<p>'.t('Webfm presents two left hand blocks to represent directory trees and a right hand
+                block to list the contents of the current directory.  The upper left block represents the
+                directory structure of file data enumerated in the database and available to the site for
+                attachment to content.  The lower left block is the directory structure of the "ftp"
+                directory.  This tree is outside the region accessible to drupal content and its purpose
+                is as a bulk upload area.  For sites with large sets of documents, ftp is an good method
+                of bulk transfer, especially if secure shell access does not exist (ie: inexpensive
+                hosting).  Any kind of file transfer can present a hierarchical structure that is
+                instantly copied and enumerated in the database with a single drag operation.').'</p>'.
+                '<ul>'.t('<li>Administer webfm at <a href="%admin-webfm" title="administer webfm">
+                administer &gt;&gt; settings &gt;&gt; webfm</a></li>', array('%admin-webfm' =>
+                url('admin/settings/webfm'))).'</ul>';
+      if(module_exist('webfm_attachment')) {
+        $output .= '<ul>'.t('<li>Administer webfm attachments at <a href="%admin-webfm-attach" title=
+                   "administer webfm attachment">administer &gt;&gt; settings &gt;&gt; webfm_attachment
+                   </a></li>',array('%admin-webfm-attach' =>url('admin/settings/webfm_attachment'))).'</ul>';
+      }
+      return $output;
+
+    case 'admin/modules#description':
+      return t('Enable the Web Networks File Browser.');
+  }
+}
+
+/**
+ * Implementation of hook_settings().
+ */
+function webfm_settings() {
+
+  $form['webfm_root_dir'] =
+    array('#type' => 'textfield',
+          '#title' => t('Root directory'),
+          '#default_value' => variable_get('webfm_root_dir', ''),
+          '#maxlength' => '100',
+          '#size' => '70',
+          '#description' => t('Root directory used to present the filebrowser interface.
+                               Users will not be able to go up from this folder.
+                               <br /><br />This path is relative to "File system path" set in admin/settings
+                               and must be preceeded with a slash.')
+          );
+
+  $form['webfm_ftp_root_dir'] =
+    array('#type' => 'textfield',
+          '#title' => t('FTP root directory'),
+          '#default_value' => variable_get('webfm_ftp_root_dir', 'FTP'),
+          '#maxlength' => '100',
+          '#size' => '70',
+          '#description' => t('WebFM allows you to move files from a specified FTP folder to the file manager
+                               thereby making those files available to your drupal site.  The benefit of this
+                               feature is to allow you to do bulk uploads of files via FTP and then let webFM
+                               make your site aware of them via drag and drop.
+                               <br /><br />This path is relative to "File system path" set in admin/settings
+                               and must be preceeded with a slash.')
+          );
+  $form['webfm_icon_dir'] =
+    array('#type' => 'textfield',
+          '#title' => t('Icon directory'),
+          '#default_value' => variable_get('webfm_icon_dir', 'modules/webfm/image/icon'),
+          '#maxlength' => '100',
+          '#size' => '70',
+          '#description' => t('Name of directory where file type icons are stored (relative to base url).')
+         );
+
+  $form['webfm_debug'] =
+    array('#type' => 'checkbox',
+          '#title' => t('Webfm javascript debug'),
+          '#default_value' => variable_get('webfm_debug', ''),
+          '#description' => t('Check this box for javascript debug messaging.')
+          );
+
+  $form['webfm_frbdn'] =
+    array('#type' => 'textarea',
+          '#title' => t('Forbidden'),
+          '#default_value' => variable_get('webfm_frbdn', '.,..,.svn,index.php,index.phps,upgrade.php,upgrade.phps,config.php,favicon.ico,.htaccess,.ftpquota,recycled,systemvolumeinformation,icon'),
+          '#description' => t('Forbidden file types (use comma delimited with no spaces)')
+          );
+
+  $form['settings_general'] =
+    array('#type' => 'fieldset',
+          '#title' => t('General settings'));
+
+  $form['settings_general']['webfm_max_resolution'] =
+    array('#type' => 'textfield',
+          '#title' => t('Maximum resolution for uploaded images'),
+          '#default_value' => variable_get('webfm_max_resolution', 0),
+          '#size' => 15,
+          '#maxlength' => 10,
+          '#description' => t('The maximum allowed image size expressed as WIDTHxHEIGHT (e.g. 640x480). Set to 0 for no restriction.')
+          );
+
+  $roles = user_roles(1, 'access webfm');
+
+  foreach ($roles as $rid => $role) {
+    $form["settings_role_$rid"] =
+      array('#type' => 'fieldset',
+            '#title' => t('Settings for %role', array('%role' => theme('placeholder', $role))),
+            '#collapsible' => TRUE,
+            '#collapsed' => TRUE
+            );
+
+    $form["settings_role_$rid"]["webfm_extensions_$rid"] =
+      array('#type' => 'textfield',
+            '#title' => t('Permitted file extensions'),
+            '#default_value' => variable_get("webfm_extensions_$rid", "jpg jpeg gif png txt html htm doc xls pdf ppt pps"),
+            '#maxlength' => 255,
+            '#description' => t('Extensions that users in this role can upload. Separate extensions with a space and do not include the leading dot.')
+            );
+
+    $form["settings_role_$rid"]["webfm_uploadsize_$rid"] =
+      array('#type' => 'textfield',
+            '#title' => t('Maximum file size per upload'),
+            '#default_value' => variable_get("webfm_uploadsize_$rid", 1),
+            '#size' => 5,
+            '#maxlength' => 5,
+            '#description' => t('The maximum size of a file a user can upload (in megabytes).')
+            );
+
+    $form["settings_role_$rid"]["webfm_usersize_$rid"] =
+      array('#type' => 'textfield',
+            '#title' => t('Total file size per user'),
+            '#default_value' => variable_get("webfm_usersize_$rid", 10),
+            '#size' => 5,
+            '#maxlength' => 5,
+            '#description' => t('The maximum size of all files a user can have on the site (in megabytes).')
+            );
+  }
+
+return $form;
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function webfm_perm() {
+  return array('access webfm');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function webfm_menu($maycache) {
+  $items = array();
+  if ($maycache) {
+    $items[] = array(
+      'title' => t('Web File Manager'),
+      'path' => 'admin/webfm',
+      'access' => user_access('access webfm'),
+      'callback' => 'webfm_main');
+    $items[] = array(
+      'title' => t('Web File Manager'),
+      'path' => 'admin/webfm/upload',
+      'access' => user_access('access webfm'),
+      'callback' => 'webfm_upload',
+      'type' => MENU_CALLBACK);
+    $items[] = array(
+      'title' => t('File Not Found'),
+      'path' => 'webfm_send',
+      'access' => user_access('see webfm_attachments'),
+      'callback' => 'webfm_send_file',
+      'type' => MENU_CALLBACK);
+  }
+  return $items;
+}
+
+function webfm_upload () {
+
+  //get the contents of the form
+  $edit = $_POST['edit'];
+  $root_path = variable_get('file_directory_path', '').variable_get('webfm_root_dir', '');
+
+  //get the destination path from the edit-webfmuploadpath hidden field in the upload form
+  if($edit['webfmuploadpath']) {
+    // Check that webfm root is at start of destination path
+    if($dest = wfm_check_path($edit['webfmuploadpath'], $root_path)) {
+      // Save new file uploads to tmp dir.
+      $file = file_check_upload();
+      if (($file !== false) && ($file !== 0)) {
+        if(webfm_upload_validate($file) === TRUE) {
+          // file has been put in temp and we have a valid file object
+          if($file_uploaded = file_move($file, $dest)) {
+            // file was moved to its final destination
+            if($file_in_db = webfm_dbinsert_file($file, $dest)) {
+              // file was inserted into the database
+              drupal_set_message('Upload success');
+            } else {
+              file_delete($file->filepath);
+              drupal_set_message('webfm_dbinsert_file() failed', error);
+            }
+          } else {
+            drupal_set_message(t('file_move to %path failed', array('%path' => $dest)), error);
+          }
+        } else {
+          drupal_set_message('webfm_upload_validate() failed', error);
+        }
+      } else {
+        drupal_set_message('file_check_upload() failed', error);
+      }
+    } else{
+      drupal_set_message(t('Invalid destination path: %dest', array('%dest' => $dest)), error);
+    }
+  } else {
+    drupal_set_message(t('Invalid upload path'), error);
+  }
+
+  $form = webfm_upload_form($node);
+  $form = form_builder('upload_js', $form);
+  $output = theme('status_messages') . form_render($form);
+  print drupal_to_js(array('status' => TRUE, 'data' => $output));
+  exit();
+}
+
+/**
+ * Main file manager function
+ */
+function webfm_main () {
+
+  global $base_url;
+
+  $modulepath = drupal_get_path('module', 'webfm');
+  drupal_add_js($modulepath.'/js/webfm.js');
+  drupal_add_js($modulepath.'/js/webfm_upload.js');
+  drupal_add_js('misc/progress.js');
+  theme_add_style($modulepath.'/css/webfm.css');
+  if(is_null($inline_js))
+    $inline_js = webfm_inline_js($base_url);
+
+  if(isset($_GET["action"])) {
+    $root_path = variable_get('file_directory_path', '').variable_get('webfm_root_dir', '');
+    $ftp_path = variable_get('file_directory_path', '').variable_get('webfm_ftp_root_dir', '');
+
+    switch(trim(strtolower($_GET["action"]))) {
+
+      // AJAX: Get context menu items
+      case "delete":
+        if(isset($_GET["param"])) {
+          if($source = wfm_check_path(trim($_GET["param"]), $root_path))
+            $db_check = TRUE;
+          else if($source = wfm_check_path(trim($_GET["param"]), $ftp_path))
+            $db_check = FALSE;
+          // prevent any ../ shenanigans
+          if($source && !ereg('\.\.', $source)) {
+            print drupal_to_js(array('status' => webfm_delete($source, $db_check)));
+          }
+        }
+        exit();
+        break;
+
+      // AJAX: Create new directory
+      case "mkdir":
+        if(isset($_GET["param"])) {
+          if(($source = wfm_check_path(trim($_GET["param"]), $root_path)) ||
+             ($source = wfm_check_path(trim($_GET["param"]), $ftp_path))) {
+            $dest = t("New_Folder");
+            print drupal_to_js(array('status' => webfm_mkdir($source, $dest)));
+          }
+        }
+        exit();
+        break;
+
+      // AJAX: Move a file or directory (drag and drop)
+      case "move":
+        if(isset($_GET["param"]) && isset($_GET["new"])) {
+          // Source must be either under webfm_root or ftp_root
+          if($source = wfm_check_path(trim($_GET["param"]), $root_path))
+            $db_check = TRUE;
+          else if ($source = wfm_check_path(trim($_GET["param"]), $ftp_path))
+            $db_check = FALSE;
+
+          // Destination path must be under webfm_root
+          if($source && ($dest = wfm_check_path(trim($_GET["new"]), $root_path)) && ($source != $dest)) {
+            print drupal_to_js(array('status' => webfm_move($source, $dest, $db_check)));
+          }
+        }
+        exit();
+        break;
+
+      // AJAX: Rename an existing file or directory
+      case "rename":
+        if(isset($_GET["param"]) && isset($_GET["new"])) {
+          if(($source = wfm_check_path(trim($_GET["param"]), $root_path)) ||
+             ($source = wfm_check_path(trim($_GET["param"]), $ftp_path))) {
+            $dest = trim($_GET["new"]);
+            // prevent any ../ shenanigans
+            if(!ereg('\.\.', $dest)) {
+              print drupal_to_js(array('status' => webfm_rename($source, $dest)));
+            } else {
+              print drupal_to_js(array('status' => FALSE));
+            }
+          } else {
+            print drupal_to_js(array('status' => FALSE));
+          }
+        }
+        exit();
+        break;
+
+      // AJAX: read directory tree
+      case "readtree":
+        //Build directory tree
+        $tree = new build_dir_tree($root_path, false);
+        print drupal_to_js(array('status' => TRUE, 'tree' => $tree->get_dirtree(), 'current' => $root_path));
+        exit();
+        break;
+
+      // AJAX: read ftp directory tree
+      case "readftptree":
+        //Build directory tree
+        $tree = new build_dir_tree($ftp_path, false);
+        print drupal_to_js(array('status' => TRUE, 'tree' => $tree->get_dirtree(), 'current' => $root_path));
+        exit();
+        break;
+
+      // AJAX: read directory set in $_GET["param"]
+      case "read":
+        if(isset($_GET["param"])) {
+          $rootpath_var = '';
+          if($source = wfm_check_path(trim($_GET["param"]), $root_path))
+            $rootpath_var = 'webfm_root_dir';
+          else if($source = wfm_check_path(trim($_GET["param"]), $ftp_path))
+            $rootpath_var = 'webfm_ftp_root_dir';
+
+          if($rootpath_var) {
+            if(!is_dir($source) || ereg('\.\.', $source)) exit();
+            if(strpos(strtolower($source), 'ftp://') !== false) exit();
+            if(strpos(strtolower($source), 'ftps://') !== false) exit();
+            if(strpos(strtolower($source), 'file://') !== false) exit();
+            if(strpos(strtolower($source), 'http://') !== false) exit();
+            if(strpos(strtolower($source), 'https://') !== false) exit();
+
+            //Build current directory listings
+            $dirlist = new build_dir_list($source, $rootpath_var);
+            if($dirlist->get_breadcrumb())
+              print drupal_to_js(array('status' => TRUE, 'current' => $source, 'bcrumb' => $dirlist->get_breadcrumb(), 'dirs' => $dirlist->get_dir_listing(), 'files' => $dirlist->get_file_listing()));
+            else
+              //invalid directory
+              print drupal_to_js(array('status' => FALSE));
+          }
+        }
+        exit();
+        break;
+
+      // AJAX: search current directory for filename
+      case "search":
+        if(isset($_GET["param"]) && isset($_GET["pattern"])) {
+          $source = trim($_GET["param"]);
+          $searchpattern = trim($_GET["pattern"]);
+          if ($searchpattern != "") {
+            $regexpsearch = '';
+            $maxlevel = 0;
+            @clearstatcache();
+            $search = new searchFiles($source, $searchpattern, $maxlevel, $regexpsearch);
+            print drupal_to_js(array('files' => $search->get_files()));
+          }
+        }
+        exit();
+        break;
+
+      // AJAX: get file metadata
+      case "getmeta":
+        if(isset($_GET["param"])) {
+          if($source = wfm_check_path(trim($_GET["param"]), $root_path)) {
+            print drupal_to_js(array('status' => TRUE, 'meta' => webfm_getmeta($source)));
+          } else {
+            print drupal_to_js(array('status' => FALSE));
+          }
+        }
+        exit();
+        break;
+
+      // AJAX: change file metadata
+      case "putmeta":
+        if(isset($_GET["param"]) && isset($_GET["meta"])) {
+          print drupal_to_js(array('status' => webfm_putmeta($_GET["param"], $_GET["meta"])));
+        }
+        exit();
+        break;
+
+      default:
+        exit();
+        break;
+    }
+    exit();
+  }
+
+  $output  = '';
+  $output  .= '<noscript><p class="err">JavaScript must be enabled in order for you to use the webfm AJAX file browser.</p></noscript>'."\n";
+
+  // Upload form fieldset
+  $form = webfm_upload_fieldset();
+
+  $output .= '<div id="webfm">'."\n";
+  $output .= drupal_get_form('edit', $form);
+  $output .= '</div>'."\n";
+
+  return $output;
+}
+
+function webfm_upload_fieldset() {
+  $form = array();
+  $form['uploads'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('File Upload'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#description' => t('Uploaded file will be saved to the current directory.'),
+    '#prefix' => '<div class="attachments">',
+    '#suffix' => '</div>',
+    '#weight' => 30);
+  // Wrapper for fieldset contents (used by upload JS).
+  $form['uploads']['wrapper'] = array(
+    '#prefix' => '<div id="attach-wrapper">',
+    '#suffix' => '</div>');
+  $form['uploads']['wrapper'] += webfm_upload_form();
+  $form['#attributes']['enctype'] = 'multipart/form-data';
+  return $form;
+}
+
+function webfm_upload_form() {
+  $form['#theme'] = 'webfm_upload_form_new';
+
+  // This div is hidden when the user uploads through JS.
+  $form['new'] =
+    array(
+      '#prefix' => '<div id="attach-hide">',
+      '#suffix' => '</div>',
+      );
+
+  $form['new']['upload'] =
+    array('#type' => 'file',
+          '#title' => t('Upload file'),
+          '#size' => 40
+          );
+
+  $form['new']['attach'] =
+    array('#type' => 'button',
+          '#value' => t('Upload'),
+          '#name'=> 'attach',
+          '#attributes' => array('id' => 'attach')
+          );
+
+  // Hidden input field for js to supply current directory value
+  $form['webfmuploadpath'] =
+    array('#type' => 'hidden',
+          '#value' => '',
+          );
+
+  // The class triggers the js upload behaviour.
+  $form['attach'] =
+    array('#type' => 'hidden',
+          '#value' => url('admin/webfm/upload', NULL, NULL, TRUE),
+          '#attributes' => array('class' => 'webfmupload')
+          );
+
+  return $form;
+}
+
+/**
+ * Theme the attachment form.
+ * Note: required to output prefix/suffix.
+ */
+function theme_webfm_upload_form_new($form) {
+  $output = form_render($form);
+  return $output;
+}
+
+/**
+ * Inline javascript
+ * Function to pass url for browser AJAX XMLHttpRequests
+ * Function to pass icon directory
+ * Function to pass debug flag to enable client side debug output
+ */
+function webfm_inline_js($base_url) {
+  $js = '<script type="text/javascript">
+           function getBaseUrl() { return '.drupal_to_js($base_url).'; }
+           function getBrowserUrl() { return '.drupal_to_js($base_url."/admin/webfm").'; }
+           function getIconDir() { return '.drupal_to_js($base_url."/".variable_get('webfm_icon_dir', '')).'; }
+           function getDebugFlag() { return '.drupal_to_js(variable_get('webfm_debug', '')).'; }
+         </script>';
+  drupal_set_html_head($js);
+  return $js;
+}
+
+/**
+ * Helper function to check for root path at base of input path
+ */
+function wfm_check_path($path, $root) {
+  return strpos($path, $root) === 0 ? $path : '';
+}
+
+/**
+ * Class to build the directory, file and breadcrumb listings
+ * ..for the directory at $path for javascript Load_dirlist()
+ */
+class build_dir_list {
+  var $dirs = array();
+  var $files = array();
+  var $breadcrumb = array();
+
+  //Constructor
+  function build_dir_list($path, $rootpath_var) {
+    $bl = array('.', '..', '.svn', '.htaccess');
+    $_dirs = array();
+    $_files = array();
+
+    if (is_dir($path))
+    {
+      chdir($path);
+      if($handle = opendir('.'))
+      {
+        if(variable_get('webfm_root_dir', '')) {
+          $root_path = trim(variable_get('file_directory_path', '').variable_get($rootpath_var, ''),"/");
+          $root_arr = explode('/', $root_path);
+          // Hide root path elements except for last directory
+          for($i = 0; $i < count($root_arr) - 1; $i++)
+            $this->breadcrumb[] = array("h", $root_arr[$i]);
+          $this->breadcrumb[] = array("v", $root_arr[$i]);
+          if($non_root_path = trim(substr($path, strlen($root_path)),"/")) {
+            $non_root_arr = explode('/', $non_root_path);
+            foreach($non_root_arr as $piece)
+              $this->breadcrumb[] = array("v", $piece);
+          }
+        }
+
+        while(false !== ($readdir = readdir($handle)))
+        {
+          // check that directory element is readable and not in black list
+          if(!in_array(strtolower($readdir), $bl))
+          {
+            if(is_dir($readdir))
+                $_dirs[] = $readdir;
+            if(is_file($readdir))
+              $_files[] = $readdir;
+          }
+        }
+        closedir($handle);
+      }
+      if(is_array($_dirs)) {
+        foreach($_dirs as $dir) {
+          $dd = new stdClass();
+          $dd->n = $dir;
+          $dd->p = $path."/".$dir;
+//          $dd->m = (filemtime($dir)) ? date('Y-m-d H:i:s',  @filemtime($dir)) : "";
+          $dd->m = "";
+          $this->dirs[] = $dd;
+        }
+      }
+
+      if(is_array($_files)) {
+        foreach($_files as $file) {
+          $fd = new stdClass();
+          $fd->n = $file;
+          $fd->p = $path;
+          $fd->id = webfm_get_fid($path."/".$file);
+          $fd->m = (filemtime($file)) ? date('Y-m-d H:i:s',  @filemtime($file)) : "";
+          $fd->s = webfm_size(@filesize($file));
+          if($i = @getimagesize($file)) {
+            if(($i[0] != 0) && ($i[1] != 0))
+              $fd->i = $i[2];
+          } else
+            $fd->i = 0;
+          if(strpos($file, ".") === false) {
+            $fd->e = "";
+          } else {
+            $fd->e = strtolower(substr($file, strrpos($file, ".") + 1));
+          }
+          $this->files[] = $fd;
+        }
+      }
+    }
+  }
+
+  function get_dir_listing() {
+    return $this->dirs;
+  }
+
+  function get_file_listing() {
+    return $this->files;
+  }
+
+  function get_breadcrumb() {
+    return $this->breadcrumb;
+  }
+}
+
+/**
+ * Class to read the directory tree
+ */
+class build_dir_tree {
+  var $js_arr = array();
+
+  // Constructor
+  function build_dir_tree($root, $full = false) {
+    $dirtree = array();
+
+    $root = rtrim($root, "/");
+    $dirtree[$root] = $this->recurse_build_tree($root, $full);
+    $this->js_arr[] = $dirtree;
+  }
+
+  // Function to recursively read the complete directory tree
+  function recurse_build_tree($dir, $full) {
+    $bl = array('.', '..', '.svn', '.htaccess');
+    if ($handle = opendir($dir)) {
+      while (false !== ($readdir = readdir($handle))) {
+        if(!in_array(strtolower($readdir), $bl)) {
+          $path = $dir.'/'.$readdir;
+          //directories are array keys with an array value or a null value for
+          //empty directories (note that a file cannot have a null value)
+          if(is_dir($path)) {
+            $tree[$readdir] = $this->recurse_build_tree($path, $full);
+          }
+          if($full == true) {
+            //files are non-null, non-array key values
+            if(is_file($path))
+              $tree[] = $readdir;
+          }
+        }
+      }
+      closedir($handle);
+    }
+    return isset($tree)?$tree:'';
+  }
+
+  function get_dirtree() {
+    return $this->js_arr;
+  }
+}
+
+// Function to sanitize long filenames
+function webfm_sanlen($x) {
+  if(strlen($x) > 80)
+    return substr($x, 0, 40)."...".substr($x, -40, 40);
+  return $x;
+}
+
+// Function returns preformatted sizes
+function webfm_size($x) {
+  if($x < 1024) return $x." B";
+    $x=round($x / 1024, 1);
+  if($x < 1024) return $x." KB";
+    $x=round($x / 1024, 1);
+  if($x < 1024) return $x." MB";
+    $x=round($x / 1024, 2);
+  if($x < 1024) return $x." GB";
+    $x=round($x / 1024, 2);
+  return $x." TB";
+}
+
+/**
+ * Class to search for files matching a regexp pattern
+ */
+class searchFiles {
+  var $count = 0;
+  var $level = 0;
+  var $max_levels = 0;
+  var $files = array();
+  var $hidefilepattern;
+
+  //Constructor
+  function searchFiles($dir, $searchpattern, $searchmaxlevels, $regexpsearch = FALSE) {
+    $this->hidefilepattern = "^(CVS|\..*)$";
+/*
+    if(!$regexpsearch) {
+      $searchpattern = "^".str_replace("*", ".*", str_replace("?", ".", str_replace(".", "\.", $searchpattern)))."$";
+    }
+*/
+    if($searchmaxlevels)
+      $this->max_levels = $searchmaxlevels;
+    $this->count = $this->searchFilesRecur($dir, $searchpattern);
+  }
+
+  function get_files() {
+    return $this->files;
+  }
+
+  function get_count() {
+    return $this->count;
+  }
+
+  function searchFilesRecur($dir, $searchpattern) {
+    $count = 0;
+    if(($this->max_levels == 0) || ($this->level < $this->max_levels)) {
+      $dir = rtrim($dir, '/');
+      $handle = @opendir($dir);
+
+      while (($file = @readdir($handle))) {
+        if(@is_dir($dir."/".$file) && ($file != ".") && ($file != "..")) {
+          $this->level++;
+          $count += $this->searchFilesRecur($dir."/".$file, $searchpattern);
+        } else if (ereg(strtolower($searchpattern), strtolower($file)) && !ereg($this->hidefilepattern, $file)) {
+          $sfd = new stdClass();
+          $sfd->n = $file;
+          $sfd->p = $dir;
+          $sfd->id = webfm_get_fid($dir."/".$file);
+          $this->files[] = $sfd;
+          $count++;
+        } else {
+        }
+      }
+      @closedir($handle);
+    }
+    return $count;
+  }
+}
+
+/**
+ * webfm_send_file - streams a file privately for download
+ *
+ * @param object $fid - file id
+ * @param bool $attach - 1 = attach / 0 = inline
+ */
+function webfm_send_file($fid, $attach = false) {
+  $query = "SELECT * FROM {webfm_file} where fid = '%s'";
+  if($f = db_fetch_object(db_query($query, $fid))) {
+    session_write_close();
+    ob_end_clean();
+
+    set_time_limit(0);
+
+    $name=basename($f->fpath);
+
+    //filenames in IE containing dots will screw up the
+    //filename unless we add this
+    if(strstr($_SERVER['HTTP_USER_AGENT'], "MSIE"))
+      $name = preg_replace('/\./', '%2e', $name, substr_count($name, '.') - 1);
+
+    // Get file extension
+    $ext = explode('.', $name);
+    $extension = $ext[count($ext)-1];
+
+    // Try and find appropriate type
+    switch(strtolower($extension)) {
+      case 'txt': $type = 'text/plain'; break;
+      case "pdf": $type = 'application/pdf'; break;
+      case "exe": $type = 'application/octet-stream'; break;
+      case "zip": $type = 'application/zip'; break;
+      case "doc": $type = 'application/msword'; break;
+      case "xls": $type = 'application/vnd.ms-excel'; break;
+      case "ppt": $type = 'application/vnd.ms-powerpoint'; break;
+      case "gif": $type = 'image/gif'; break;
+      case "png": $type = 'image/png'; break;
+      case "jpg": $type = 'image/jpg'; break;
+      case "jpeg": $type = 'image/jpg'; break;
+      case "html": $type = 'text/html'; break;
+      default: $type = 'application/force-download';
+    }
+
+    //download headers:
+    if($attach === '1') {
+      // prompt for download file or view
+      header("Pragma: no-cache");
+      header("Cache-Control: no-cache, must-revalidate");
+      header("Content-Disposition: attachment; filename=\"".$name."\";" );
+    } else {
+      // view file via browser
+      header("Pragma: public"); // required
+      header("Expires: 0");
+      header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+      header("Cache-Control: private",false); // required for certain browsers
+      header("Content-Transfer-Encoding: binary");
+      header("Content-Disposition: inline; filename=\"".$name."\";" );
+    }
+    header("Content-Type: " . $type);
+    header("Content-Length: ".(string)(filesize($f->fpath)));
+    header("Connection: close");
+
+    if($file = fopen($f->fpath, 'rb')){
+      while( (!feof($file)) && (connection_status()==0) ){
+        print(fread($file, 1024*8));
+        flush();
+      }
+      fclose($file);
+    }
+  } else {
+    //Print theme + page title for webfm_send path
+    print theme('page', "");
+  }
+}
+
+/**
+ * webfm_dbinsert_file - inserts a file object into the webfm_file table
+ *
+ * @param object $file - complete file object
+ * @param string $path - a string containing the path relative to drupal root
+ * @param array $metadata - an array of key => value pairs, where key matches a field in the webfm_file table
+ *
+ * @return bool - TRUE if query executed successfully, otherwise FALSE
+ */
+function webfm_dbinsert_file($file, $path = 'files', $metadata = array()){
+  //we need our user
+  global $user;
+
+  //add additional values to $metadata
+  $metadata['uid'] = $user->uid;
+  $metadata['fpath'] = $file->filepath; //$path; //if we decide we don't want the filename in the path - use $path variable instead.
+  $metadata['fname'] = strrev(substr(strrev($file->filepath), 0, strpos(strrev($file->filepath), '/')));//$file->filepath;
+  //$metadata['fname'] = $file->filename;
+  $metadata['fsize'] = $file->filesize;
+  $metadata['fmime'] = $file->filemime;
+
+  //create a string of fields for the query
+  $fields = implode(', ', array_keys($metadata));
+
+  //build printf style list of values
+  foreach($metadata as $key => $value){
+    if(is_numeric($value)){
+      $printfvalues[] = '%d';
+    }
+    else{
+      $printfvalues[] = "'%s'";
+    }
+  }
+  //create a srting of printf style values
+  $printfvalues = implode(', ', $printfvalues);
+  //create an array of just the values for the db_query
+  $values = array_values($metadata);
+
+  //make a db_query friendly query with prinf stuff
+  $query = "INSERT INTO {webfm_file} ($fields) values ($printfvalues)";
+  $result = db_query($query, $values);
+
+  if($result === FALSE){
+    drupal_set_message(t('Query Failed: Could not insert file into the databse'));
+    return FALSE;
+  }
+  else{
+    return TRUE;
+  }
+}
+
+/**
+ * webfm_dbupdate_file - updates information about a file (most likely during a move operation)
+ *
+ * @param int $fid - file id of the file to record to be altered
+ * @param object $file - optional a file object
+ * @param string $path string containing the destination path relative to drupal root
+ * @param array $metadata - an array of key => value pairs, where key matches a field in the webfm_file table
+ *
+ * @return bool - TRUE if success - else FALSE
+ */
+function webfm_dbupdate_file($fid, $path = FALSE, $metadata = array()){
+  if($path){
+    //add additional values to $metadata
+    $metadata['fpath'] = $path;
+  }
+
+  //create a string of field value items in printf format
+  foreach($metadata as $key => $value){
+    if(is_numeric($value)){
+      $printfvalues[] = $key .'=%d';
+    }
+    else{
+      $printfvalues[] = $key ."='%s'";
+    }
+  }
+
+  $printfvalues = implode(', ', $printfvalues);
+  $values = array_values($metadata);
+  $values[] = $fid; //tack on the fid at the end for the last param for the update query - i.e. WHERE fid = %d
+
+  //make a db_query friendly query with prinf stuff
+  $query = "UPDATE {webfm_file} SET $printfvalues WHERE fid = %d";
+  $result = db_query($query, $values);
+
+  if($result === FALSE){
+    drupal_set_message(t('webfm_dbupdate_file() err: fid=%fid', array('%fid' => $fid)), error);
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/**
+ * webfm_upload_validate
+ *  *
+ * @param object $file
+ * @return bool - returns TRUE if there are no errors othewise FALSE
+ */
+function webfm_upload_validate($file){
+  global $user;
+
+  foreach ($user->roles as $rid => $name) {
+    $extensions = variable_get("webfm_extensions_$rid", 'jpg jpeg gif png txt html htm doc xls pdf ppt pps');
+    $uploadsize = variable_get("webfm_uploadsize_$rid", 1) * 1024 * 1024;
+    $usersize = variable_get("webfm_usersize_$rid", 1) * 1024 * 1024;
+
+    $regex = '/\.('. ereg_replace(' +', '|', preg_quote($extensions)) .')$/i';
+
+    if (!preg_match($regex, $file->filename)) {
+      $error['extension']++;
+    }
+
+    if ($uploadsize && $file->filesize > $uploadsize) {
+      $error['uploadsize']++;
+    }
+
+    if ($usersize && $total_usersize + $file->filesize > $usersize) {
+      $error['usersize']++;
+    }
+  }
+
+  $user_roles = count($user->roles);
+  $valid = TRUE;
+  if ($error['extension'] == $user_roles) {
+    form_set_error('upload', t('The selected file %name can not be attached to this post, because it is only possible to attach files with the following extensions: %files-allowed.', array('%name' => theme('placeholder', $file->filename), '%files-allowed' => theme('placeholder', $extensions))));
+    $valid = FALSE;
+  }
+  elseif ($error['uploadsize'] == $user_roles) {
+    form_set_error('upload', t('The selected file %name can not be attached to this post, because it exceeded the maximum filesize of %maxsize.', array('%name' => theme('placeholder', $file->filename), '%maxsize' => theme('placeholder', format_size($uploadsize)))));
+    $valid = FALSE;
+  }
+  elseif ($error['usersize'] == $user_roles) {
+    form_set_error('upload', t('The selected file %name can not be attached to this post, because the disk quota of %quota has been reached.', array('%name' => theme('placeholder', $file->filename), '%quota' => theme('placeholder', format_size($usersize)))));
+    $valid = FALSE;
+  }
+  elseif (strlen($file->filename) > 255) {
+    form_set_error('upload', t('The selected file %name can not be attached to this post, because the filename is too long.', array('%name' => theme('placeholder', $munged_filename))));
+    $valid = FALSE;
+  }
+
+  if (!$valid) {
+    drupal_set_message(t("FILE %s NOT VALID", array('%s' => $file->filename)), error);
+    return FALSE;
+  }
+  else{
+    return TRUE;
+  }
+}
+
+/**
+ * Given a file path this functions returns fid from the webfm file table
+ *
+ * @param string $path
+ * @return int $fid if one exists or FALSE if none was found
+ */
+function webfm_get_fid($path){
+  $query = "SELECT fid FROM {webfm_file} where fpath = '%s'";
+  $result = db_query($query, $path);
+  if($result !== FALSE)
+    if($row = db_fetch_object($result))
+      return $row->fid;
+  return FALSE;
+}
+
+function webfm_getmeta($path) {
+  $query = "SELECT * FROM {webfm_file} where fpath = '%s'";
+  if(($result = db_query($query, $path)) !== FALSE) {
+    if($row = db_fetch_object($result)) {
+/*
+      $meta = new stdClass();
+      $meta->fid = $row->fid;
+      $meta->fname = $row->fname;
+      $meta->fpath = $row->fpath;
+      $meta->ftitle = $row->ftitle;
+      $meta->fdesc = $row->fdesc;
+      return $meta;
+*/
+      return $row;
+    }
+  }
+  return FALSE;
+}
+
+function webfm_putmeta($fid, $metadata) {
+  if(is_numeric($fid)) {
+    $fields = explode(',',$metadata);
+    $metadata = array();
+    foreach($fields as $field) {
+      // Parse webfm_file_key/metadata pairs
+      // Format: "#".key."=".value
+      if((strpos($field, '#') === 0) && (strpos($field, '=') !== FALSE)) {
+        $metadata[substr($field, 1, strpos($field, '=') - 1)] = substr($field, strpos($field, '=') + 1);
+      }
+    }
+
+    if(isset($metadata)) {
+      return webfm_dbupdate_file($fid, '', $metadata);
+    } else
+      return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * webfm_dbdelete_file - Deletes all database references to a file given and fid
+ * Calling this function will delete the file from the webfm_file table AS WELL AS the webfm_attach table
+ * therefore any nodes that have this file attached to them will lose that file.
+ *
+ * @param int $fid - file id of the file
+ * @return bool True if it worked False if it didn't
+ *
+ */
+function webfm_dbdelete_file($fid) {
+  if(_webfm_dbdelete_file_fid($fid)) {
+    if(module_exist('webfm_attachment') && _webfm_dbdelete_attach_fid($fid)) {
+      return TRUE;
+    }
+    else
+      return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Helper function that deletes db entries from the webfm_file table given an fid
+ * called from webfm_dbdelete_file
+ *
+ * @param int $fid
+ * @return bool
+ */
+function _webfm_dbdelete_file_fid($fid){
+  $query = 'DELETE FROM {webfm_file} WHERE fid = %d';
+  $result = db_query($query, $fid);
+  if($result === FALSE){
+    drupal_set_message(t('Query Failed: Could not delete file %fid .', array('%fid' => $fid), error));
+    return FALSE;
+  }
+  return TRUE;
+}
