@@ -1,0 +1,4 @@
+name = webfm
+description = Heirarchical filesystem manager.
+package = Core - optional
+version = VERSION
