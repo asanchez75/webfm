@@ -1,38 +1,60 @@
 <?php
+
 /**
-* WebFM installer
-**/
-
+ * Implementation of hook_install().
+ */
 function webfm_install(){
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      db_query("CREATE TABLE {webfm_file} (
+        fid int(10) NOT NULL auto_increment,
+        uid int(10) NOT NULL default '0',
+        fpath longtext NOT NULL,
+        fname varchar(255) NOT NULL default '',
+        fsize int(10) NOT NULL default '0',
+        fmime varchar(255) NOT NULL default '',
+        ftitle varchar(255) NOT NULL default '',
+        fdesc text NOT NULL,
+        fcreatedate int(11) NOT NULL default '0',
+        flang varchar(16) NOT NULL default '',
+        fpublisher varchar(255) NOT NULL default '',
+        fformat varchar(255) NOT NULL default '',
+        fversion int(10) NOT NULL default '0',
+        PRIMARY KEY (`fid`)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      db_query("CREATE TABLE {webfm_attach} (
+        nid int(10) NOT NULL default '0',
+        fid int(10) NOT NULL default '0',
+        list tinyint(4) NOT NULL default '0',
+        weight int(10) NOT NULL default '0',
+        PRIMARY KEY (`nid`,`fid`)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
 
-    switch ($GLOBALS['db_type']) {
-      case 'mysql':
-      case 'mysqli':
+    default:
+      drupal_set_message('webfm_install currently supports MySQL database only', error);
+      break;
+  }
+}
 
-        db_query("CREATE TABLE `webfm_attach` (
-                  `nid` int(10) NOT NULL default '0',
-                  `fid` int(10) NOT NULL default '0',
-                  `list` tinyint(4) NOT NULL default '0',
-                  `weight` int(10) NOT NULL default '0',
-                  PRIMARY KEY  (`nid`,`fid`)
-                 )DEFAULT CHARSET=UTF8;");
-
-        db_query("CREATE TABLE `webfm_file` (
-                  `fid` int(10) NOT NULL auto_increment,
-                  `uid` int(10) NOT NULL default '0',
-                  `fpath` longtext NOT NULL,
-                  `fname` varchar(255) NOT NULL default '',
-                  `fsize` int(10) NOT NULL default '0',
-                  `fmime` varchar(255) NOT NULL default '',
-                  `ftitle` varchar(255) NOT NULL default '',
-                  `fdesc` text NOT NULL,
-                  `fcreatedate` int(11) NOT NULL default '0',
-                  `flang` varchar(16) NOT NULL default '',
-                  `fpublisher` varchar(255) NOT NULL default '',
-                  `fformat` varchar(255) NOT NULL default '',
-                  `fversion` int(10) NOT NULL default '0',
-                  PRIMARY KEY  (`fid`)
-                 )DEFAULT CHARSET=UTF8;");
-        break;
-    }
+/**
+ * Implementation of hook_uninstall().
+ */
+function webfm_uninstall() {
+  db_query('DROP TABLE {webfm_file}');
+  db_query('DROP TABLE {webfm_attach}');
+  variable_del('webfm_root_dir');
+  variable_del('webfm_ftp_root_dir');
+  variable_del('webfm_icon_dir');
+  variable_del('webfm_attach_body');
+  variable_del('webfm_debug');
+  variable_del('webfm_frbdn');
+  variable_del('webfm_max_resolution');
+  $roles = user_roles(1, 'access webfm');
+  foreach ($roles as $rid => $role) {
+   variable_del('webfm_extensions_'.$rid);
+   variable_del('webfm_uploadsize_'.$rid);
+   variable_del('webfm_usersize_'.$rid);
+  }
 }
