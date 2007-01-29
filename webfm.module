@@ -378,7 +378,7 @@ function webfm_upload () {
       if (($file !== false) && ($file !== 0)) {
         if(webfm_upload_validate($file) === TRUE) {
           // file has been put in temp and we have a valid file object
-          if($file_uploaded = file_save_upload($file, $dest)) {
+          if($file_uploaded = file_move($file, $dest)) {
             // file was moved to its final destination
             if($file_in_db = webfm_dbinsert_file($file, $dest)) {
               // file was inserted into the database
@@ -576,7 +576,7 @@ function webfm_ajax () {
       //Get file info by fid for attachment
       case "attachfile":
         $fid = rawurldecode($_POST["param0"]);
-        $query = "SELECT * FROM {webfm_file} where fid = '%s'";
+        $query = "SELECT * FROM {webfm_file} WHERE fid = '%s'";
         if($_file = db_fetch_object(db_query($query, $fid))) {
           $file = new fdesc($_file);
           print drupal_to_js(array('status' => TRUE, 'attach' => $file));
@@ -969,7 +969,7 @@ class searchFiles {
  * @param bool $attach - 1 = attach / 0 = inline
  */
 function webfm_send_file($fid, $attach = false) {
-  $query = "SELECT * FROM {webfm_file} where fid = '%s'";
+  $query = "SELECT * FROM {webfm_file} WHERE fid = '%s'";
   if($f = db_fetch_object(db_query($query, $fid))) {
     // Put file path into session var so back button can return to this dir
     $path = dirname($f->fpath);
@@ -1071,7 +1071,7 @@ function webfm_dbinsert_file($file, $path = 'files', $metadata = array()){
   $values = array_values($metadata);
 
   //make a db_query friendly query with prinf stuff
-  $query = "INSERT INTO {webfm_file} ($fields) values ($printfvalues)";
+  $query = "INSERT INTO {webfm_file} ($fields) VALUES ($printfvalues)";
   $result = db_query($query, $values);
 
   if($result === FALSE){
@@ -1188,7 +1188,7 @@ function webfm_upload_validate($file){
  * @return int $fid if one exists or FALSE if none was found
  */
 function webfm_get_fid($path){
-  $query = "SELECT fid FROM {webfm_file} where fpath = '%s'";
+  $query = "SELECT fid FROM {webfm_file} WHERE fpath = '%s'";
   $result = db_query($query, $path);
   if($result !== FALSE)
     if($row = db_fetch_object($result))
@@ -1197,7 +1197,7 @@ function webfm_get_fid($path){
 }
 
 function webfm_getmeta($path) {
-  $query = "SELECT * FROM {webfm_file} where fpath = '%s'";
+  $query = "SELECT * FROM {webfm_file} WHERE fpath = '%s'";
   if(($result = db_query($query, $path)) !== FALSE) {
     if($row = db_fetch_object($result)) {
       return $row;
@@ -1275,7 +1275,7 @@ function webfm_dbupdate_attach($nid, $fids){
 //  drupal_set_message(t('fidcount= %fid', array('%fid' => count($fids))));
   $i = 0;
   if(!webfm_check_attach_order($nid, $fids)){ //the new fids are different from the old ones
-    $query = "DELETE FROM {webfm_attach} where nid = %d";
+    $query = "DELETE FROM {webfm_attach} WHERE nid = %d";
     if($result = db_query($query, $nid)){
       foreach($fids as $fid){
         drupal_set_message(t('fid= %fid', array('%fid' => $fid)));
@@ -1328,15 +1328,15 @@ function webfm_check_attach_order($nid, $fids){
  */
 
 function webfm_dbinsert_attach($nid, $fid, $weight){
-//  drupal_set_message('DBG: SELECT * FROM {webfm_attach} WHERE nid = '. $nid .' and fid = '.$fid);
-  $query = 'SELECT * FROM {webfm_attach} WHERE nid = %d and fid = %d';
+//  drupal_set_message('DBG: SELECT * FROM {webfm_attach} WHERE nid = '. $nid .' AND fid = '.$fid);
+  $query = 'SELECT * FROM {webfm_attach} WHERE nid = %d AND fid = %d';
   $result = db_query($query, $nid, $fid);
   if(!mysql_num_rows($result) == 0) {
    drupal_set_message(t('File is already attached to this node.'));
    return FALSE;
   } else {
     //actually do the attacment if its not already attached....
-    $query = 'INSERT INTO {webfm_attach} (nid, fid, weight) values (%d, %d, %s)';
+    $query = 'INSERT INTO {webfm_attach} (nid, fid, weight) VALUES (%d, %d, %s)';
     $result = db_query($query, $nid, $fid, $weight);
 
     if($result === FALSE) {
@@ -1357,7 +1357,7 @@ function webfm_dbinsert_attach($nid, $fid, $weight){
  *
  */
 function webfm_dbdelete_attach($nid, $fid){
-  $query = 'DELETE FROM {webfm_attach} WHERE nid = %d and fid = %d';
+  $query = 'DELETE FROM {webfm_attach} WHERE nid = %d AND fid = %d';
   $result = db_query($query, $nid, $fid);
   if($result === FALSE) {
     drupal_set_message(t('Query Failed: Could not detach file %fid from node %nid', array('%fid' => $fid, '%nid'=>$nid)));
