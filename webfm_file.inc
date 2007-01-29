@@ -13,7 +13,10 @@ function webfm_mkdir($source, $dest){
   if (!is_dir($mkdir_path)) {
     if(@mkdir($mkdir_path)) {
       chmod($mkdir_path, 0775);
-      return TRUE;
+      if (!is_writable($mkdir_path))
+        drupal_set_message(t('The directory %directory is not writable.', array('%directory' => $mkdir_path)));
+      else
+        return TRUE;
     }
   }
   return FALSE;
@@ -140,7 +143,6 @@ function webfm_delete_dir_recur($source, $db_check, $ret) {
     }
     closedir($handle);
   } else {
-//    echo 'Dbg("opendir FAIL: ", "'.$source.'");';
     return FALSE;
   }
   $retn = rmdir($source);
@@ -219,6 +221,13 @@ function webfm_move_dir_recur($source, $dest, $db_check, $ret) {
       return FALSE;
     }
     chmod($dest, 0775);
+    if (!is_writable($dest)) {
+      drupal_set_message(t('The directory %directory is not writable.', array('%directory' => $dest)));
+      return FALSE;
+    }
+  } else {
+    //directory already exists (will only occur at topmost directory)
+    return FALSE;
   }
   if($handle = opendir($source)) {
     while(false !== ($file = readdir($handle))) {
