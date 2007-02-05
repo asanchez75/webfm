@@ -542,8 +542,9 @@ function webfm_ajax () {
       //Get file metadata
       case "getmeta":
         if(isset($_POST["param0"])) {
-          if($source = wfm_check_path(trim(rawurldecode($_POST["param0"])), $root_path)) {
-            print drupal_to_js(array('status' => TRUE, 'meta' => webfm_getmeta($source)));
+          $fid = rawurldecode($_POST["param0"]);
+          if(is_numeric($fid) && (($meta = webfm_getmeta($fid)) !== FALSE)) {
+            print drupal_to_js(array('status' => TRUE, 'meta' => $meta));
           } else {
             print drupal_to_js(array('status' => FALSE));
           }
@@ -1196,9 +1197,9 @@ function webfm_get_fid($path){
   return FALSE;
 }
 
-function webfm_getmeta($path) {
-  $query = "SELECT * FROM {webfm_file} WHERE fpath = '%s'";
-  if(($result = db_query($query, $path)) !== FALSE) {
+function webfm_getmeta($fid) {
+  $query = "SELECT * FROM {webfm_file} WHERE fid = %d";
+  if(($result = db_query($query, $fid)) !== FALSE) {
     if($row = db_fetch_object($result)) {
       return $row;
     }
