@@ -13,6 +13,8 @@ Webfm.dropContainers = [];
 Webfm.oldOnContextMenu = null;
 Webfm.oldOnMouseDown = null;
 Webfm.contextMenuDiv = null;
+Webfm.cache = [];
+Webfm.cache_history = [];
 
 //Translation possible by changing the values (DO NOT ALTER KEYS!)
 Webfm.js_msg = [];
@@ -32,6 +34,7 @@ Webfm.js_msg["no-match"] = "No match found";
 Webfm.js_msg["search"] = "Search";
 Webfm.js_msg["submit"] = "Submit";
 Webfm.js_msg["clear"] = "Clear";
+Webfm.js_msg["cache"] = "Cache Content";
 Webfm.js_msg["curdir-undef"] = "current directory undefined";
 Webfm.js_msg["ajax-err"] = "server is unreachable";
 Webfm.js_msg["list-err"] = "dir listing fetch fail";
@@ -210,26 +213,21 @@ Webfm.list = function(parent, id, type, mkdir_flag) {
 
   // Refresh Icon
   var elTd = Webfm.ce('td');
-  if(mkdir_flag !== true) {
-    elTd.colSpan = 3;
-  } else {
     elTd.className = 'navi';
     var elA = Webfm.ce('a');
     elA.setAttribute('href', '#');
     elA.setAttribute('title', Webfm.js_msg["refresh"]);
-    var listener = Webfm.addEventListener(elA, "click", function(e) { wl.refresh();Webfm.stopEvent(e); });
-
     var elImg = Webfm.ce('img');
     elImg.setAttribute('src', this.iconDir+ '/r.gif');
     elImg.setAttribute('alt', Webfm.js_msg["refresh"]);
     elA.appendChild(elImg);
     elTd.appendChild(elA);
     elTr.appendChild(elTd);
-  }
+    var listener = Webfm.addEventListener(elA, "click", function(e) { wl.refresh();Webfm.stopEvent(e); });
 
   // Breadcrumb trail
   var elTd = Webfm.ce('td');
-  elTd.colSpan = 2;
+  elTd.colSpan = (mkdir_flag === true) ? 2 : 3;
   elTd.setAttribute('class','navi');
   // Build breadcrumb trail inside span
   var elSpan = Webfm.ce('span');
@@ -270,7 +268,7 @@ Webfm.list = function(parent, id, type, mkdir_flag) {
   var listener = Webfm.addEventListener(elA, "click", function(e) { wl.sc_n^=1;wl.loadList("n");if(this.firstChild)this.firstChild.src = wl.iconDir + '/' + ((wl.sc_n)?"up":"down") + '.gif'; Webfm.stopEvent(e); });
 
   var elImg = Webfm.ce('img');
-  elImg.setAttribute('alt', "sort");
+  elImg.setAttribute('alt', Webfm.js_msg["sort"]);
   elImg.setAttribute('src', this.iconDir + '/down.gif');
   elA.appendChild(elImg);
   elA.appendChild(Webfm.ctn(Webfm.js_msg["column1"]));
@@ -282,11 +280,10 @@ Webfm.list = function(parent, id, type, mkdir_flag) {
   elTd.className = 'head';
   var elA = Webfm.ce('a');
   elA.setAttribute('href', '#');
-  elA.setAttribute('title', Webfm.js_msg["sort"]);
   var listener = Webfm.addEventListener(elA, "click", function(e) { wl.sc_m^=1;wl.loadList("m");if(this.firstChild)this.firstChild.src = wl.iconDir + '/' + ((wl.sc_m)?"up":"down") + '.gif';Webfm.stopEvent(e); });
 
   var elImg = Webfm.ce('img');
-  elImg.setAttribute('alt', "sort");
+  elImg.setAttribute('alt', Webfm.js_msg["sort"]);
   elImg.setAttribute('src', this.iconDir + '/down.gif');
   elA.appendChild(elImg);
   elA.appendChild(Webfm.ctn(Webfm.js_msg["column2"]));
@@ -298,12 +295,11 @@ Webfm.list = function(parent, id, type, mkdir_flag) {
   elTd.className = 'head';
   var elA = Webfm.ce('a');
   elA.setAttribute('href', '#');
-  elA.setAttribute('title', Webfm.js_msg["sort"]);
   //another IE hack
   var listener = Webfm.addEventListener(elA, "click", function(e) { if(this.firstChild) {wl.sc_s^=1;wl.loadList("s"); this.firstChild.src = wl.iconDir + '/' + ((wl.sc_s)?"up":"down") + '.gif';} Webfm.stopEvent(e); });
 
   var elImg = Webfm.ce('img');
-  elImg.setAttribute('alt', "sort");
+  elImg.setAttribute('alt', Webfm.js_msg["sort"]);
   elImg.setAttribute('src', this.iconDir + '/down.gif');
   elA.appendChild(elImg);
   elA.appendChild(Webfm.ctn(Webfm.js_msg["column3"]));
@@ -345,16 +341,40 @@ Webfm.list.prototype.bcrumb = function() {
 }
 
 Webfm.list.prototype.refresh = function() {
+  if(Webfm.cache_history.length) {
+    for(var i = 0; i < Webfm.cache_history.length; i++) {
+      if(Webfm.cache_history[i] == Webfm.current) {
+        Webfm.cache_history[i] = '';
+        Webfm.cache[i] = '';
+        break;
+      }
+    }
+  }
   this.fetch(Webfm.current);
 }
 
 Webfm.list.prototype.fetch = function(curr_dir) {
   Webfm.alrtObj.msg();
+  var fetch = 0;
   if(curr_dir || (curr_dir = Webfm.current)) {
     Webfm.dbgObj.dbg('fetch: ', curr_dir);
-    Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
-    var postObj = { action:"read", param0:encodeURIComponent(curr_dir) };
-    Webfm.HTTPPost(this.url, this.callback, this, postObj);
+    if(Webfm.cache_history.length) {
+      for(var i = 0; i < Webfm.cache_history.length; i++) {
+        if(Webfm.cache_history[i] == curr_dir) {
+          Webfm.dbgObj.dbg('cache hit: ', i);
+          this.content = Webfm.cache[i];
+          this.bcrumb();
+          this.loadList();
+          fetch = 1;
+          break;
+        }
+      }
+    }
+    if(!fetch) {
+      Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
+      var postObj = { action:"read", param0:encodeURIComponent(curr_dir) };
+      Webfm.HTTPPost(this.url, this.callback, this, postObj);
+    }
   } else {
     Webfm.dbgObj.dbg(Webfm.js_msg["curdir-undef"]);
   }
@@ -366,6 +386,7 @@ Webfm.list.prototype.callback = function(string, xmlhttp, cp) {
     cp.content = Drupal.parseJson(string);
     Webfm.dbgObj.dbg("list fetch:", Webfm.dump(cp.content));
     if(cp.content.status) {
+      cp.cache();
       cp.bcrumb();
       cp.loadList("n");
 
@@ -401,6 +422,23 @@ Webfm.list.prototype.mkdir_callback = function(string, xmlhttp, cp) {
   } else {
     Webfm.alrtObj.msg(Webfm.js_msg["ajax-err"]);
   }
+}
+
+Webfm.list.prototype.cache = function() {
+  // If current fetch not in cache_history array, add new cache_history element
+  // and cache server data
+  var j = Webfm.cache_history.length;
+  Webfm.cache_history[j] = this.content.current;
+  Webfm.cache[j] = this.content;
+  Webfm.dbgObj.dbg('cache_history: ', Webfm.dump(Webfm.cache_history));
+  return true;
+}
+
+Webfm.list.prototype.flushCache = function() {
+  //flush all
+  Webfm.dbgObj.dbg('flush cache');
+  Webfm.cache_history = new Array();
+  Webfm.cache = new Array();
 }
 
 Webfm.list.prototype.loadList = function(sortcol) {
@@ -520,7 +558,7 @@ Webfm.dirrow.prototype.select = function(event) {
         if(WebfmDrag.dragging==false) {
           Webfm.selectDir(cp.element.title);
         }
-      },100);
+      },200);
       //passthrough
     default:
       this.dd.mouseButton(event);
@@ -613,7 +651,7 @@ Webfm.filerow.prototype.select = function(event) {
         if(WebfmDrag.dragging==false) {
           Webfm.selectFile(cp.clickObj.title);
         }
-      },100);
+      },200);
       //passthrough
     default:
       this.dd.mouseButton(event);
@@ -895,7 +933,7 @@ Webfm.treeNode.prototype.select = function(event) {
         if(WebfmDrag.dragging==false) {
           Webfm.selectDir(cp.clickObj.title);
         }
-      },100);
+      },200);
       //passthrough
     default:
       this.dd.mouseButton(event);
@@ -936,8 +974,6 @@ Webfm.context.prototype.addContextMenu = function(menu, name) {
 }
 
 Webfm.context.prototype.hideContextMenu = function(event) {
-//  if(Webfm.renameActive == true)
-//    this.blur();
   // Hide context menu and restore document oncontextmenu handler
   Webfm.contextMenuDiv.style.display = 'none';
   document.body.oncontextmenu = Webfm.oldOnContextMenu;
@@ -996,8 +1032,8 @@ Webfm.context.prototype.event = function(event, obj) {
   var url = Webfm.ajaxUrl();
   // Determine if this.element is a file
   this.is_file = ((this.element.className != 'dirrow') && (this.element.className.substring(0,4) != 'tree'));
-Webfm.dbgObj.dbg("this.element.className:", this.element.className);
-Webfm.dbgObj.dbg("this.clickObj name:", this.clickObj.firstChild.nodeValue);
+//Webfm.dbgObj.dbg("this.element.className:", this.element.className);
+//Webfm.dbgObj.dbg("this.clickObj name:", this.clickObj.firstChild.nodeValue);
   //title of element is always full path (whether file or directory)
   var path = this.element.title;
   //event title is context menu operation
@@ -1024,9 +1060,9 @@ Webfm.dbgObj.dbg("this.clickObj name:", this.clickObj.firstChild.nodeValue);
       break;
 
     case 'meta':
-      Webfm.dbgObj.dbg("meta path", path);
+      Webfm.dbgObj.dbg("this.clickObj.title:", this.clickObj.title);
       Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
-      postObj = { action:"getmeta", param0:encodeURIComponent(path) };
+      postObj = { action:"getmeta", param0:encodeURIComponent(this.clickObj.title) };
       Webfm.HTTPPost(url, Webfm.meta_callback, '', postObj);
       break;
 
@@ -1130,6 +1166,7 @@ Webfm.ctx_callback = function(string, xmlhttp, cp) {
     if (result.status) {
       if(!cp.is_file && Webfm.dirTreeObj)
         Webfm.dirTreeObj.fetch();
+      Webfm.dirListObj.flushCache();
       Webfm.dirListObj.fetch(cp.droppath);
     } else
       Webfm.alrtObj.msg("operation fail");
@@ -1473,7 +1510,11 @@ Webfm.debug = function(parent) {
     elInput.setAttribute('type', 'button');
     elInput.setAttribute('value', Webfm.js_msg["clear"]);
     var listener = Webfm.addEventListener(elInput, "click", function(e) { Webfm.clearNodeById('dbg');Webfm.alrtObj.msg();Webfm.stopEvent(e); });
-
+    dbg_control.appendChild(elInput);
+    var elInput = Webfm.ce('input');
+    elInput.setAttribute('type', 'button');
+    elInput.setAttribute('value', Webfm.js_msg["cache"]);
+    var listener = Webfm.addEventListener(elInput, "click", function(e) { Webfm.alrtObj.msg(Webfm.dump(Webfm.cache));Webfm.stopEvent(e); });
     dbg_control.appendChild(elInput);
     fsetWrapper.appendChild(dbg_control);
     this.msg = Webfm.ce('div');
@@ -1877,7 +1918,8 @@ WebfmDD.prototype.callback = function(string, xmlhttp, cp) {
       //update tree if directory is moved
       if(!cp.is_file)
         Webfm.dirTreeObj.fetch();
-      //always update target directory
+      Webfm.dirListObj.flushCache();
+      //update target directory
       Webfm.dirListObj.fetch(cp.droppath);
     } else
       Webfm.alrtObj.msg(Webfm.js_msg["move-err"]);
@@ -2076,7 +2118,6 @@ Webfm.sortBySize = function(a, b) {
   var x = parseInt(parseFloat(a.s));
   var y = parseInt(parseFloat(b.s));
   return x - y;
-//  return parseInt(parseFloat(a.s)) - parseInt(parseFloat(b.s))
 }
 Webfm.sortByModified = function(a, b) {
   var x = a.m;
