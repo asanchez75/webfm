@@ -30,8 +30,8 @@ function webfm_mkdir($source, $dest){
  *
  * @ret   bool   -true if the directory is renamed and all file records updated
  */
-function webfm_rename($source, $dest) {
-  if(webfm_rename_db($source, $dest)) {
+function webfm_rename($source, $dest, $db_check) {
+  if($db_check === FALSE || webfm_rename_db($source, $dest)) {
     $dest_temp = $dest."~"; //handle possible case problem
     if(!(rename($source, $dest_temp))) {
       return FALSE;
@@ -210,7 +210,6 @@ function webfm_move_file($source, $dest, $db_check) {
       return FALSE;
     }
   }
-
   return TRUE;
 }
 
