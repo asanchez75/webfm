@@ -54,14 +54,15 @@ Webfm.menu_msg["chdir"] = "Open this directory";
 Webfm.menu_msg["meta"] = "File meta data";
 Webfm.menu_msg["att"] = "Attach to Node";
 Webfm.menu_msg["det"] = "Detach from Node";
+Webfm.menu_msg["dwnld"] = "Download as file";
 
 //Do not translate anything below this line
 Webfm.menu = [];
 Webfm.menu['root'] = { 'mkdir': Webfm.menu_msg["mkdir"] };
 Webfm.menu['dir'] = { 'mkdir': Webfm.menu_msg["mkdir"], 'rmdir': Webfm.menu_msg["rmdir"], 'ren': Webfm.menu_msg["ren"] };
-Webfm.menu['file'] = { 'rm': Webfm.menu_msg["rm"], 'ren': Webfm.menu_msg["ren"], 'meta': Webfm.menu_msg["meta"] };
+Webfm.menu['file'] = { 'rm': Webfm.menu_msg["rm"], 'ren': Webfm.menu_msg["ren"], 'meta': Webfm.menu_msg["meta"], 'dwnld' : Webfm.menu_msg["dwnld"] };
 Webfm.menu['attach'] = { 'det': Webfm.menu_msg["det"], 'meta': Webfm.menu_msg["meta"] };
-Webfm.menu['node'] = { 'att': Webfm.menu_msg["att"], 'rm': Webfm.menu_msg["rm"], 'ren': Webfm.menu_msg["ren"], 'meta': Webfm.menu_msg["meta"] };
+Webfm.menu['node'] = { 'att': Webfm.menu_msg["att"], 'rm': Webfm.menu_msg["rm"], 'ren': Webfm.menu_msg["ren"], 'meta': Webfm.menu_msg["meta"], 'dwnld': Webfm.menu_msg["dwnld"] };
 Webfm.menu['search'] = { 'chdir': Webfm.menu_msg["chdir"] };
 
 Webfm.dirTreeObj = null;
@@ -241,7 +242,7 @@ Webfm.list = function(parent, id, type, mkdir_flag) {
     var elInput = Webfm.ce('input');
     elInput.setAttribute('type', 'button');
     elInput.setAttribute('value', Webfm.js_msg["mkdir"]);
-    var listener = Webfm.addEventListener(elInput, "click", function(e) { wl.mkdir();Webfm.stopEvent(e); });
+    var listener = Webfm.addEventListener(elInput, "click", function(e) { Webfm.stopEvent(e);wl.mkdir(); });
 
     elTd.appendChild(elInput);
     elTr.appendChild(elTd);
@@ -357,6 +358,8 @@ Webfm.list.prototype.fetch = function(curr_dir) {
   Webfm.alrtObj.msg();
   var fetch = 0;
   if(curr_dir || (curr_dir = Webfm.current)) {
+    //update current dir if specific dir selected
+    Webfm.current = curr_dir;
     Webfm.dbgObj.dbg('fetch: ', curr_dir);
     if(Webfm.cache_history.length) {
       for(var i = 0; i < Webfm.cache_history.length; i++) {
@@ -415,10 +418,12 @@ Webfm.list.prototype.mkdir_callback = function(string, xmlhttp, cp) {
   if (xmlhttp.status == 200) {
     var result = Drupal.parseJson(string);
     Webfm.dbgObj.dbg("mkdir=", result.status);
-    if(result.status)
+    if(result.status) {
+      cp.flushCache()
       cp.fetch();
-    else
+    } else {
       Webfm.alrtObj.msg(Webfm.js_msg["mkdir-err"]);
+    }
   } else {
     Webfm.alrtObj.msg(Webfm.js_msg["ajax-err"]);
   }
@@ -482,7 +487,7 @@ Webfm.list.prototype.sortTable = function(arr, type, key) {
         var dirrow = new Webfm.dirrow(parent, arr[i], i);
       }
       else
-        var filerow = new Webfm.filerow(parent, arr[i], type);
+        var filerow = new Webfm.filerow(parent, arr[i], type, i);
   }
 }
 
@@ -492,6 +497,7 @@ Webfm.list.prototype.sortTable = function(arr, type, key) {
 Webfm.dirrow = function(parent, dir, index) {
   var dr = this;
   this.iconDir = getIconDir();
+  //id used for drop container
   var _id = 'dirlist' + index;
   var elTr = Webfm.ce('tr');
   this.element = elTr;
@@ -581,7 +587,7 @@ Webfm.dirrow.prototype.select = function(event) {
  * w -> image width
  * h -> image height
  */
-Webfm.filerow = function(parent, fileObj, idtype) {
+Webfm.filerow = function(parent, fileObj, idtype, index) {
   var fr = this;
   this.iconDir = getIconDir();
   this.ext = fileObj.e;
@@ -590,7 +596,10 @@ Webfm.filerow = function(parent, fileObj, idtype) {
   this.element = elTr;
   elTr.className = idtype + 'row';
   this.dd = new WebfmDD(elTr, elTr.className);
-  elTr.setAttribute('id', idtype + '-' + fileObj.id);
+  //drag object id used for download type
+  var row_id = fileObj.id ? idtype + '-' + fileObj.id : 'ftpfile' + index;
+  elTr.setAttribute('id', row_id);
+
   //title of drag object is path for move
   elTr.setAttribute('title', this.filepath);
 
@@ -609,7 +618,10 @@ Webfm.filerow = function(parent, fileObj, idtype) {
   this.clickObj = Webfm.ce('a');
   this.clickObj.setAttribute('href', '#');
   //title is id for webfm_send
-  this.clickObj.setAttribute('title', fileObj.id);
+  if(fileObj.id)
+    this.clickObj.setAttribute('title', fileObj.id);
+  else
+    this.clickObj.setAttribute('title', this.filepath);
   this.clickObj.appendChild(Webfm.ctn(fileObj.n));
   elTd.appendChild(this.clickObj);
   elTr.appendChild(elTd);
@@ -629,7 +641,7 @@ Webfm.filerow = function(parent, fileObj, idtype) {
   var listener = Webfm.addEventListener(this.element, "mousedown", function(e) { Webfm.contextMenuObj.hideContextMenu(e); fr.select(e); });
   var listener = Webfm.addEventListener(this.element, "mouseover", function() { this.className = idtype + 'row selected'; });
   var listener = Webfm.addEventListener(this.element, "mouseout", function() { this.className = idtype + 'row'; });
-  var listener = Webfm.addEventListener(this.element, "contextmenu", function(e) { if(Webfm.renameActive == false)Webfm.contextMenuObj.showContextMenu(e, fr); });
+  var listener = Webfm.addEventListener(this.element, "contextmenu", function(e) { if(Webfm.renameActive == false)Webfm.contextMenuObj.showContextMenu(e, fr);Webfm.stopEvent(e); });
 
   parent.appendChild(elTr);
   this.c_fil++;
@@ -649,7 +661,8 @@ Webfm.filerow.prototype.select = function(event) {
       setTimeout(function(){
         //if click then no dragging...
         if(WebfmDrag.dragging==false) {
-          Webfm.selectFile(cp.clickObj.title);
+          //element id used for download method (webfm_send||direct http access)
+          Webfm.selectFile(cp.clickObj.title, cp.element.id);
         }
       },200);
       //passthrough
@@ -912,7 +925,7 @@ Webfm.treeNode = function(parent, path, id, count, expImg) {
   }
   var listener = Webfm.addEventListener(parent, "mouseover", function() { this.className = 'selected'; });
   var listener = Webfm.addEventListener(parent, "mouseout", function() { this.className = ''; });
-  var listener = Webfm.addEventListener(parent, "contextmenu", function(e) { if(Webfm.renameActive == false)Webfm.contextMenuObj.showContextMenu(e, tn); });
+  var listener = Webfm.addEventListener(parent, "contextmenu", function(e) { if(Webfm.renameActive == false)Webfm.contextMenuObj.showContextMenu(e, tn);Webfm.stopEvent(e); });
 }
 
 Webfm.treeNode.prototype.select = function(event) {
@@ -946,13 +959,23 @@ Webfm.selectDir = function(path) {
   Webfm.dirListObj.fetch(path);
 }
 
-Webfm.selectFile = function(path) {
-  var cleanUrl = getCleanUrl();
-  if(cleanUrl) {
-    var url = getBaseUrl();
-    window.location = url + '/webfm_send/' + path;
+Webfm.selectFile = function(path, id, as_file) {
+  //files in ftp listing have file path as title
+  //files inside webfm have fid as title
+  var ftp = false;
+  if(id.substring(0,3) != 'ftp') {
+    path = 'webfm_send/' + path;
+    if(as_file == true)
+      path += '/1';
   } else {
-    window.location = '?q=webfm_send/' + path;
+    ftp = true;
+  }
+  var cleanUrl = getCleanUrl();
+  if(cleanUrl || ftp == true) {
+    var url = getBaseUrl();
+    window.location = url + '/' + path;
+  } else {
+    window.location = '?q=' + path;
   }
 }
 
@@ -1001,7 +1024,8 @@ Webfm.context.prototype.showContextMenu = function(event, obj) {
     elLi.setAttribute('title', j);
     elLi.appendChild(Webfm.ctn(contextmenu[j]));
     //mouse event listeners
-    var listener = Webfm.addEventListener(elLi, "mousedown", function(e) { cp.callback(e, cp); });
+    //call callback func (contrib module func possible)
+    var listener = Webfm.addEventListener(elLi, "mousedown", function(e) { cp.callback(e,cp); cp.hideContextMenu(e); Webfm.stopEvent(e); });
     var listener = Webfm.addEventListener(elLi, "mouseover", function(e) { this.className = 'cxtContHover'; });
     var listener = Webfm.addEventListener(elLi, "mouseout", function(e) { this.className = ''; });
     elUl.appendChild(elLi);
@@ -1050,7 +1074,7 @@ Webfm.context.prototype.event = function(event, obj) {
       break;
 
     case 'mkdir':
-        Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
+      Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
       postObj = { action:"mkdir", param0:encodeURIComponent(path) };
       Webfm.HTTPPost(url, Webfm.ctx_callback, this, postObj);
       break;
@@ -1117,6 +1141,10 @@ Webfm.context.prototype.event = function(event, obj) {
         Webfm.$(Webfm.attachFormInput).value = new_attach_arr.join(',');
       }
       break;
+
+    case 'dwnld':
+      Webfm.selectFile(this.clickObj.title, this.element.id, true);
+      break;
   }
   return false;
 }
@@ -1164,8 +1192,12 @@ Webfm.ctx_callback = function(string, xmlhttp, cp) {
   if (xmlhttp.status == 200) {
     var result = Drupal.parseJson(string);
     if (result.status) {
-      if(!cp.is_file && Webfm.dirTreeObj)
-        Webfm.dirTreeObj.fetch();
+      if(!cp.is_file) {
+        if(cp.element.id.substring(0,3) == 'ftp')
+          Webfm.ftpTreeObj.fetch();
+        else if(Webfm.dirTreeObj)
+          Webfm.dirTreeObj.fetch();
+      }
       Webfm.dirListObj.flushCache();
       Webfm.dirListObj.fetch(cp.droppath);
     } else
@@ -1464,6 +1496,7 @@ Webfm.search.prototype.callback = function(string, xmlhttp, cp) {
       for(var i = (result.files.length - 1); i >= 0; i--) {
         var _id = 'searchrow' + i;
         var elLi = Webfm.ce('li');
+        elLi.setAttribute('id', _id);
         elLi.className = cp.listId + 'row';
 
         var iconDir = getIconDir();
@@ -1480,7 +1513,7 @@ Webfm.search.prototype.callback = function(string, xmlhttp, cp) {
         var elA = Webfm.ce('a');
         elA.setAttribute('href', '#');
         elA.setAttribute('title', result.files[i].id);
-        var listener = Webfm.addEventListener(elA, "click", function(e) { Webfm.selectFile(this.title);Webfm.stopEvent(e); });
+        var listener = Webfm.addEventListener(elA, "click", function(e) { Webfm.selectFile(this.title, this.parentNode.id); Webfm.stopEvent(e); });
         elA.appendChild(Webfm.ctn(result.files[i].n));
         elLi.appendChild(elA);
 
@@ -1919,8 +1952,12 @@ WebfmDD.prototype.callback = function(string, xmlhttp, cp) {
       if(!cp.is_file)
         Webfm.dirTreeObj.fetch();
       Webfm.dirListObj.flushCache();
-      //update target directory
-      Webfm.dirListObj.fetch(cp.droppath);
+      if (cp.element.className != 'treerow')
+        //listing draggable - update current listing by removing dropped item
+        cp.element.parentNode.removeChild(cp.element)
+      else
+        //tree draggable - update target directory
+        Webfm.dirListObj.fetch(cp.droppath);
     } else
       Webfm.alrtObj.msg(Webfm.js_msg["move-err"]);
   } else {
