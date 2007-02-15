@@ -6,7 +6,6 @@ function WebfmDrag() {}
 /*
 ** Global variables
 */
-Webfm.layout = null;
 Webfm.current = null;
 Webfm.dropContainers = [];
 
@@ -16,9 +15,11 @@ Webfm.contextMenuDiv = null;
 Webfm.cache = [];
 Webfm.cache_history = [];
 
-//Translation possible by changing the values (DO NOT ALTER KEYS!)
+//Translation possible by changing the array values (DO NOT ALTER KEYS!)
 Webfm.js_msg = [];
 Webfm.js_msg["mkdir"] = "Create New Dir";
+Webfm.js_msg["file"] = "file";
+Webfm.js_msg["directory"] = "directory";
 Webfm.js_msg["work"] = "Working...";
 Webfm.js_msg["refresh"] = "refresh";
 Webfm.js_msg["sort"] = "sort by this column";
@@ -45,25 +46,27 @@ Webfm.js_msg["fetch-att-err"] = "fetch attachments fail";
 Webfm.js_msg["getmeta-err"] = "get metadata fail";
 Webfm.js_msg["sendmeta-err"] = "submit metadata fail";
 Webfm.js_msg["len-err"] = "Too long";
+Webfm.js_msg["confirm-del0"] = "Do you want to delete the ";
+Webfm.js_msg["confirm-del1"] = " and all its contents";
+Webfm.js_msg["confirm-det"] = "Do you want to detach ";
+
 Webfm.menu_msg = [];
 Webfm.menu_msg["mkdir"] = "Create Subdirectory";
 Webfm.menu_msg["rmdir"] = "Delete Directory";
 Webfm.menu_msg["rm"] = "Delete File";
 Webfm.menu_msg["ren"] = "Rename";
-Webfm.menu_msg["chdir"] = "Open this directory";
 Webfm.menu_msg["meta"] = "File meta data";
 Webfm.menu_msg["att"] = "Attach to Node";
 Webfm.menu_msg["det"] = "Detach from Node";
 Webfm.menu_msg["dwnld"] = "Download as file";
+//Do not translate any code below this line
 
-//Do not translate anything below this line
 Webfm.menu = [];
 Webfm.menu['root'] = { 'mkdir': Webfm.menu_msg["mkdir"] };
 Webfm.menu['dir'] = { 'mkdir': Webfm.menu_msg["mkdir"], 'rmdir': Webfm.menu_msg["rmdir"], 'ren': Webfm.menu_msg["ren"] };
 Webfm.menu['file'] = { 'rm': Webfm.menu_msg["rm"], 'ren': Webfm.menu_msg["ren"], 'meta': Webfm.menu_msg["meta"], 'dwnld' : Webfm.menu_msg["dwnld"] };
 Webfm.menu['attach'] = { 'det': Webfm.menu_msg["det"], 'meta': Webfm.menu_msg["meta"] };
 Webfm.menu['node'] = { 'att': Webfm.menu_msg["att"], 'rm': Webfm.menu_msg["rm"], 'ren': Webfm.menu_msg["ren"], 'meta': Webfm.menu_msg["meta"], 'dwnld': Webfm.menu_msg["dwnld"] };
-Webfm.menu['search'] = { 'chdir': Webfm.menu_msg["chdir"] };
 
 Webfm.dirTreeObj = null;
 Webfm.ftpTreeObj = null;
@@ -113,7 +116,6 @@ function webfmLayout() {
   layoutDiv = Webfm.$('webfm');
 
   if(layoutDiv) {
-    Webfm.layout = 'webfm';
     var layout_cont = Webfm.ce('div');
     Webfm.alrtObj = new Webfm.alert(layout_cont, 'alertbox');
     var elTreeDiv = Webfm.ce('div');
@@ -122,16 +124,13 @@ function webfmLayout() {
     Webfm.dirTreeObj = new Webfm.tree(elTreeDiv, 'dirtree', 'Directory', 'readtree');
     Webfm.ftpTreeObj = new Webfm.tree(elTreeDiv, 'ftptree', 'FTP Directory', 'readftptree');
     Webfm.progressObj = new Webfm.progress(layout_cont, 'progress');
-    Webfm.dirListObj = new Webfm.list(layout_cont, 'dirlist', 'file', true);
+    Webfm.dirListObj = new Webfm.list(layout_cont, 'dirlist', 'file', true, 'narrow');
     var metaObj = new Webfm.meta(layout_cont);
     var searchObj = new Webfm.search(layout_cont, 'search');
     Webfm.contextMenuObj = new Webfm.context();
-
-    var elDiv = Webfm.ce('div');
-    elDiv.setAttribute('id', 'download'); //css id
-    layout_cont.appendChild(elDiv);
+    //insert trees, listing, search, metadata, progress and alert divs before upload fset
     layoutDiv.insertBefore(layout_cont, layoutDiv.firstChild);
-
+    //append debug div
     Webfm.dbgObj = new Webfm.debug(getDebugFlag() ? layoutDiv : '');
 
     Webfm.dirTreeObj.fetch(true);
@@ -144,7 +143,6 @@ function webfmAttachmentLayout() {
   layoutDiv = Webfm.$('webfm-inline');
 
   if(layoutDiv) {
-    Webfm.layout = 'webfm-inline';
     var layout_cont = Webfm.ce('div');
     Webfm.alrtObj = new Webfm.alert(layout_cont, 'alertbox');
     var elTreeDiv = Webfm.ce('div');
@@ -152,15 +150,12 @@ function webfmAttachmentLayout() {
     layout_cont.appendChild(elTreeDiv);
     Webfm.dirTreeObj = new Webfm.tree(elTreeDiv, 'dirtree', 'Directory', 'readtree');
     Webfm.progressObj = new Webfm.progress(layout_cont, 'progress');
-    Webfm.dirListObj = new Webfm.list(layout_cont, 'dirlist', 'node', true);
+    Webfm.dirListObj = new Webfm.list(layout_cont, 'dirlist', 'node', true, 'narrow');
     var searchObj = new Webfm.search(layout_cont, 'search');
     Webfm.contextMenuObj = new Webfm.context();
-
-    var elDiv = Webfm.ce('div');
-    elDiv.setAttribute('id', 'download'); //css id
-    layout_cont.appendChild(elDiv);
+    //insert tree, listing, search, progress and alert divs before upload fset
     layoutDiv.insertBefore(layout_cont, layoutDiv.firstChild);
-
+    //append debug div
     Webfm.dbgObj = new Webfm.debug(getDebugFlag() ? layoutDiv : '');
 
     // attach list anchored to 'webfm-attach' div in webfm_attachment_form_alter()
@@ -190,8 +185,13 @@ function contextContainer() {
 
 /**
  * Webfm.list constructor
+ *
+ * 2nd param is base id of listing (multiple listing objects must have unique ids)
+ * 3rd param is base id of file rows of table
+ * 4th param is flag to determine if table head has the 'Create New Dir' button
+ * 5th param sets styling for listing
  */
-Webfm.list = function(parent, id, type, mkdir_flag) {
+Webfm.list = function(parent, id, type, mkdir_flag, class_name) {
   var wl = this;
   this.id = id;
   this.type = type;
@@ -203,11 +203,12 @@ Webfm.list = function(parent, id, type, mkdir_flag) {
   this.iconDir = getIconDir();
 
   var node = Webfm.ce("div");
-  node.setAttribute('id', id);
+  node.setAttribute('id', this.id);
+  node.className = class_name;
 
   var elTable = Webfm.ce('table');
   var elTableBody = Webfm.ce('tbody');
-  elTableBody.setAttribute('id', id + 'body');
+  elTableBody.setAttribute('id', this.id + 'body');
 
   // First Row
   var elTr = Webfm.ce('tr');
@@ -232,7 +233,7 @@ Webfm.list = function(parent, id, type, mkdir_flag) {
   elTd.setAttribute('class','navi');
   // Build breadcrumb trail inside span
   var elSpan = Webfm.ce('span');
-  elSpan.setAttribute('id', id + 'bcrumb');
+  elSpan.setAttribute('id', this.id + 'bcrumb');
   elTd.appendChild(elSpan);
   elTr.appendChild(elTd);
 
@@ -355,7 +356,7 @@ Webfm.list.prototype.refresh = function() {
 }
 
 Webfm.list.prototype.fetch = function(curr_dir) {
-  Webfm.alrtObj.msg();
+//  Webfm.alrtObj.msg();
   var fetch = 0;
   if(curr_dir || (curr_dir = Webfm.current)) {
     //update current dir if specific dir selected
@@ -702,6 +703,10 @@ Webfm.filerow.prototype.getIconByExt = function() {
 
 /**
  * Webfm.tree constructor
+ *
+ * 2nd param is base id of listing (multiple tree objects must have unique ids)
+ * 3rd param is name of tree
+ * 4th param is ajax fetch operation
  */
 Webfm.tree = function(parent, id, treeTitle, op) {
   var wt = this;
@@ -1050,8 +1055,6 @@ Webfm.context.prototype.showContextMenu = function(event, obj) {
 
 //Default menu selection handler (see Webfm.context constructor arg)
 Webfm.context.prototype.event = function(event, obj) {
-  var cp = this;
-  var postObj = {};
   event = event||window.event;
   var url = Webfm.ajaxUrl();
   // Determine if this.element is a file
@@ -1065,81 +1068,27 @@ Webfm.context.prototype.event = function(event, obj) {
   switch((event.target||event.srcElement).title) {
     case 'rmdir':
     case 'rm':
-      if(this.confirm("Do you want to delete the " + (this.is_file ? "file " : "directory ") + path + (this.is_file ? "" : " and all its contents") + "?")) {
-        Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
-        postObj = { action:"delete", param0:encodeURIComponent(path) };
-        Webfm.HTTPPost(url, Webfm.ctx_callback, this, postObj);
-        return false;
-      }
+      this.remove(url, path);
       break;
 
     case 'mkdir':
-      Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
-      postObj = { action:"mkdir", param0:encodeURIComponent(path) };
-      Webfm.HTTPPost(url, Webfm.ctx_callback, this, postObj);
-      break;
-
-    case 'chdir':
-      Webfm.dbgObj.dbg("chdir", eventId);
+      this.mkdir(url, path);
       break;
 
     case 'meta':
-      Webfm.dbgObj.dbg("this.clickObj.title:", this.clickObj.title);
-      Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
-      postObj = { action:"getmeta", param0:encodeURIComponent(this.clickObj.title) };
-      Webfm.HTTPPost(url, Webfm.meta_callback, '', postObj);
+      this.getmeta(url);
       break;
 
     case 'ren':
-      this.renInput.value = this.clickObj.firstChild.nodeValue;
-      //clone input element since Webfm.contextMenuObj isn't destroyed on DOM
-      this.tempInput = this.renInput.cloneNode(true);
-      this.tempInput.setAttribute('autocomplete','off'); //FF focus bug
-      this.clickparent = this.clickObj.parentNode;
-      this.clickparent.replaceChild(this.tempInput, this.clickObj);
-      //no change (blur) - restore original textNode
-      var listener = Webfm.addEventListener(this.tempInput, "blur", function (e) { Webfm.renameActive = false; cp.clickparent.replaceChild(cp.clickObj, cp.tempInput);Webfm.stopEvent(e);  });
-      //listen for enter key up - swap names (illegal names are ignored on server and next list
-      //refresh will restore the proper filename)
-      var listener = Webfm.addEventListener(this.tempInput, "keyup", function(e) { if(Webfm.enter(e) && Webfm.renameActive == true) cp.swapname(url, cp.tempInput); });
-      setTimeout(function(){ cp.tempInput.focus();Webfm.renameActive = true; },10);
+      this.rename(url);
       break;
 
     case 'att':
-      var fid = this.element.id.substring(this.element.id.indexOf('-') + 1);
-      //check that this file is not already attached
-      var attach_arr = [];
-      attach_arr = Webfm.$(Webfm.attachFormInput).value.split(',');
-      for(var i = 0; i < attach_arr.length; i++) {
-         if(fid == attach_arr[i])
-            break;
-      }
-      if(i == attach_arr.length) {
-        var url = Webfm.ajaxUrl();
-        Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
-        postObj = { action:"attachfile", param0:encodeURIComponent(fid) };
-        Webfm.HTTPPost(url, Webfm.attach_callback, this, postObj);
-      }
+      this.attach(url);
       break;
 
     case 'det':
-      if(this.confirm("Do you want to detach " + path + "?")) {
-        // update table
-        this.element.parentNode.removeChild(this.element);
-        // update form input
-        var attach_arr = [];
-        attach_arr = Webfm.$(Webfm.attachFormInput).value.split(',');
-        var new_attach_arr = [];
-        var j = 0;
-        // tr elements use 'fid#' in 'title' field
-        var fid = this.element.id.substring(this.element.id.indexOf('-') + 1);
-        for(var i = 0; i < attach_arr.length; i++) {
-          if(attach_arr[i] != fid) {
-            new_attach_arr[j++] = attach_arr[i];
-          }
-        }
-        Webfm.$(Webfm.attachFormInput).value = new_attach_arr.join(',');
-      }
+      this.detach(path);
       break;
 
     case 'dwnld':
@@ -1147,6 +1096,80 @@ Webfm.context.prototype.event = function(event, obj) {
       break;
   }
   return false;
+}
+
+Webfm.context.prototype.remove = function(url, path) {
+  if(this.confirm(Webfm.js_msg["confirm-del0"] + (this.is_file ? Webfm.js_msg["file"] : Webfm.js_msg["directory"]) + " " + path + (this.is_file ? "" : Webfm.js_msg["confirm-del1"]) + "?")) {
+    Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
+    var postObj = { action:"delete", param0:encodeURIComponent(path) };
+    Webfm.HTTPPost(url, Webfm.ctx_callback, this, postObj);
+    return false;
+  }
+}
+
+Webfm.context.prototype.mkdir = function(url, path) {
+  Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
+  var postObj = { action:"mkdir", param0:encodeURIComponent(path) };
+  Webfm.HTTPPost(url, Webfm.ctx_callback, this, postObj);
+}
+
+Webfm.context.prototype.rename = function(url) {
+  cp = this;
+  this.renInput.value = this.clickObj.firstChild.nodeValue;
+  //clone input element since Webfm.contextMenuObj isn't destroyed on DOM
+  this.tempInput = this.renInput.cloneNode(true);
+  this.tempInput.setAttribute('autocomplete','off'); //FF focus bug
+  this.clickparent = this.clickObj.parentNode;
+  this.clickparent.replaceChild(this.tempInput, this.clickObj);
+  //no change (blur) - restore original textNode
+  var listener = Webfm.addEventListener(this.tempInput, "blur", function (e) { Webfm.renameActive = false; cp.clickparent.replaceChild(cp.clickObj, cp.tempInput);Webfm.stopEvent(e);  });
+  //listen for enter key up - swap names (illegal names are ignored on server and next list
+  //refresh will restore the proper filename)
+  var listener = Webfm.addEventListener(this.tempInput, "keyup", function(e) { if(Webfm.enter(e) && Webfm.renameActive == true) cp.swapname(url, cp.tempInput); });
+  setTimeout(function(){ cp.tempInput.focus();Webfm.renameActive = true; },10);
+}
+
+Webfm.context.prototype.getmeta = function(url) {
+  Webfm.dbgObj.dbg("this.clickObj.title:", this.clickObj.title);
+  Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
+  var postObj = { action:"getmeta", param0:encodeURIComponent(this.clickObj.title) };
+  Webfm.HTTPPost(url, Webfm.meta_callback, '', postObj);
+}
+
+Webfm.context.prototype.attach = function(url) {
+  var fid = this.element.id.substring(this.element.id.indexOf('-') + 1);
+  //check that this file is not already attached
+  var attach_arr = [];
+  attach_arr = Webfm.$(Webfm.attachFormInput).value.split(',');
+  for(var i = 0; i < attach_arr.length; i++) {
+     if(fid == attach_arr[i])
+        break;
+  }
+  if(i == attach_arr.length) {
+    Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
+    var postObj = { action:"attachfile", param0:encodeURIComponent(fid) };
+    Webfm.HTTPPost(url, Webfm.attach_callback, this, postObj);
+  }
+}
+
+Webfm.context.prototype.detach = function(path) {
+  if(this.confirm(Webfm.js_msg["confirm-det"] + path + "?")) {
+    // update table
+    this.element.parentNode.removeChild(this.element);
+    // update form input
+    var attach_arr = [];
+    attach_arr = Webfm.$(Webfm.attachFormInput).value.split(',');
+    var new_attach_arr = [];
+    var j = 0;
+    // tr elements use 'fid#' in 'title' field
+    var fid = this.element.id.substring(this.element.id.indexOf('-') + 1);
+    for(var i = 0; i < attach_arr.length; i++) {
+      if(attach_arr[i] != fid) {
+        new_attach_arr[j++] = attach_arr[i];
+      }
+    }
+    Webfm.$(Webfm.attachFormInput).value = new_attach_arr.join(',');
+  }
 }
 
 Webfm.context.prototype.confirm = function(text) {
