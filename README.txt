@@ -8,23 +8,23 @@ arrange files on the server in the same way they do with file managers on their
 personal systems. This ability to heirarchically arrange files greatly
 enhances the  managability of large collections of data.
 
-Currently the module has two components and two separate settings controls.  The
-main component is the file manager module.  The optional component is the
-attachment module.
-
 WebFM does not exclude the use of the upload.module or other modules that depend
 on the flat filesystem schema.  WebFM uses the file_move and file_copy functions
 from file.inc.
 
 Bug reports can be sent to the email address in the credits area below.
 
+
 Installation
 ------------------------------------------------------------------------------
 
   - Copy the webfm directory to your Drupal modules directory
-  - Enable the module(s) on Drupal's admin/modules page.  An install file
-    updates the database with the necessary table additions.
-  - Set the module(s) settings on the admin/settings/<module> page
+  - Enable the module on Drupal's admin/modules page.  An install file
+  updates the database with the necessary table additions.
+  - Configure the module at admin/settings/webfm and create the root
+  sub-directories.
+  - Update the menu cache by navigating to admin/menu
+
 
 Configuration
 ------------------------------------------------------------------------------
@@ -47,11 +47,12 @@ of the filesystem on the server.
   - Optionally a .htaccess file can be placed in the webfm dir to secure file
   access (apache servers).
 
+
 Features
 ------------------------------------------------------------------------------
 
   - Application-like look and feel via AJAX
-  - Drag and drop moves of files and directories (recursive)
+  - Drag and drop moves of files and directories
   - Attachment of files to multiple nodes - location independence allows dir
     restructuring to have no affect on attachment functionality
   - Drag and drop attachment ordering
@@ -64,6 +65,7 @@ Features
   - File search
   - Debug area for javascript development
 
+
 To Do
 ------------------------------------------------------------------------------
 
@@ -74,6 +76,7 @@ To Do
     plugin?)
   - HTTPS?
 
+
 Credits / Contact
 ------------------------------------------------------------------------------
 
@@ -81,11 +84,12 @@ Credits / Contact
 401 Richmond St. W., Suite 384, Toronto, ON, Canada  M5V 3A8
 http://web.net
 
-This module was created by Web Networks for the Ontario Nurses' Association
-website. The author and maintainer of the module is Rob Milne. Send bug reports,
-feature requests, or other comments to robmilne@web.net.
-Andre Molnar provided most of the db work and a lot of the php.
-Paul Shales assisted in the early development of attachment and context menuing.
+Bug reports, feature requests, or other comments can be made on the project page
+at http://drupal.org/project/webfm.
+
+The author and maintainer of the module is Rob Milne.  Andre Molnar provided
+most of the db work and a lot of the php. Paul Shales assisted in the early
+development of attachment and context menuing.
 
 Some of the php source is based on the Drupal upload module.  The upload
 component is little changed.
