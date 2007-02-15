@@ -1,9 +1,7 @@
 /* webfm.css */
 img { border: 0; }
 
-#download { visibility: hidden; background:pink;}
-
-#dirlist { text-align: left; margin-left: 200px; }
+#dirlist.narrow { text-align: left; margin-left: 200px; }
 #dirlist.wide { margin-left:0px; }
 #dirlist table { width:100%; font:normal 10pt/normal Arial; margin:0 auto; cursor:default; background-color:#f0f0f0; border:2px solid #d0d0d0; }
 #dirlist td { border-bottom: 1px solid #d8d8d8; }
