@@ -548,11 +548,13 @@ function webfm_ajax () {
       case "getmeta":
         if(isset($_POST["param0"])) {
           $fid = rawurldecode($_POST["param0"]);
-          if(is_numeric($fid) && (($meta = webfm_getmeta($fid)) !== FALSE)) {
+          if(($meta = webfm_get_file_record($fid)) !== FALSE) {
             print drupal_to_js(array('status' => TRUE, 'meta' => $meta));
           } else {
             print drupal_to_js(array('status' => FALSE));
           }
+        } else {
+          print drupal_to_js(array('status' => FALSE));
         }
         exit();
         break;
@@ -581,11 +583,15 @@ function webfm_ajax () {
 
       //Get file info by fid for attachment
       case "attachfile":
+        if(isset($_POST["param0"])) {
+          // param0 = fid
         $fid = rawurldecode($_POST["param0"]);
-        $query = "SELECT * FROM {webfm_file} WHERE fid = '%s'";
-        if($_file = db_fetch_object(db_query($query, $fid))) {
+          if(($_file = webfm_get_file_record($fid)) !== FALSE) {
           $file = new fdesc($_file);
           print drupal_to_js(array('status' => TRUE, 'attach' => $file));
+        } else {
+          print drupal_to_js(array('status' => FALSE));
+        }
         } else {
           print drupal_to_js(array('status' => FALSE));
         }
@@ -977,12 +983,10 @@ class searchFiles {
  * @param bool $attach - 1 = attach / 0 = inline
  */
 function webfm_send_file($fid, $attach = false) {
-  $query = "SELECT * FROM {webfm_file} WHERE fid = '%s'";
-  if($f = db_fetch_object(db_query($query, $fid))) {
+  if(($f = webfm_get_file_record($fid)) !== FALSE) {
     // Put file path into session var so back button can return to this dir
-    $path = dirname($f->fpath);
     //temporary storage of download directory for back button navigation
-    $_SESSION['directory'] = $path;
+    $_SESSION['directory'] = dirname($f->fpath);
 
     $name=basename($f->fpath);
 
@@ -1204,11 +1208,13 @@ function webfm_get_fid($path){
   return FALSE;
 }
 
-function webfm_getmeta($fid) {
-  $query = "SELECT * FROM {webfm_file} WHERE fid = %d";
-  if(($result = db_query($query, $fid)) !== FALSE) {
-    if($row = db_fetch_object($result)) {
-      return $row;
+function webfm_get_file_record($fid) {
+  if(is_numeric($fid)) {
+    $query = "SELECT * FROM {webfm_file} WHERE fid = %d";
+    if(($result = db_query($query, $fid)) !== FALSE) {
+      if($row = db_fetch_object($result)) {
+        return $row;
+      }
     }
   }
   return FALSE;
@@ -1225,7 +1231,6 @@ function webfm_putmeta($fid, $metadata) {
         $metadata[substr($field, 1, strpos($field, '=') - 1)] = substr($field, strpos($field, '=') + 1);
       }
     }
-
     if(isset($metadata)) {
       return webfm_dbupdate_file($fid, '', $metadata);
     } else
@@ -1278,9 +1283,7 @@ function _webfm_dbdelete_file_fid($fid){
  * @param array $fids - could be a comma seperated string - we need to work that out - works both ways now
  * @return TRUE if records were updated - NULL if no changes were required.
  */
-
 function webfm_dbupdate_attach($nid, $fids){
-//  drupal_set_message(t('fidcount= %fid', array('%fid' => count($fids))));
   $i = 0;
   if(!webfm_check_attach_order($nid, $fids)){ //the new fids are different from the old ones
     $query = "DELETE FROM {webfm_attach} WHERE nid = %d";
@@ -1320,7 +1323,6 @@ function webfm_check_attach_order($nid, $fids){
       }
     }
   }
-
   if($match)
     return TRUE;
 }
@@ -1334,19 +1336,16 @@ function webfm_check_attach_order($nid, $fids){
  *
  * @return bool - TRUE if success - else FALSE
  */
-
 function webfm_dbinsert_attach($nid, $fid, $weight){
-//  drupal_set_message('DBG: SELECT * FROM {webfm_attach} WHERE nid = '. $nid .' AND fid = '.$fid);
   $query = 'SELECT * FROM {webfm_attach} WHERE nid = %d AND fid = %d';
   $result = db_query($query, $nid, $fid);
-  if(!mysql_num_rows($result) == 0) {
+  if(db_num_rows($result) !== 0) {
    drupal_set_message(t('File is already attached to this node.'));
    return FALSE;
   } else {
     //actually do the attacment if its not already attached....
     $query = 'INSERT INTO {webfm_attach} (nid, fid, weight) VALUES (%d, %d, %s)';
     $result = db_query($query, $nid, $fid, $weight);
-
     if($result === FALSE) {
       drupal_set_message(t('Query Failed:  Could not attach files to node ') . $nid);
       return FALSE;
