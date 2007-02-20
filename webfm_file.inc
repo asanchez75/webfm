@@ -27,42 +27,43 @@ function webfm_mkdir($source, $dest){
  *
  * @param string $source - the source directory path
  * @param string $dest - the destination directory name
+ * @param bool $db_check - true if db record update required
  *
- * @ret   bool   -true if the directory is renamed and all file records updated
+ * @ret   bool   -true if the directory/file is renamed and file record(s)
+ *                updated if dir/file under db control
  */
 function webfm_rename($source, $dest, $db_check) {
-  if($db_check === FALSE || webfm_rename_db($source, $dest)) {
-    $dest_temp = $dest."~"; //handle possible case problem
-    if(!(rename($source, $dest_temp))) {
+  $dest_temp = $dest."~"; //handle possible case problem
+  if(!(is_file($dest) || is_dir($dest)) && rename($source, $dest_temp)) {
+    if(!(rename($dest_temp, $dest))) {
+      rename($dest_temp, $source);
       return FALSE;
-    } else {
-      if(!(rename($dest_temp, $dest))) {
-        return FALSE;
+    } else if($db_check) {
+      if(is_file($dest))
+        return webfm_rename_db_file($source, $dest);
+      else {
+        //directory rename is OK, back out, rename db files and rename dir again
+        rename($dest, $dest_temp);
+        rename($dest_temp, $source);
+        if(webfm_rename_db_dir_recur($source, $dest, TRUE)) {
+          rename($source, $dest_temp);
+          rename($dest_temp, $dest);
+        } else {
+          drupal_set_message(t('webfm_rename_db_dir_recur error - db may be corrupted'), error);
+          return FALSE;
+        }
       }
     }
     return TRUE;
-  } else {
-    //db is corrupt - best hope is to rename db back to original to
-    //preserve download links
-    webfm_rename_db($dest, $source);
   }
-  return FALSE;
-}
-
-function webfm_rename_db($source, $dest) {
-  if(is_dir($source)) {
-    return (webfm_rename_db_dir_recur($source, $dest, TRUE));
-  } else {
-    if(is_file($source)) {
-      return (webfm_rename_db_file($source, $dest));
-    }
-  }
+  drupal_set_message(t('rename %file fail', array('%file' => $source)), error);
   return FALSE;
 }
 
 function webfm_rename_db_file($source, $dest) {
   if($fid = webfm_get_fid($source)) {
     if(!webfm_dbupdate_file($fid, $dest)) {
+      //db error - consult drupal_set_message feedback
       return FALSE;
     }
   } else {
