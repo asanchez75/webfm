@@ -4,7 +4,7 @@ function webfmExtExample() {}
 // define custom menu options (values are translatable - do not change keys)
 webfmExtExample.menu_msg = [];
 webfmExtExample.menu_msg["rm"] = "Delete File";
-webfmExtExample.menu_msg["ren"] = "Rename";
+webfmExtExample.menu_msg["ren"] = "Rename File";
 webfmExtExample.menu_msg["example_op"] = "Example File Op";
 // define custom menu
 webfmExtExample.menu = { 'rm': webfmExtExample.menu_msg["rm"], 'ren': webfmExtExample.menu_msg["ren"], 'ex-op': webfmExtExample.menu_msg["example_op"] };
@@ -26,7 +26,7 @@ function example_layout() {
     Webfm.alrtObj = new Webfm.alert(layout_cont, 'alertbox');
     Webfm.progressObj = new Webfm.progress(layout_cont, 'progress');
     //see Webfm.list construtor in webfm.js for meaning of parameters
-    Webfm.dirListObj = new Webfm.list(layout_cont, 'dirlist', 'webfm-ext', false, 'wide');
+    Webfm.dirListObj = new Webfm.list(layout_cont, 'dirlist', 'webfm-ext', false, 'wide', false);
 
     //put listing, progress and alert divs before upload fset built in module
     layoutDiv.insertBefore(layout_cont, layoutDiv.firstChild);
@@ -65,8 +65,12 @@ webfmExtExample.event = function(event, obj) {
       if(this.confirm("Do you wish to run the " + webfmExtExample.menu['ex-op'] + "?")) {
         // call user function defined in webfm_ext_example_menu()
         url = getBaseUrl();
-        window.location = url + '/?q=webfm_ext_example_process&action=' + encodeURIComponent('ex-op') + '&fid=' + encodeURIComponent(this.clickObj.title);
+        window.location = url + '/?q=webfm_ext_example_process&action=' + encodeURIComponent('ex-op') + '&file=' + encodeURIComponent(this.clickObj.title);
       }
+      break;
+
+    default:
+      Webfm.dbgObj.dbg("illegal operation");
       break;
   }
   return false;
