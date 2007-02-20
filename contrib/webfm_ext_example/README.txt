@@ -44,6 +44,5 @@ Test Usage
 ------------------------------------------------------------------------------
 
   - Navigate to /?q=webfm_ext_example
-  - Upload the example.CSV file (DO NOT copy this file to the root directory
-  since the menu operations use the fid created by upload importation of the file)
+  - Upload the testdata.CSV file
   - Right mouse click for menu operations
