@@ -71,6 +71,12 @@ function webfm_ext_example_menu($may_cache) {
       'access' => user_access('WebFM extension perm'),
       'callback' => 'webfm_ext_example_process',
       'type' => MENU_CALLBACK);
+    $items[] = array(
+      'title' => t('WebFM Extension Example'),
+      'path' => 'webfm_ext_example_upload',
+      'access' => user_access('access webfm'),
+      'callback' => 'webfm_ext_example_upload',
+      'type' => MENU_CALLBACK);
     $items[] = array('path' => 'admin/settings/webfm_extension_example',
       'title' => t('Webfm Extension Example Settings'),
       'description' => t('Configure WebFM Extension example.'),
@@ -82,21 +88,86 @@ function webfm_ext_example_menu($may_cache) {
   return $items;
 }
 
+function webfm_ext_example_upload () {
+  $root_path = file_directory_path().variable_get('webfm_root_dir', '');
+  $example_root_path = file_directory_path().variable_get('webfm_ext_example_dir', '');
+  if ($root_path == $example_root_path) {
+    drupal_set_message(t('illegal name for webfm_ext_example root directory'), error);
+    exit();
+  }
+  $db_check = wfm_check_path($example_root_path, $root_path) ? TRUE : FALSE;
+
+  //Get the destination path from the edit-webfmuploadpath hidden field in the upload form
+  if($_POST['webfmuploadpath']) {
+    $dest = wfm_check_path($_POST['webfmuploadpath'], $example_root_path);
+    if($dest) {
+      // Save new file uploads to tmp dir.
+      if(($file = file_check_upload('webfm_upload')) != FALSE) {
+        if(webfm_upload_validate($file) === TRUE) {
+          // file has been put in temp and we have a valid file object
+          if($file_uploaded = file_move($file, $dest)) {
+            // file was moved to its final destination
+            if($db_check == TRUE) {
+              //Insert file into database if under webfm_root
+              if($file_in_db = webfm_dbinsert_file($file, $dest)) {
+                // file was inserted into the database
+                drupal_set_message(t('Upload Success'));
+              } else {
+                file_delete($file->filepath);
+                drupal_set_message(t('webfm_dbinsert_file() failed'), error);
+              }
+            } else {
+              // Uploaded to non-db-controlled area
+              drupal_set_message(t('Upload success'));
+            }
+          } else {
+            drupal_set_message(t('file_move to %path failed', array('%path' => $dest)), error);
+          }
+        } else {
+          drupal_set_message(t('webfm_upload_validate() failed'), error);
+        }
+      } else {
+        drupal_set_message(t('file_check_upload() failed'), error);
+      }
+    } else{
+      drupal_set_message(t('Invalid destination path: %dest', array('%dest' => $dest)), error);
+    }
+  } else {
+    drupal_set_message(t('Invalid upload path'), error);
+  }
+
+  $form = webfm_upload_form('webfm_ext_example_upload');
+  $form = form_builder('upload_js', $form);
+  $output = theme('status_messages') . drupal_render($form);
+  print drupal_to_js(array('status' => TRUE, 'data' => $output));
+  exit();
+}
+
 function webfm_ext_example_ajax () {
   if(module_exists('webfm') && isset($_POST["action"])) {
     $root_path = variable_get('file_directory_path', '').variable_get('webfm_root_dir', '');
     $example_root_path = variable_get('file_directory_path', '').variable_get('webfm_ext_example_dir', '');
+    if ($root_path == $example_root_path) {
+      drupal_set_message(t('illegal name for webfm_ext_example root directory'), error);
+      print drupal_to_js(array('status' => FALSE, 'data' => 'illegal root dir for webfm_ext_example module'));
+      exit();
+    }
+    $db_check = wfm_check_path($example_root_path, $root_path) ? TRUE : FALSE;
 
     // AJAX switch-case:
-    switch(trim(strtolower($_POST["action"]))) {
+    switch(trim(rawurldecode($_POST["action"]))) {
       case "delete":
         if(isset($_POST["param0"])) {
           if($source = wfm_check_path(trim(rawurldecode($_POST["param0"])), $example_root_path)) {
             // prevent any ../ shenanigans
             if(!ereg('\.\.', $source)) {
-              print drupal_to_js(array('status' => webfm_delete($source, TRUE)));
+              print drupal_to_js(array('status' => webfm_delete($source, $db_check)));
+            } else {
+              print drupal_to_js(array('status' => FALSE, 'data' => 'illegal dir'));
             }
           }
+        } else {
+          print drupal_to_js(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
@@ -104,23 +175,30 @@ function webfm_ext_example_ajax () {
       case "read":
         if(isset($_POST["param0"]))
           $read_dir = rawurldecode($_POST["param0"]);
-        if(!is_dir($read_dir))
-          $read_dir = $root_path;
 
         $rootpath_var = '';
         if($source = wfm_check_path(trim($read_dir), $example_root_path))
           $rootpath_var = 'webfm_ext_example_dir';
 
         if($rootpath_var) {
-          if(!is_dir($source) || ereg('\.\.', $source)) exit();
+          if(!is_dir($source)) {
+            print drupal_to_js(array('status' => FALSE, 'data' => 'directory does not exist'));
+            exit();
+          }
+          if(ereg('\.\.', $source)) {
+            print drupal_to_js(array('status' => FALSE, 'data' => 'illegal read dir'));
+            exit();
+          }
           //Build current directory listings
           $dirlist = new build_dir_list($source, $rootpath_var);
           if($dirlist->get_breadcrumb())
             print drupal_to_js(array('status' => TRUE, 'current' => $source, 'bcrumb' => $dirlist->get_breadcrumb(), 'dirs' => $dirlist->get_dir_listing(), 'files' => $dirlist->get_file_listing()));
           else
             //invalid directory
-            print drupal_to_js(array('status' => FALSE));
-        }
+            print drupal_to_js(array('status' => FALSE, 'data' => 'invalid dir'));
+        } else
+          //invalid directory
+          print drupal_to_js(array('status' => FALSE, 'data' => 'invalid path'));
         exit();
         break;
 
@@ -131,14 +209,19 @@ function webfm_ext_example_ajax () {
             $dest = trim(rawurldecode($_POST["param1"]));
             // prevent any ../ shenanigans
             if(!ereg('\.\.', $dest)) {
-              print drupal_to_js(array('status' => webfm_rename($source, $dest, TRUE)));
+              print drupal_to_js(array('status' => webfm_rename($source, $dest, $db_check)));
+            } else {
+              print drupal_to_js(array('status' => FALSE, 'data' => 'illegal name'));
             }
           }
+        } else {
+          print drupal_to_js(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
 
       default:
+        print drupal_to_js(array('status' => FALSE, 'data' => 'unknown operation'));
         exit();
         break;
     }
@@ -168,13 +251,34 @@ function webfm_ext_example_main() {
     // This div is used by the javascript to anchor the elements created by WebFM
     // on the DOM
     $output .= '<div id="webfm-ext-example">'."\n";
-    $output .= drupal_get_form('webfm_upload_fieldset');
+    $output .= drupal_get_form('webfm_ext_example_upload_fieldset');
     $output .= '</div>'."\n";
   } else {
     drupal_set_message('webfm module must be enabled for this module to function', error);
   }
 
   return $output;
+}
+
+function webfm_ext_example_upload_fieldset() {
+  $form = array();
+  $form['webfm_uploads'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('File Upload'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#description' => t('Uploaded file will be saved to the current directory.'),
+    '#prefix' => '<div class="attachments">',
+    '#suffix' => '</div>',
+    '#weight' => 30);
+  // Wrapper for fieldset contents (used by upload JS).
+  // NOTE: upload.js requires six char prefix on wrapper/button names
+  $form['webfm_uploads']['wrapper'] = array(
+    '#prefix' => '<div id="wfmatt-wrapper">',
+    '#suffix' => '</div>');
+  $form['webfm_uploads']['wrapper'] += webfm_upload_form('webfm_ext_example_upload');
+  $form['#attributes']['enctype'] = 'multipart/form-data';
+  return $form;
 }
 
 /**
@@ -199,13 +303,40 @@ function webfm_ext_example_inline_js($base_url, $clean_url) {
  * table for it to be a legitimate target of the process.
  */
 function webfm_ext_example_process(){
-  $output = '';
-  if(!(isset($_GET['fid'])) || !(isset($_GET['action'])))
-    die;
-  $fid = rawurldecode($_GET['fid']);
-  if(($file = webfm_get_file_record($fid)) === FALSE)
-    die;
-  $action = rawurldecode($_GET['action']);
+  $root_path = file_directory_path().variable_get('webfm_root_dir', '');
+  $example_root_path = file_directory_path().variable_get('webfm_ext_example_dir', '');
+  if ($root_path == $example_root_path)
+    exit();
+  $db_check = wfm_check_path($example_root_path, $root_path) ? TRUE : FALSE;
+
+  if(!(isset($_GET['file'])) || !(isset($_GET['action'])))
+    exit();
+
+  if($db_check) {
+    //if file under webfm db control - file var is fid - get path from db
+    if(($file = webfm_get_file_record(rawurldecode($_GET['file']))) !== FALSE)
+      $filepath = $file->fpath;
+    else
+      exit();
+  } else {
+    //file not in db - var is file path
+    $filepath = rawurldecode($_GET['file']);
+  }
+
+  // Check file extension
+  $ext = explode('.', $filepath);
+  $extension = $ext[count($ext)-1];
+  if((strtolower($extension)) !== 'csv') {
+    $output = 'invalid file type - csv files only permitted';
+    print theme('page', $output);
+    exit();
+  }
+
+  // (www.php.net/manual) file() returns the file in an array.
+  // Each element of the array corresponds to a line in the file, with the
+  // newline still attached. Upon failure, file() returns FALSE.
+  if(($file_array = file($filepath)) === FALSE)
+    exit();
 
   //add css file for example
   $modulepath = drupal_get_path('module', 'webfm_ext_example');
@@ -214,11 +345,6 @@ function webfm_ext_example_process(){
   //adding timer to see how long all of this takes.
   $timeparts = explode(' ',microtime());
   $starttime = $timeparts[1].substr($timeparts[0],1);
-
-  // (www.php.net/manual) file() returns the file in an array.
-  // Each element of the array corresponds to a line in the file, with the
-  // newline still attached. Upon failure, file() returns FALSE.
-  $file_array = file($file->fpath);
 
   // this example does nothing except take CSV values, reorder them and
   // serialize into an array.  This array could be used for comparison with
@@ -236,6 +362,7 @@ function webfm_ext_example_process(){
   // Example operation on file
   // Database manipulations would likely happen here
   $report['data'] = array();
+  $action = rawurldecode($_GET['action']);
   $report['action'] = $action;
   switch($action) {
     case 'ex-op':
@@ -247,7 +374,7 @@ function webfm_ext_example_process(){
   $report['count'] = count($file_array);
 
   //call theme function - add it to output.
-  $output .= theme('webfm_ext_example_report', $report);
+  $output = theme('webfm_ext_example_report', $report);
 
   //add timer info - if not needed comment out.
   $timeparts = explode(' ',microtime());
