@@ -1,4 +1,5 @@
 <?php
+/* $Id$ */
 
 require_once 'webfm_file.inc';
 
@@ -320,7 +321,7 @@ function webfm_form_alter($form_id, &$form) {
       }
 
       // Attachments fieldset
-      $form['#theme'] = 'webfm_upload_form';
+      $form['webfm-attach']['#theme'] = 'webfm_upload_form';
       $form['webfm-attach']['attached'] = array(
         '#type' => 'fieldset',
         '#title' => t('Attached files'),
@@ -1406,7 +1407,7 @@ function webfm_dbinsert_attach($nid, $fid, $weight){
    return FALSE;
   } else {
     //actually do the attacment if its not already attached....
-    $query = 'INSERT INTO {webfm_attach} (nid, fid, weight) VALUES (%d, %d, %s)';
+    $query = 'INSERT INTO {webfm_attach} (nid, fid, weight) VALUES (%d, %d, %d)';
     $result = db_query($query, $nid, $fid, $weight);
     if($result === FALSE) {
       drupal_set_message(t('Query Failed:  Could not attach files to node ') . $nid);
