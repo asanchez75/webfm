@@ -1,4 +1,4 @@
-// Webfm.js
+/* $Id$ */
 
 function Webfm() {}
 function WebfmDrag() {}
@@ -565,7 +565,7 @@ Webfm.dirrow.prototype.select = function(event) {
   var cp = this;
   if(Webfm.renameActive == true)
     return false;
-  event = event||window.event;
+  event = event || window.event;
   switch(event.target||event.srcElement) {
     case this.clickObj:
       // Determine mouse button
@@ -668,7 +668,7 @@ Webfm.filerow.prototype.select = function(event) {
   var cp = this;
   if(Webfm.renameActive == true)
     return false;
-  event = event||window.event;
+  event = event || window.event;
   switch(event.target||event.srcElement) {
     case this.clickObj:
       // Determine mouse button
@@ -817,7 +817,7 @@ Webfm.tree.prototype.getpath = function() {
 }
 
 Webfm.tree.prototype.showHideNode = function (event) {
-  event = event||window.event;
+  event = event || window.event;
   var collapseIcon = event.target||event.srcElement;
   if(collapseIcon.style.visibility == 'hidden')
     return;
@@ -953,7 +953,7 @@ Webfm.treeNode.prototype.select = function(event) {
   var cp = this;
   if(Webfm.renameActive == true)
     return false;
-  event = event||window.event;
+  event = event || window.event;
   switch(event.target||event.srcElement) {
     case this.expClickObj:
       break;
@@ -1030,7 +1030,7 @@ Webfm.context.prototype.showContextMenu = function(event, obj) {
   this.clickObj = obj.clickObj;
 //Webfm.dbgObj.dbg('this.element.title:', this.element.title);
   document.body.oncontextmenu = new Function ("return false");
-  event = event||window.event;
+  event = event || window.event;
   var pos = WebfmDrag.mouseCoords(event);
 
   // We remove anything that is in our contextMenu.
@@ -1057,10 +1057,6 @@ Webfm.context.prototype.showContextMenu = function(event, obj) {
     pos.x = pos.x + (document.documentElement.offsetWidth - (pos.x + Webfm.contextMenuDiv.offsetWidth)) - 20;
   }
 
-  if(pos.y + Webfm.contextMenuDiv.offsetHeight > (document.documentElement.offsetHeight-20)){
-    pos.y = pos.y + (document.documentElement.offsetHeight - (pos.y + Webfm.contextMenuDiv.offsetHeight)) - 20;
-  }
-
   Webfm.contextMenuDiv.style.left = pos.x + 'px';
   Webfm.contextMenuDiv.style.top = pos.y + 'px';
 
@@ -1071,7 +1067,7 @@ Webfm.context.prototype.showContextMenu = function(event, obj) {
 
 //Default menu selection handler (see Webfm.context constructor arg)
 Webfm.context.prototype.event = function(event, obj) {
-  event = event||window.event;
+  event = event || window.event;
   var url = Webfm.ajaxUrl();
   // Determine if this.element is a file
   this.is_file = ((this.element.className != 'dirrow') && (this.element.className.substring(0,4) != 'tree'));
@@ -1335,7 +1331,7 @@ Webfm.dbgObj.dbg("validateMetaInput", field.name);
     var data = Webfm.trim(field.value);
     if(data.length > len) {
       var err_msg = Webfm.ctn(Webfm.js_msg["len-err"]);
-      field.parentNode.nextSibling.setAttribute('style', 'color:red');
+      field.parentNode.nextSibling.style.color = 'red';
       field.parentNode.nextSibling.appendChild(err_msg);
       setTimeout(function(){field.focus();},10);
       return false;
@@ -1565,7 +1561,7 @@ Webfm.search.prototype.callback = function(string, xmlhttp, cp) {
       node.appendChild(searchList);
     } else {
       var no_match = Webfm.ctn(Webfm.js_msg["no-match"]);
-      node.setAttribute('style', 'color:red');
+      node.style.color = 'red';
       node.appendChild(no_match);
     }
   } else {
@@ -1644,7 +1640,7 @@ Webfm.progress.prototype.show = function(x, y) {
     this.flag = true;
     var prog = Webfm.$(this.id);
     var elSpan = Webfm.ce('span');
-    elSpan.setAttribute('style', 'background-color:' + y);
+    elSpan.style.backgroundColor = y;
     elSpan.appendChild(Webfm.ctn(x));
     prog.appendChild(elSpan);
     prog.style.visibility = 'visible';
@@ -1684,7 +1680,7 @@ function WebfmDD(element, _class) {
 }
 
 WebfmDD.prototype.mouseButton = function(event) {
-  event = event||window.event;
+  event = event || window.event;
 
   // Determine mouse button
   var rightclick = Webfm.rclick(event);
@@ -1717,7 +1713,7 @@ WebfmDD.prototype.handleDrag = function (event) {
     return;
   }
   var cp = this;
-  event = event||window.event;
+  event = event || window.event;
 
   //Build WebfmDrag.dropContainers array
   //The dragStart flag ensures that the following executes once only at the
@@ -1941,7 +1937,7 @@ WebfmDD.prototype.endDrag = function (event) {
   if (!(WebfmDrag.dragging)) {
     return;
   }
-  event = event||window.event;
+  event = event || window.event;
   var curpath = this.element.title;
 
   // Uncapture mouse
@@ -2028,17 +2024,15 @@ WebfmDD.prototype.getMouseOffset = function(event){
 }
 
 WebfmDrag.mouseCoords = function(event){
-  if(typeof(event.pageX) == 'number') {
+  if(event.pageX || event.pageY) {
     return {x:event.pageX, y:event.pageY};
-  } else if (typeof( event.clientX ) == 'number') {
-    if(document.body && (document.body.scrollLeft || document.body.scrollTop)) {
-      return {x:event.clientX + document.body.scrollLeft - document.body.clientLeft,
-              y:event.clientY + document.body.scrollTop  - document.body.clientTop };
-    } else if(document.documentElement && (document.documentElement.scrollLeft || document.documentElement.scrollTop)) {
-      return {x:event.clientX + document.documentElement.scrollLeft - document.documentElement.clientLeft,
-              y:event.clientY + document.documentElement.scrollTop  - document.documentElement.clientTop};
-  }
-  }
+  } else if (event.clientX || event.clientY) {
+    //variables IEleft and IEtop locate mouse position for Internet Explorer, with or without Doctype declarations
+    var IEleft = (window.pageXOffset)?(window.pageXOffset):(document.documentElement)?document.documentElement.scrollLeft:document.body.scrollLeft;
+	var IEtop = (window.pageYOffset)?(window.pageYOffset):(document.documentElement)?document.documentElement.scrollTop:document.body.scrollTop;
+	  return {x:event.clientX+IEleft,
+              y:event.clientY+IEtop};
+    }
   return {x:0, y:0};
 }
 
@@ -2235,7 +2229,7 @@ Webfm.size = function(sz) {
 }
 
 Webfm.enter = function(event) {
-  event = event||window.event;
+  event = event || window.event;
   var code;
 	if (event.keyCode)
 	  code = event.keyCode;
