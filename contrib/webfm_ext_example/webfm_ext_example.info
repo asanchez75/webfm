@@ -1,3 +1,4 @@
+; $Id$
 name = webfm_ext_example
 description = Webfm extension example.
 package = Core - optional

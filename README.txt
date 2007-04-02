@@ -1,9 +1,11 @@
+/* $Id$ */
+
 Drupal webfm.module README.txt
 ==============================================================================
 
 The Drupal webfm.module presents a paradigm shift in file management for Drupal.
-This file manager is based on physical heirarchical directory structure unlike
-the traditional flat filesystem used to date.  Webfm uses AJAX to allow users to
+This file manager is based on heirarchical directory structure unlike the
+traditional flat filesystem used to date.  Webfm uses AJAX to allow users to
 arrange files on the server in the same way they do with file managers on their
 personal systems. This ability to heirarchically arrange files greatly
 enhances the  managability of large collections of data.

@@ -1,3 +1,5 @@
+/* $Id$ */
+
 This module is an example of a extension to WebFM that allows files to be
 uploaded and operated on graphically through the use of context menuing.  This
 is a very powerful tool that allows drupal to behave like an application server.

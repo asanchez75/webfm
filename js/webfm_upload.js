@@ -1,3 +1,5 @@
+/* $Id$ */
+
 /**
  * Attaches the upload behaviour to the upload form.
  * This file identical to upload.js except for namespace, base id and refresh

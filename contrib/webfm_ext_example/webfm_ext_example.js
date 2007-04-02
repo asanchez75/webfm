@@ -1,3 +1,5 @@
+/* $Id$ */
+
 //Setup unique namespace
 function webfmExtExample() {}
 

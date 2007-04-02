@@ -1,4 +1,5 @@
-/* webfm.css */
+/* $Id$ */
+
 img { border: 0; }
 
 #dirlist.narrow { text-align: left; margin-left: 200px; }
@@ -40,8 +41,8 @@ img { border: 0; }
 #dragCont li { margin:0; padding-left:20px; list-style-type:none; }
 
 #cxtCont { border:1px solid #202867; background-color:#FFF; padding-right:10px; }
-#cxtCont li { list-style-type:none; }
-#cxtCont li.cxtContHover { background-color:#E2EBED; color:red; cursor:pointer; }
+#cxtCont ul { list-style-type:none; }
+#cxtCont ul li.cxtContHover { background-color:#E2EBED; color:red; cursor:pointer; }
 
 #filesearch { clear: left; }
 #metadata { clear: left; }
