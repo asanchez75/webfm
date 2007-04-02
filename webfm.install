@@ -1,4 +1,5 @@
 <?php
+/* $Id$ */
 
 /**
  * Implementation of hook_install().
@@ -32,8 +33,34 @@ function webfm_install(){
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
 
+    case 'pgsql':
+      db_query("CREATE TABLE {webfm_file} (
+        fid SERIAL NOT NULL,
+        uid integer NOT NULL default 0,
+        fpath text NOT NULL,
+        fname varchar(255) NOT NULL default '',
+        fsize integer NOT NULL default 0,
+        fmime varchar(255) NOT NULL default '',
+        ftitle varchar(255) NOT NULL default '',
+        fdesc text NOT NULL default '',
+        fcreatedate numeric(11) NOT NULL default 0,
+        flang varchar(16) NOT NULL default '',
+        fpublisher varchar(255) NOT NULL default '',
+        fformat varchar(255) NOT NULL default '',
+        fversion integer NOT NULL default 0,
+        PRIMARY KEY (fid)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      db_query("CREATE TABLE {webfm_attach} (
+        nid integer NOT NULL default 0,
+        fid integer NOT NULL default 0,
+        list smallint NOT NULL default 0,
+        weight integer NOT NULL default '0',
+        PRIMARY KEY (nid,fid)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+	    break;
+
     default:
-      drupal_set_message('webfm_install currently supports MySQL database only', error);
+      drupal_set_message('webfm_install currently supports MySQL and Postgres database only', error);
       break;
   }
 }
