@@ -1,15 +1,8 @@
 <?php
+/* $Id$ */
+
 // Example module that extends WebFM functionality to allow arbitrary operations
 // on uploaded files
-
-/**
- * Implementation of hook_init()
- *
- */
-function webfm_ext_example_init(){
-  $modulepath = drupal_get_path('module', 'webfm');
-  require_once $modulepath.'/webfm_file.inc';
-}
 
 /**
  * Implementation of hook_help().
@@ -235,6 +228,7 @@ function webfm_ext_example_main() {
 
   if(module_exists('webfm')) {
     $modulepath = drupal_get_path('module', 'webfm');
+    require_once $modulepath.'/webfm_file.inc';
     drupal_add_js($modulepath.'/js/webfm.js');
     drupal_add_js($modulepath.'/js/webfm_upload.js');
     drupal_add_css($modulepath.'/css/webfm.css');
