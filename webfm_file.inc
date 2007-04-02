@@ -1,4 +1,5 @@
 <?php
+/* $Id$ */
 
 /**
  * webfm_mkdir -called from the ajax action - switch case 'mkdir':
@@ -33,30 +34,49 @@ function webfm_mkdir($source, $dest){
  *                updated if dir/file under db control
  */
 function webfm_rename($source, $dest, $db_check) {
-  $dest_temp = $dest."~"; //handle possible case problem
-  if(!(is_file($dest) || is_dir($dest)) && rename($source, $dest_temp)) {
+  $dest_temp = $dest.'~'; //handle possible case problem
+  if(is_file($source) && !is_file($dest)) {
+    // Get file extension
+    if ($ext = explode('.', $dest)) {
+      //$dest != ""
+      $extension = strtolower($ext[count($ext) - 1]);
+      if((strcmp($extension, 'php') == 0) ||
+         (strcmp($extension, 'cgi') == 0)) {
+        //illegal file extension
+        drupal_set_message(t('%ext is invalid extension for rename', array('%ext' => $extension)), error);
+        return FALSE;
+      } else {
+        if(rename($source, $dest_temp)) {
+          if(!(rename($dest_temp, $dest))) {
+            rename($dest_temp, $source);
+          } else if($db_check) {
+            return webfm_rename_db_file($source, $dest);
+          } else {
+            return TRUE;
+          }
+        }
+      }
+    }
+  } else if(is_dir($source) && !is_dir($dest) && rename($source, $dest_temp)) {
     if(!(rename($dest_temp, $dest))) {
       rename($dest_temp, $source);
+      drupal_set_message(t('rename %source dir fail', array('%source' => $source)), error);
       return FALSE;
     } else if($db_check) {
-      if(is_file($dest))
-        return webfm_rename_db_file($source, $dest);
-      else {
-        //directory rename is OK, back out, rename db files and rename dir again
-        rename($dest, $dest_temp);
-        rename($dest_temp, $source);
-        if(webfm_rename_db_dir_recur($source, $dest, TRUE)) {
-          rename($source, $dest_temp);
-          rename($dest_temp, $dest);
-        } else {
-          drupal_set_message(t('webfm_rename_db_dir_recur error - db may be corrupted'), error);
-          return FALSE;
-        }
+      //directory rename is OK, back out, rename db files and rename dir again
+      rename($dest, $dest_temp);
+      rename($dest_temp, $source);
+      if(webfm_rename_db_dir_recur($source, $dest, TRUE)) {
+        rename($source, $dest_temp);
+        rename($dest_temp, $dest);
+      } else {
+        drupal_set_message(t('webfm_rename_db_dir_recur error - db may be corrupted'), error);
+        return FALSE;
       }
     }
     return TRUE;
   }
-  drupal_set_message(t('rename %file fail', array('%file' => $source)), error);
+  drupal_set_message(t('rename %source to %dest fail', array('%source' => $source, '%dest' => $dest)), error);
   return FALSE;
 }
 
