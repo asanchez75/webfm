@@ -45,6 +45,33 @@ function webfm_help($section) {
 }
 
 /**
+ * Implementation of hook_link().
+ */
+function webfm_link($type, $node = NULL, $teaser = FALSE) {
+  $links = array();
+
+  // Display a link with the number of attachments
+  if ($teaser && $type == 'node' && isset($node->webfm_files) && user_access('see webfm_attachments')) {
+//tbd for list usage
+//    $num_files = 0;
+//    foreach ($node->webfm_files as $file) {
+//      if ($file->list) {
+//        $num_files++;
+//      }
+//    }
+//    if($num_files) {
+      if($num_files = count($node->webfm_files)) {
+      $links['upload_attachments'] = array(
+        'title' => format_plural($num_files, '1 attachment', '@count attachments'),
+        'href' => "node/$node->nid",
+        'attributes' => array('title' => t('Read full article to view attachments.')),
+        'fragment' => 'attachments');
+    }
+  }
+  return $links;
+}
+
+/**
  * Implementation of hook_settings().
  */
 function webfm_admin_settings() {
@@ -283,13 +310,53 @@ function theme_webfm_attachments($files) {
   $rows = array();
   foreach ($files as $file) {
     // 0 =inline : 1 = attach
-    $icon_path = $base_url.'/'.variable_get('webfm_icon_dir', 'modules/webfm/image/icon').'/f.gif';
-    $href = array('data' => l('<img src="'.$icon_path.'" alt="[file]" />&nbsp;', 'webfm_send/'.$file->id.'/1', '', '' , '' , '', TRUE).l(check_plain($file->ftitle ? $file->ftitle : $file->n), 'webfm_send/'.$file->id));
+    $icon_path = $base_url.'/'.variable_get('webfm_icon_dir', 'modules/webfm/image/icon').'/'._webfm_get_icon($file->e);
+    $href = array('data' => l('<img src="'.$icon_path.'" alt="[file]" title="download as file"/>&nbsp;', 'webfm_send/'.$file->id.'/1', '', '' , '' , '', TRUE).l(check_plain($file->ftitle ? $file->ftitle : $file->n), 'webfm_send/'.$file->id));
     $rows[] = array($href, format_size($file->s));
   }
   if (count($rows)) {
     return theme('table', $header, $rows, array('id' => 'webfm-attach-list'));
   }
+}
+
+function _webfm_get_icon($ext) {
+  // Try and find appropriate type
+  switch(strtolower($ext)) {
+    case 'image/gif':
+    case 'image/png':
+    case 'image/jpg':
+    case 'image/jpeg':
+    case 'image/bmp':
+    case 'image/tiff':
+      $icon = 'i.gif';
+      break;
+    case 'video/mpeg':
+    case 'video/quicktime':
+    case 'video/x-msvideo':
+      $icon = 'avi.gif';
+      break;
+    case 'audio/mpeg':
+      $icon = 'mp3.gif';
+      break;
+    case 'application/pdf':
+      $icon = 'pdf.gif';
+      break;
+    case 'application/zip':
+    case 'application/x-zip':
+    case 'application/x-gzip':
+      $icon = 'zip.gif';
+      break;
+    case 'application/msword':
+      $icon = 'doc.gif';
+      break;
+    case 'application/vnd.ms-excel':
+      $icon = 'xls.gif';
+      break;
+    default:
+      $icon = 'f.gif';
+      break;
+  }
+  return $icon;
 }
 
 /**
@@ -424,7 +491,7 @@ function webfm_upload () {
           drupal_set_message(t('file %s is not valid for upload', array('%s' => $file->filename)), error);
         }
       } else {
-        drupal_set_message(t('file_check_upload() failed'), error);
+        drupal_set_message(t('file_check_upload() failed: Check your php configuration to ensure that "max_file_upload" is greater than the file size you are attempting to upload.'), error);
       }
     } else{
       drupal_set_message(t('Invalid destination path: %dest', array('%dest' => $dest)), error);
@@ -447,7 +514,7 @@ function webfm_ajax () {
     //make sure ftp root is outside of webfm root
     if (wfm_check_path($ftp_path, $root_path)) {
       drupal_set_message(t('illegal name for ftp root directory'), error);
-      print drupal_to_js(array('status' => FALSE, 'data' => 'illegal name for ftp root directory'));
+      print webfm_json(array('status' => FALSE, 'data' => 'illegal name for ftp root directory'));
       exit();
     }
 
@@ -461,12 +528,12 @@ function webfm_ajax () {
             $db_check = FALSE;
           // prevent any ../ shenanigans
           if($source && !ereg('\.\.', $source)) {
-            print drupal_to_js(array('status' => webfm_delete($source, $db_check)));
+            print webfm_json(array('status' => webfm_delete($source, $db_check)));
           } else {
-            print drupal_to_js(array('status' => FALSE, 'data' => 'illegal dir'));
+            print webfm_json(array('status' => FALSE, 'data' => 'illegal dir'));
           }
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'insufficient params'));
+          print webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
@@ -477,10 +544,10 @@ function webfm_ajax () {
           if(($source = wfm_check_path(trim(rawurldecode($_POST["param0"])), $root_path)) ||
              ($source = wfm_check_path(trim(rawurldecode($_POST["param0"])), $ftp_path))) {
             $dest = t("New_Folder");
-            print drupal_to_js(array('status' => webfm_mkdir($source, $dest)));
+            print webfm_json(array('status' => webfm_mkdir($source, $dest)));
           }
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'insufficient params'));
+          print webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
@@ -496,12 +563,12 @@ function webfm_ajax () {
 
           // Destination path must be under webfm_root
           if($source && ($dest = wfm_check_path(trim(rawurldecode($_POST["param1"])), $root_path)) && ($source != $dest)) {
-            print drupal_to_js(array('status' => webfm_move($source, $dest, $db_check)));
+            print webfm_json(array('status' => webfm_move($source, $dest, $db_check)));
           } else {
-            print drupal_to_js(array('status' => FALSE, 'data' => 'move operation not permitted'));
+            print webfm_json(array('status' => FALSE, 'data' => 'move operation not permitted'));
           }
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'insufficient params'));
+          print webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
@@ -517,15 +584,15 @@ function webfm_ajax () {
             $dest = trim(rawurldecode($_POST["param1"]));
             // prevent any ../ shenanigans
             if(!ereg('\.\.', $dest)) {
-              print drupal_to_js(array('status' => webfm_rename($source, $dest, $db_check)));
+              print webfm_json(array('status' => webfm_rename($source, $dest, $db_check)));
             } else {
-              print drupal_to_js(array('status' => FALSE, 'data' => 'illegal name'));
+              print webfm_json(array('status' => FALSE, 'data' => 'illegal name'));
             }
           } else {
-            print drupal_to_js(array('status' => FALSE, 'data' => 'illegal dir'));
+            print webfm_json(array('status' => FALSE, 'data' => 'illegal dir'));
           }
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'insufficient params'));
+          print webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
@@ -534,7 +601,7 @@ function webfm_ajax () {
       case "readtree":
         //Build directory tree
         $tree = new build_dir_tree($root_path, false);
-        print drupal_to_js(array('status' => TRUE, 'tree' => $tree->get_dirtree(), 'current' => $root_path));
+        print webfm_json(array('status' => TRUE, 'tree' => $tree->get_dirtree(), 'current' => $root_path));
         exit();
         break;
 
@@ -542,7 +609,7 @@ function webfm_ajax () {
       case "readftptree":
         //Build directory tree
         $tree = new build_dir_tree($ftp_path, false);
-        print drupal_to_js(array('status' => TRUE, 'tree' => $tree->get_dirtree(), 'current' => $root_path));
+        print webfm_json(array('status' => TRUE, 'tree' => $tree->get_dirtree(), 'current' => $root_path));
         exit();
         break;
 
@@ -565,22 +632,22 @@ function webfm_ajax () {
 
         if($rootpath_var) {
           if(!is_dir($source)) {
-            print drupal_to_js(array('status' => FALSE, 'data' => 'directory does not exist'));
+            print webfm_json(array('status' => FALSE, 'data' => 'directory does not exist'));
             exit();
           }
           if(ereg('\.\.', $source)) {
-            print drupal_to_js(array('status' => FALSE, 'data' => 'illegal read dir'));
+            print webfm_json(array('status' => FALSE, 'data' => 'illegal read dir'));
             exit();
           }
           //Build current directory listings
           $dirlist = new build_dir_list($source, $rootpath_var);
           if($dirlist->get_breadcrumb())
-            print drupal_to_js(array('status' => TRUE, 'current' => $source, 'bcrumb' => $dirlist->get_breadcrumb(), 'dirs' => $dirlist->get_dir_listing(), 'files' => $dirlist->get_file_listing()));
+            print webfm_json(array('status' => TRUE, 'current' => $source, 'bcrumb' => $dirlist->get_breadcrumb(), 'dirs' => $dirlist->get_dir_listing(), 'files' => $dirlist->get_file_listing()));
           else
             //invalid directory
-            print drupal_to_js(array('status' => FALSE, 'data' => 'invalid dir'));
+            print webfm_json(array('status' => FALSE, 'data' => 'invalid dir'));
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'invalid path'));
+          print webfm_json(array('status' => FALSE, 'data' => 'invalid path'));
         }
         exit();
         break;
@@ -595,10 +662,10 @@ function webfm_ajax () {
             $maxlevel = 0;
             @clearstatcache();
             $search = new searchFiles($source, $searchpattern, $maxlevel, $regexpsearch);
-            print drupal_to_js(array('files' => $search->get_files()));
+            print webfm_json(array('files' => $search->get_files()));
           }
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'insufficient params'));
+          print webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
@@ -608,12 +675,12 @@ function webfm_ajax () {
         if(isset($_POST["param0"])) {
           $fid = rawurldecode($_POST["param0"]);
           if(($meta = webfm_get_file_record($fid)) !== FALSE) {
-            print drupal_to_js(array('status' => TRUE, 'meta' => $meta));
+            print webfm_json(array('status' => TRUE, 'meta' => $meta));
           } else {
-            print drupal_to_js(array('status' => FALSE, 'data' => 'file record not found'));
+            print webfm_json(array('status' => FALSE, 'data' => 'file record not found'));
           }
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'insufficient params'));
+          print webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
@@ -621,9 +688,9 @@ function webfm_ajax () {
       //Change file metadata
       case "putmeta":
         if(isset($_POST["param0"]) && isset($_POST["param1"])) {
-          print drupal_to_js(array('status' => webfm_putmeta(rawurldecode($_POST["param0"]), rawurldecode($_POST["param1"]))));
+          print webfm_json(array('status' => webfm_putmeta(rawurldecode($_POST["param0"]), rawurldecode($_POST["param1"]))));
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'unknown action'));
+          print webfm_json(array('status' => FALSE, 'data' => 'unknown action'));
         }
         exit();
         break;
@@ -634,9 +701,9 @@ function webfm_ajax () {
         // the 'node' var passed via AJAX is the action attribute of id=node-form
         if (($node_num = strstr($node_str, 'node/')) !== FALSE) {
           $node_arr = explode("/", $node_num);
-          print drupal_to_js(array('status' => TRUE, 'attach' => webfm_get_attachments($node_arr[1])));
+          print webfm_json(array('status' => TRUE, 'attach' => webfm_get_attachments($node_arr[1])));
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'illegal path'));
+          print webfm_json(array('status' => FALSE, 'data' => 'illegal path'));
         }
         exit();
         break;
@@ -648,23 +715,41 @@ function webfm_ajax () {
           $fid = rawurldecode($_POST["param0"]);
           if(($_file = webfm_get_file_record($fid)) !== FALSE) {
             $file = new fdesc($_file);
-            print drupal_to_js(array('status' => TRUE, 'attach' => $file));
+            print webfm_json(array('status' => TRUE, 'attach' => $file));
           } else {
-            print drupal_to_js(array('status' => FALSE, 'data' => 'file record not found'));
+            print webfm_json(array('status' => FALSE, 'data' => 'file record not found'));
           }
         } else {
-          print drupal_to_js(array('status' => FALSE, 'data' => 'insufficient params'));
+          print webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
 
       default:
-        print drupal_to_js(array('status' => FALSE, 'data' => 'unknown operation'));
+        print webfm_json(array('status' => FALSE, 'data' => 'unknown operation'));
         exit();
         break;
     }
     //should never get here.
     exit();
+  }
+}
+
+/**
+ * Return data in JSON format.
+ *
+ * This function should be used for JavaScript callback functions returning
+ * data in JSON format. It sets the header for JavaScript output.
+ *
+ * @param $var
+ *   (optional) If set, the variable will be converted to JSON and output.
+ */
+function webfm_json($var = NULL) {
+  // We are returning JavaScript, so tell the browser.
+  drupal_set_header('Content-Type: text/javascript; charset=utf-8');
+
+  if (isset($var)) {
+    echo drupal_to_js($var);
   }
 }
 
@@ -1079,8 +1164,8 @@ function webfm_send_file($fid, $attach = false) {
       case "ppt": $type = 'application/vnd.ms-powerpoint'; break;
       case "gif": $type = 'image/gif'; break;
       case "png": $type = 'image/png'; break;
-      case "jpg": $type = 'image/jpg'; break;
-      case "jpeg": $type = 'image/jpg'; break;
+      case "jpg": $type = 'image/jpeg'; break;
+      case "jpeg": $type = 'image/jpeg'; break;
       case "html": $type = 'text/html'; break;
       default: $type = 'application/force-download';
     }
@@ -1130,9 +1215,9 @@ function webfm_dbinsert_file($file, $path = 'files', $metadata = array()){
   $metadata['uid'] = $user->uid;
   $metadata['fpath'] = $file->filepath; //$path; //if we decide we don't want the filename in the path - use $path variable instead.
   $metadata['fname'] = strrev(substr(strrev($file->filepath), 0, strpos(strrev($file->filepath), '/')));//$file->filepath;
-  //$metadata['fname'] = $file->filename;
   $metadata['fsize'] = $file->filesize;
   $metadata['fmime'] = $file->filemime;
+  $metadata['fdesc'] = '';
 
   //create a string of fields for the query
   $fields = implode(', ', array_keys($metadata));
