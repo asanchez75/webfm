@@ -1,5 +1,5 @@
 ; $Id$
-name = webfm
-description = Heirarchical filesystem manager.
-package = Core - optional
+name = WebFM Web File Manager
+description = Hierarchical AJAX file system manager
+package = WebFM
 version = VERSION
