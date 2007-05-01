@@ -4,14 +4,14 @@ img { border: 0; }
 
 #dirlist.narrow { text-align: left; margin-left: 200px; }
 #dirlist.wide { margin-left:0px; }
-#dirlist table { width:100%; font:normal 10pt/normal Arial; margin:0 auto; cursor:default; background-color:#f0f0f0; border:2px solid #d0d0d0; }
+#dirlist table { width:99%; font:normal 10pt/normal Arial; margin:0 auto; cursor:default; background-color:#f0f0f0; border:2px solid #d0d0d0; }
 #dirlist td { border-bottom: 1px solid #d8d8d8; }
 #dirlist img { margin-left: 5px; }
 #dirlist table tr.selected { background-color: #e7e7e7; }
 #dirlist table tr { background-color: #f0f0f0; }
 #dirlist a:hover { color: red; text-decoration: none; }
 
-#tree { float:left; }
+#tree { float:left; position:relative; }
 #tree .selected { background-color: #e7e7e7; }
 #tree a:hover { color: red; text-decoration: none; }
 #tree li { background-color: #f0f0f0; }
@@ -40,8 +40,9 @@ img { border: 0; }
 #dragCont ul { margin:0; padding:0; }
 #dragCont li { margin:0; padding-left:20px; list-style-type:none; }
 
-#cxtCont { border:1px solid #202867; background-color:#FFF; padding-right:10px; }
-#cxtCont ul { list-style-type:none; }
+#cxtCont { border:1px solid #202867; background-color:#FFF; }
+#cxtCont ul { list-style-type:none; margin:0; padding:0;}
+#cxtCont ul li {padding:3px;}
 #cxtCont ul li.cxtContHover { background-color:#E2EBED; color:red; cursor:pointer; }
 
 #filesearch { clear: left; }
