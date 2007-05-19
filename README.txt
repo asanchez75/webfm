@@ -20,11 +20,11 @@ Bug reports can be sent to the email address in the credits area below.
 Installation
 ------------------------------------------------------------------------------
 
-  - Copy the webfm directory to your Drupal modules directory
+  - Copy the 'webfm' directory to your Drupal modules directory
   - Enable the module on Drupal's admin/modules page.  An install file
   updates the database with the necessary table additions.
-  - Configure the module at admin/settings/webfm and create the root
-  sub-directories.
+  - Configure the module at admin/settings/webfm and manually create the WebFM
+  root sub-directory.  Optionally create a sub-directory for ftp use.
   - Update the menu cache by navigating to admin/menu
 
 
@@ -32,22 +32,23 @@ Configuration
 ------------------------------------------------------------------------------
 
 The following assumes that the 'File system path' is set in the usual way at
-admin/settings.
+admin/settings/file-system.
 
-  - Create two directories in the 'File system path' directory.  One will become
-  the webfm filesystem dir and the other the ftp-staging dir.  Set the directory
-  permissions to 775 if the server is linux/bsd.
-  - In admin/settings/webfm set the root paths to these two directories (must be
+  - Create a directory in the 'File system path' directory.  This directory will
+  become the webfm filesystem dir.  Optionally a second directory can be created
+  to be a ftp-staging dir.  Set the directory permissions to 775 if the server
+  is linux/bsd.
+  - In admin/settings/webfm set the root path to this directory (must be
   prefaced with a '/').
-  - Set rights in admin/access per role.  These roles will receive specific
+  - Set rights in admin/user/access per role.  These roles will receive specific
   configuration fields in admin/settings/webfm if 'access_webfm' is checked.
 
 NOTE: 'access_webfm' can be selected for the anonymous user but is not
 recommended since any WebFM user has the ability to make changes to the contents
 of the filesystem on the server.
 
-  - Optionally a .htaccess file can be placed in the webfm dir to secure file
-  access (apache servers).
+  - Optionally a .htaccess file can be placed in the WebFM root directory to
+  secure file access (apache servers).
 
 
 Features
@@ -60,7 +61,7 @@ Features
   - Drag and drop attachment ordering
   - Single file upload
   - Staging area for mass upload/importation
-  - File delete/rename/attach/detach/metadata menu options
+  - File delete/rename/attach/detach/metadata/store-in-db menu options
   - Directory create/rename/delete menu options
   - Secure file download
   - Metadata editor (fixed fields at this time)
