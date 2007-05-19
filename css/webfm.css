@@ -11,6 +11,9 @@ img { border: 0; }
 #dirlist table tr { background-color: #f0f0f0; }
 #dirlist a:hover { color: red; text-decoration: none; }
 
+#buttons a.button-selected { background-color: #2092d0; }
+#filesearch li.selected { background-color: #e7e7e7; }
+
 #tree { float:left; position:relative; }
 #tree .selected { background-color: #e7e7e7; }
 #tree a:hover { color: red; text-decoration: none; }
@@ -33,7 +36,7 @@ img { border: 0; }
 #ftptree_ul_0 { position:relative; left: -20px; }
 
 #webfm-attach { margin:0; padding:0;  width: 100%; }
-#webfm-attach table { width:100%; font: normal 10pt/normal Arial; margin: 0 auto; cursor: default; background-color: #f0f0f0; border: 2px solid #d0d0d0; }
+#webfm-attach table { width:99%; font: normal 10pt/normal Arial; margin: 0 auto; cursor: default; background-color: #f0f0f0; border: 2px solid #d0d0d0; }
 #webfm-attach td { border-bottom: 1px solid #d8d8d8; }
 #webfm-attach img { margin-left: 5px; }
 
