@@ -72,10 +72,12 @@ function webfm_uninstall() {
   db_query('DROP TABLE {webfm_file}');
   db_query('DROP TABLE {webfm_attach}');
   variable_del('webfm_root_dir');
+  variable_del('webfm_ftp_enable');
   variable_del('webfm_ftp_root_dir');
   variable_del('webfm_icon_dir');
   variable_del('webfm_attach_body');
   variable_del('webfm_debug');
+  variable_del('webfm_cron');
   variable_del('webfm_frbdn');
   variable_del('webfm_max_resolution');
   $roles = user_roles(1, 'access webfm');
@@ -83,5 +85,9 @@ function webfm_uninstall() {
    variable_del('webfm_extensions_'.$rid);
    variable_del('webfm_uploadsize_'.$rid);
    variable_del('webfm_usersize_'.$rid);
+  }
+  $types = node_get_types();
+  foreach ($types as $type) {
+   variable_del('webfm_attach_'.$type);
   }
 }
