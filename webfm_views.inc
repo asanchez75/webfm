@@ -1,5 +1,6 @@
 <?php
-/*$id$*/
+/* $Id$ */
+
 function webfm_views_tables(){
   $tables = array();
 

@@ -32,20 +32,39 @@ Configuration
 ------------------------------------------------------------------------------
 
 The following assumes that the 'File system path' is set in the usual way at
-admin/settings/file-system.
+Administer >> Site configuration >> File system
+(browser address = your-base-url/admin/settings/file-system).
 
   - Create a directory in the 'File system path' directory.  This directory will
-  become the webfm filesystem dir.  Optionally a second directory can be created
-  to be a ftp-staging dir.  Set the directory permissions to 775 if the server
-  is linux/bsd.
-  - In admin/settings/webfm set the root path to this directory (must be
-  prefaced with a '/').
-  - Set rights in admin/user/access per role.  These roles will receive specific
-  configuration fields in admin/settings/webfm if 'access_webfm' is checked.
+  become the webfm filesystem dir.  Set the directory permissions to 775 if the
+  server is linux/bsd.
 
-NOTE: 'access_webfm' can be selected for the anonymous user but is not
-recommended since any WebFM user has the ability to make changes to the contents
-of the filesystem on the server.
+  - In your-base-url/admin/settings/webfm set the root path to this directory.
+
+  - Set rights in your-base-url/admin/user/access per role.  These roles will
+  receive specific configuration fields in your-base-url/admin/settings/webfm
+  if 'access webfm' is checked.  Each role granted 'access webfm' rights must
+  have a root directory that is a subdirectory of the webfm filesystem directory.
+  This directory can be created by an administrator within the module via the
+  normal 'create directory' methods.
+
+  - Only users in a role with 'administer webfm' rights can manipulate directories.
+  Such users have full access to all capabilities and settings of the module.
+
+  - Users in a role with 'access webfm' rights can access the browser and view/
+  download/attach/detach any file below the root directory set for that role.
+  Users cannot navigate above this path.
+
+  - Files without a record in the webfm_file table cannot be viewed in the
+  browser by users with 'access webfm' rights. Only files with a db record are
+  attachable, or can be associated with metadata.
+
+  - File owners and admins are the only users capable of delete/rename/move or
+  metadata editing.
+
+  - If a user has the right to attach files, it is also necessary to enable
+  attachments in your-base-url/admin/content/types/*type* for each content type
+  that will accept attachments (default is disabled).
 
   - Optionally a .htaccess file can be placed in the WebFM root directory to
   secure file access (apache servers).
@@ -59,14 +78,16 @@ Features
   - Attachment of files to multiple nodes - location independence allows dir
     restructuring to have no affect on attachment functionality
   - Drag and drop attachment ordering
-  - Single file upload
-  - Staging area for mass upload/importation
-  - File delete/rename/attach/detach/metadata/store-in-db menu options
-  - Directory create/rename/delete menu options
-  - Secure file download
-  - Metadata editor (fixed fields at this time)
-  - File search
-  - Debug area for javascript development
+  - Single file upload with version options for file overwrite
+  - File delete/rename/move/metadata for admins or file owners
+  - File view/attach/detach menu options for users with role access
+  - File store-in-db/remove-from-db admin menu options
+  - Directory create/rename/delete admin menu options
+  - Directory search for all users
+  - Home directory per role with WebFM access (manually create and configure)
+  - Secure file download if .htaccess file used
+  - Metadata editor for admins or file owners(fixed fields at this time)
+  - Debug window option for admin javascript development
 
 
 To Do
@@ -74,7 +95,6 @@ To Do
 
   - Flexible metadata scheme and standards based access for data mining
   - API for content/metadata search/sort.
-  - Fine grained permissions for directories/file access by role/uid
   - Menu option to place links to filesystem files inside node content (TinyMCE
     plugin?)
   - HTTPS?
