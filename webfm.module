@@ -317,7 +317,7 @@ function webfm_admin_settings() {
  * Implementation of hook_perm().
  */
 function webfm_perm() {
-  return array('access webfm', 'view webfm attachments', 'administer webfm');
+  return array('access webfm', 'view webfm attachments', 'administer webfm', 'webfm upload');
 }
 
 /**
@@ -494,20 +494,35 @@ function webfm_form_alter($form_id, &$form) {
         '#type' => 'fieldset',
         '#title' => t('File Browser'),
         '#collapsible' => TRUE,
-        '#collapsed' => TRUE, );
-      $form['webfm-attach']['attach']['browser']['wrapper'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('File Upload'),
-        '#collapsible' => TRUE,
-        '#collapsed' => TRUE,
-        '#description' => t('Uploaded file will be saved to the current directory.'),
-        '#prefix' => '<div id="webfm-inline">',
-        '#suffix' => '</div>');
-      $form['webfm-attach']['attach']['browser']['wrapper']['wrapper'] = array(
-        '#prefix' => '<div id="wfmatt-wrapper">',
-        '#suffix' => '</div>');
-      $form['webfm-attach']['attach']['browser']['wrapper']['wrapper'] += webfm_upload_form('webfm/upload');
-      $form['#attributes']['enctype'] = 'multipart/form-data';
+        '#collapsed' => TRUE
+      );
+      if($user->uid == 1                  ||
+         user_access('administer webfm')  ||
+         user_access('webfm upload')) {
+        $form['webfm-attach']['attach']['browser']['wrapper'] = array(
+          '#type' => 'fieldset',
+          '#title' => t('File Upload'),
+          '#collapsible' => TRUE,
+          '#collapsed' => TRUE,
+          '#description' => t('Uploaded file will be saved to the current directory.'),
+          '#prefix' => '<div id="webfm-inline">',
+          '#suffix' => '</div>'
+          );
+        $form['webfm-attach']['attach']['browser']['wrapper']['wrapper'] = array(
+          '#prefix' => '<div id="wfmatt-wrapper">',
+          '#suffix' => '</div>');
+        $form['webfm-attach']['attach']['browser']['wrapper']['wrapper'] += webfm_upload_form('webfm/upload');
+        $form['#attributes']['enctype'] = 'multipart/form-data';
+      } else {
+        // Disable upload
+        $form['webfm-attach']['attach']['browser']['wrapper'] = array(
+          '#type' => 'fieldset',
+          '#collapsible' => TRUE,
+          '#collapsed' => TRUE,
+          '#prefix' => '<div id="webfm-inline">',
+          '#suffix' => '</div>'
+          );
+      }
     }
   }
 }
@@ -824,6 +839,7 @@ function webfm_ajax () {
         }
         //clear static array of roles with webfm access ($webfm_roots cached only for 'read' op)
         $webfm_access_roles = array();
+
         if(count($trees)) {
           webfm_json(array('status' => TRUE, 'tree' => $trees, 'current' => $webfm_root_path, 'admin' => $webfm_perm == WEBFM_ADMIN, 'err' => $err));
         } else {
@@ -1365,7 +1381,11 @@ function webfm_main () {
   $output  = '<div class="more-help-link">'.$debug_link.$settings_link.t('[<a href="@link">more help...</a>]',array('@link'=>url("admin/help/webfm"))).'</div>';
   $output .= '<noscript><p class="err">JavaScript must be enabled in order to use webfm!</p></noscript>'."\n";
   $output .= '<div id="webfm">'."\n";
-  $output .= drupal_get_form('webfm_upload_fieldset');
+  if($user->uid == 1                  ||
+     user_access('administer webfm')  ||
+     user_access('webfm upload')) {
+    $output .= drupal_get_form('webfm_upload_fieldset');
+  }
   $output .= '</div>'."\n";
   return $output;
 }
