@@ -20,54 +20,80 @@ Bug reports can be sent to the email address in the credits area below.
 Installation
 ------------------------------------------------------------------------------
 
-  - Copy the 'webfm' directory to your Drupal modules directory
+  - Unzip the archive and copy the 'webfm' directory to your modules directory
+  (ie:/sites/all/modules). Alternatively copy the tarball to the module directory
+  if you can unzip it on the server.
+
   - Enable the module on Drupal's admin/modules page.  An install file
   updates the database with the necessary table additions.
-  - Configure the module at admin/settings/webfm and manually create the WebFM
-  root sub-directory.  Optionally create a sub-directory for ftp use.
-  - Update the menu cache by navigating to admin/menu
 
 
 Configuration
 ------------------------------------------------------------------------------
+Configure the module at admin/settings/webfm. Note: The configuration assumes
+that the 'File system path:' is set in the usual way at admin/settings/file-system.
+All WebFM directories are sub-directories of this 'File System' path. Set
+'Download method:' radio to 'Public' since the module manages the download.
 
-The following assumes that the 'File system path' is set in the usual way at
-Administer >> Site configuration >> File system
-(browser address = your-base-url/admin/settings/file-system).
+  - Create the 'WebFM root directory'. If this directory doesn't already exist,
+  the system will create it in the 'File System' root. Multi directory root paths
+  must already exist inside the 'File System' directory. Set the directory
+  permissions to 775 if the server is linux/bsd.
 
-  - Create a directory in the 'File system path' directory.  This directory will
-  become the webfm filesystem dir.  Set the directory permissions to 775 if the
-  server is linux/bsd.
+  - The icon path allows the user to substitute their own gifs. File names are
+  hardcoded in the javascript so the icons will have to have identical names.
 
-  - In your-base-url/admin/settings/webfm set the root path to this directory.
+  - The 'Maximum resolution for uploaded images' input functions in the same
+  fashion as the root upload.module.
 
-  - Set rights in your-base-url/admin/user/access per role.  These roles will
-  receive specific configuration fields in your-base-url/admin/settings/webfm
-  if 'access webfm' is checked.  Each role granted 'access webfm' rights must
-  have a root directory that is a subdirectory of the webfm filesystem directory.
-  This directory can be created by an administrator within the module via the
-  normal 'create directory' methods.
+  - Roles that are granted the 'access webfm' permission will receive additional
+  configuration fields for root path, extension white list, max upload file size
+  and max total upload size. Roles with the 'access webfm' right but without a
+  root directory cannot access the filesystem.
 
-  - Only users in a role with 'administer webfm' rights can manipulate directories.
-  Such users have full access to all capabilities and settings of the module.
+  - Roles granted the 'attach WebFM files' permission will be able to see and
+  download attached files. 'Attachment List Properties' sets the presentation of
+  attached files.
 
-  - Users in a role with 'access webfm' rights can access the browser and view/
-  download/attach/detach any file below the root directory set for that role.
-  Users cannot navigate above this path.
+  - The 'IE Drag-and-Drop Normalization' is a sub-optimal solution for
+  compensating for relative positioning in theme css.
 
-  - Files without a record in the webfm_file table cannot be viewed in the
-  browser by users with 'access webfm' rights. Only files with a db record are
-  attachable, or can be associated with metadata.
+  - The 'Webfm javascript debug' checkbox is only useful for users interested
+  in looking under the covers or who want to develop the module.
 
-  - File owners and admins are the only users capable of delete/rename/move or
-  metadata editing.
+  - The WebFM cron is a 'stored procedure' used for database cleanup of file
+  records that are deleted outside of the WebFM interface (ie: OS shell, ftp).
+  This feature is only available to #1 user.
 
-  - If a user has the right to attach files, it is also necessary to enable
-  attachments in your-base-url/admin/content/types/*type* for each content type
-  that will accept attachments (default is disabled).
+Set WebFM rights in admin/user/access per role.
 
-  - Optionally a .htaccess file can be placed in the WebFM root directory to
-  secure file access (apache servers).
+  - 'administer webfm' confers full rights to a role. Admins can see and operate
+  on all files, including files not in the database. Only admins can create
+  directories and access admin/settings/webfm.
+
+  - 'access webfm' allows a role to download/view files via the WebFM browser.
+  Only files referenced by the webfm_file table in the database are accessible.
+  Only owners of a file (and admins) can move a file or modify it's metadata.
+
+  - 'view webfm attachments' allows a role to see files attached to nodes via
+  WebFM.
+
+  - 'webfm upload' allows a role with the 'access webfm' right to upload files
+  via the WebFM browser. The user who uploads a file is the the owner of that
+  file.
+
+Enable attachments in admin/settings/content-types/*type* for each content type
+that will accept attachments (default is disabled).
+
+A .htaccess file (apache servers) can be placed in the WebFM root (or sub-path)
+to secure file access. Webfm streams downloads and thus your browser doesn't
+require direct http access to the directories
+
+Updating the menu cache by navigating to admin/build/menu may be necessary if
+upgrading from an earlier version of the module with different internal paths.
+
+Translations of the module require revising the string array at the top of
+webfm.js.
 
 
 Features
@@ -110,18 +136,17 @@ http://web.net
 Bug reports, feature requests, or other comments can be made on the project page
 at http://drupal.org/project/webfm.
 
-The author and maintainer of the module is Rob Milne.  Andre Molnar provided
-most of the db work and a lot of the php. Paul Shales assisted in the early
-development of attachment and context menuing.
+The author and maintainer of the module is Rob Milne.  Andre Molnar contibuted
+db queries and php. Paul Shales assisted in the early development of attachment
+and context menuing.
 
-Some of the php source is based on the Drupal upload module.  The upload
-component is little changed.
+A lot of the php source is based on the Drupal upload module.
 
 Sources for the javascript are to be found all over the web.  I borrowed ideas
 from open source forums and modified to my needs.  The starting point was the
 drupalization of the mxfb project on SourceForge.  Little residue remains of
-that GPL code but it gave me much inspiration.  The event handler is courtesy
-of http://ajaxcookbook.org (Creative Commons Attribution 2.5 License).
+that GPL code but it gave me much inspiration.  The event handler is based on
+http://ajaxcookbook.org (Creative Commons Attribution 2.5 License).
 
 I cannot remember where all the icon gifs originated but their provinence is
 open source.

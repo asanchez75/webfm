@@ -1,4 +1,4 @@
 ; $Id$
-name = WebFM Web File Manager
+name = Web File Manager
 description = Hierarchical AJAX file system manager
 package = WebFM

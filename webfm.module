@@ -12,6 +12,7 @@ define('CANCEL', 3);
 
 define('WEBFM_ADMIN', 1);
 define('WEBFM_USER', 2);
+define('WEBFM_ATTACH_VIEW', 3);
 
 /**
  * Implementation of hook_help().
@@ -19,9 +20,9 @@ define('WEBFM_USER', 2);
 function webfm_help($section) {
   switch ($section) {
     case 'admin/help#webfm':
-      $output = '<p>'.t('Webfm is a hierarchical file system manager.
-        Webfm does not use a flat file system (a single directory indexed by a
-        database).  Webfm allows users to arrange files on the server in the
+      $output = '<p>'.t('WebFM is a hierarchical file system manager.
+        WebFM does not use a flat file system (a single directory indexed by a
+        database).  WebFM allows users to arrange files on the server in the
         same way they do on their local storage drives.  This ability to
         heirarchically arrange files greatly enhances the managability of large
         collections of data.').'</p>'.
@@ -29,12 +30,12 @@ function webfm_help($section) {
         file system path.  The <b>Root Directory</b> and <b>Ftp root directory
         </b> paths are relative to the file system path set at %file-sys and
         must be prefaced with a "/".', array('%file-sys' => url('admin/settings/file-system')))
-        .'</p>'.'<p>'.t('Webfm uses ajax and javascript extensively to provide
+        .'</p>'.'<p>'.t('WebFM uses ajax and javascript extensively to provide
         application intensive functionality such as file/dir move and ordering
         of attachments via drag-and-drop.  The context menuing provided by the
         right mouse button click provides context sensitive menus for user
         selection.  Javascript must be enabled for webfm to function.').'</p>'.
-        '<p>'.t('Webfm presents left hand blocks to represent directory
+        '<p>'.t('WebFM presents left hand blocks to represent directory
         trees and a right hand block to list the contents of the current
         directory.  The upper left block represents the directory structure of
         file data enumerated in the database and available to the site for
@@ -236,6 +237,11 @@ function webfm_admin_settings() {
           '#description' => t('Check this box to append file attachments table to the node body.
                                <br />This setting does not affect the attachment block.')
           );
+  $form['attach']['webfm_attach_new_window'] =
+    array('#type' => 'checkbox',
+          '#title' => t('Open attachments in a new browser window'),
+          '#default_value' => variable_get('webfm_attach_new_window', '')
+          );
   $form['attach']['attrib'] =
     array('#type' => 'fieldset',
           '#title' => t('Attachment List Properties'),
@@ -350,7 +356,7 @@ function webfm_menu($maycache) {
       'callback' => 'webfm_send_file',
       'type' => MENU_CALLBACK);
     $items[] = array('path' => 'admin/settings/webfm',
-      'title' => t('Webfm Settings'),
+      'title' => t('Web File Manager Settings'),
       'description' => t('Configure WebFM.'),
       'callback' => 'drupal_get_form',
       'callback arguments' => array('webfm_admin_settings'),
@@ -365,7 +371,7 @@ function webfm_menu($maycache) {
  */
 function webfm_block($op = 'list', $delta = 0) {
   if ($op == 'list') {
-    $blocks[0]['info'] = t('Webfm File Attachments');
+    $blocks[0]['info'] = t('WebFM File Attachments');
     return $blocks;
   }
   else if ($op == 'view' &&
@@ -577,9 +583,14 @@ function theme_webfm_attachments($files) {
 	  $description = '';
     if(variable_get('webfm_attach_desc', '') && !empty($file->fdesc)) {
       $description = '<div class="att-fdesc">'.$file->fdesc.'</div>';
-	}
-	$filename = $file->ftitle ? $file->ftitle : $file->n;
-    $href = array('data' => l('<img src="'.$icon_path.'" alt="[file]" title="Download '.$filename .'"/> ', 'webfm_send/'.$file->id.'/1', array('title' => 'Download '.$filename), '' , '' , '', TRUE).l($filename, 'webfm_send/'.$file->id, array('title' => 'Open '.$filename)).$description, 'class' => 'att-title');
+	  }
+  	$filename = $file->ftitle ? $file->ftitle : $file->n;
+  	if(variable_get('webfm_attach_new_window', '')) {
+      $href = array('data' => l('<img src="'.$icon_path.'" alt="[file]" title="Download '.$filename .'"/> ', 'webfm_send/'.$file->id.'/1', array('title' => 'Download '.$filename, 'target' => '_blank'), '' , '' , '', TRUE).l($filename, 'webfm_send/'.$file->id, array('title' => 'Open '.$filename, 'target' => '_blank')).$description, 'class' => 'att-title');
+    } else {
+      $href = array('data' => l('<img src="'.$icon_path.'" alt="[file]" title="Download '.$filename .'"/> ', 'webfm_send/'.$file->id.'/1', array('title' => 'Download '.$filename), '' , '' , '', TRUE).l($filename, 'webfm_send/'.$file->id, array('title' => 'Open '.$filename)).$description, 'class' => 'att-title');
+    }
+
     $row = array();
     array_push($row, $href);
     if($enable_date) {
@@ -703,10 +714,13 @@ function _webfm_image(&$file) {
  * Called by upload form submit
  */
 function webfm_upload () {
+  global $user;
+
   //Get the destination path from the edit-webfmuploadpath hidden field in the upload form
   $json_data = array();
   if($_POST['webfmuploadpath']) {
-    $dest = file_directory_path().$_POST['webfmuploadpath'];
+    $root_dir = (($user->uid == 1) || user_access('administer webfm'))? file_directory_path() : file_directory_path().webfm_get_root_path();
+    $dest = $root_dir.$_POST['webfmuploadpath'];
     $db_check = TRUE;
     // Save new file uploads to tmp dir.
     if(($file = file_check_upload('webfm_upload')) != FALSE) {
@@ -773,9 +787,6 @@ function webfm_reload_upload ($url, $confirm_form = '') {
  */
 function webfm_ajax () {
   global $user;
-  static $webfm_root_path;
-  static $webfm_access_roles = array();
-  static $webfm_roots = array();
 
   //3 possible outcomes - the user is either an admin, user or prohibited
   if(($user->uid == 1) || user_access('administer webfm')) {
@@ -783,34 +794,19 @@ function webfm_ajax () {
     $webfm_perm = WEBFM_ADMIN;
   } else if(user_access('access webfm')) {
     $webfm_perm = WEBFM_USER;
-    // Roles with 'access webfm' perm
-    if(!count($webfm_access_roles)) {
-      $webfm_access_roles = user_roles(TRUE, 'access webfm');
-      $webfm_roots = array();
-      foreach($user->roles as $key => $role) {
-        if(in_array($role, $webfm_access_roles)) {
-          // Roles with 'access webfm' perm that user possesses
-          $path = variable_get("root_dir_".$key, '');
-          $webfm_roots[$key] = empty($path) ? NULL : "/".$path;
-        }
-      }
-    }
+    $webfm_roots = webfm_get_root_dirs();
   } else {
     //no feedback
     exit();
   }
 
-  //Get root directory of module
-  if(empty($webfm_root_path)) {
-    $webfm_root_path = variable_get('webfm_root_dir', '');
-    if(empty($webfm_root_path)) {
-      //WebFM root dir must exist
-      webfm_json(array('status' => FALSE, 'err' => t('WebFM root not set')));
-      exit();
-    } else {
-      $webfm_root_path = '/'.$webfm_root_path;
-    }
+  $webfm_root_path = webfm_get_root_path();
+  if($webfm_root_path == NULL) {
+    //WebFM root dir must exist
+    webfm_json(array('status' => FALSE, 'err' => t('WebFM root not set')));
+    exit();
   }
+  $root_dir = ($webfm_perm == WEBFM_ADMIN)? file_directory_path() : file_directory_path().$webfm_root_path;
 
   if(isset($_POST["action"])) {
     switch(trim(strtolower($_POST["action"]))) {
@@ -821,20 +817,24 @@ function webfm_ajax () {
         if($webfm_perm == WEBFM_ADMIN) {
           //Build webfm directory tree
           unset($_SESSION['tree_'.$webfm_root_path]);
-          $trees[0] = webfm_tree($webfm_root_path);
+          $trees[0] = webfm_tree($root_dir, $webfm_root_path);
         } else {
-          foreach($webfm_roots as $key => $sub_root) {
-            //Build webfm directory tree(s) for WEBFM_USER
-            if(!empty($sub_root)) {
-              $sub_root_path = file_directory_path().$webfm_root_path.$sub_root;
-              if(is_dir($sub_root_path)) {
-                $current = $webfm_root_path.$sub_root;
-                unset($_SESSION['tree_'.$current]);
-                $trees[$key] = webfm_tree($current);
+          if(count($webfm_roots)) {
+            foreach($webfm_roots as $key => $sub_root) {
+              //Build webfm directory tree(s) for WEBFM_USER
+              if(!empty($sub_root)) {
+                $sub_root_path = $root_dir.$sub_root;
+                if(is_dir($sub_root_path)) {
+                  $current = $sub_root;
+                  unset($_SESSION['tree_'.$current]);
+                  $trees[$key] = webfm_tree($root_dir, $current);
+                }
+              } else {
+                $err .= t('root directory not set for @role role ', array('@role' => $webfm_access_roles[$key]));
               }
-            } else {
-              $err .= t('root directory not set for @role role ', array('@role' => $webfm_access_roles[$key]));
             }
+          } else {
+            $err = t('no root directory set in WebFM settings for this role');
           }
         }
         //clear static array of roles with webfm access ($webfm_roots cached only for 'read' op)
@@ -858,7 +858,7 @@ function webfm_ajax () {
         } else if(isset($_POST["param0"])) {
           if($root = variable_get("root_dir_".trim(rawurldecode($_POST["param0"])), '')) {
             $root = "/".$root;
-            $current = $webfm_root_path.$root;
+            $current = $root;
           }
         }
         if(!isset($current)) {
@@ -868,10 +868,10 @@ function webfm_ajax () {
         }
         if(isset($_POST["param1"]))
           unset($_SESSION['tree_'.$current]);
-        if(!is_dir(file_directory_path().$current)) {
+        if(!is_dir($root_dir.$current)) {
           webfm_json(array('status' => FALSE, 'data' => 'unknown role'));
         } else {
-          $tree = webfm_tree($current);
+          $tree = webfm_tree($root_dir, $current);
           webfm_json(array('status' => isset($tree) ? TRUE : FALSE, 'tree' => $tree, 'current' => $current, 'admin' => $webfm_perm == WEBFM_ADMIN));
         }
         exit();
@@ -895,7 +895,7 @@ function webfm_ajax () {
             }
           } else {
             foreach($webfm_roots as $key => $sub_root) {
-              if($sub_root && webfm_check_path($read_dir, $webfm_root_path.$sub_root)) {
+              if($sub_root && webfm_check_path($read_dir, $sub_root)) {
                 $perm_flag = TRUE;
                 break;
               }
@@ -903,13 +903,13 @@ function webfm_ajax () {
           }
 
           if($perm_flag) {
-            if(!is_dir(file_directory_path().$read_dir)) {
-              webfm_json(array('status' => FALSE, 'data' => file_directory_path().$read_dir.' path does not exist - refresh required'));
+            if(!is_dir($root_dir.$read_dir)) {
+              webfm_json(array('status' => FALSE, 'data' => $root_dir.$read_dir.' path does not exist - refresh required'));
               exit();
             }
 
             //Build current directory listings
-            $dirlist = new webfm_build_dir_list(file_directory_path(), $read_dir, $webfm_perm);
+            $dirlist = new webfm_build_dir_list($root_dir, $read_dir, $webfm_perm);
             if($dirlist->get_breadcrumb()) {
               webfm_json(array('status' => TRUE, 'current' => $read_dir, 'bcrumb' => $dirlist->get_breadcrumb(), 'dirs' => $dirlist->get_dir_listing(), 'files' => $dirlist->get_file_listing(), 'user' => $user->uid, 'admin' => $webfm_perm == WEBFM_ADMIN));
             } else {
@@ -928,7 +928,7 @@ function webfm_ajax () {
       case "delete":
         //Only admins can delete directories
         if(isset($_POST["param0"])) {
-          $source = file_directory_path().trim(rawurldecode($_POST["param0"]));
+          $source = $root_dir.trim(rawurldecode($_POST["param0"]));
           if(is_dir($source) && ($webfm_perm != WEBFM_ADMIN)) {
             //Only admins can delete directories
             webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
@@ -954,7 +954,7 @@ function webfm_ajax () {
         //Only admins can create directories
         if($webfm_perm == WEBFM_ADMIN) {
           if(isset($_POST["param0"])) {
-            $source = file_directory_path().trim(rawurldecode($_POST["param0"]));
+            $source = $root_dir.trim(rawurldecode($_POST["param0"]));
             $dest = t("New_Folder");
             $err_arr[] = array();
             // third param is right to rename if a dir of same name already
@@ -975,8 +975,8 @@ function webfm_ajax () {
       //Move a file or directory (drag and drop)
       case "move":
         if(isset($_POST["param0"]) && isset($_POST["param1"])) {
-          $source = file_directory_path().trim(rawurldecode($_POST["param0"]));
-          $dest = file_directory_path().trim(rawurldecode($_POST["param1"]));
+          $source = $root_dir.trim(rawurldecode($_POST["param0"]));
+          $dest = $root_dir.trim(rawurldecode($_POST["param1"]));
           if(is_dir($source) && ($webfm_perm != WEBFM_ADMIN)) {
             //Only admins can manipulate directories
             webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
@@ -1004,8 +1004,8 @@ function webfm_ajax () {
       //Rename an existing file or directory
       case "rename":
         if(isset($_POST["param0"]) && isset($_POST["param1"])) {
-          $source = file_directory_path().trim(rawurldecode($_POST["param0"]));
-          $dest = file_directory_path().trim(rawurldecode($_POST["param1"]));
+          $source = $root_dir.trim(rawurldecode($_POST["param0"]));
+          $dest = $root_dir.trim(rawurldecode($_POST["param1"]));
           // prevent any ../ shenanigans
           if(!ereg('\.\.', $dest)) {
             $err_arr[] = array();
@@ -1029,7 +1029,7 @@ function webfm_ajax () {
           if ($searchpattern != "") {
             $regexpsearch = '';
             @clearstatcache();
-            $search = new webfm_searchFiles($source, $searchpattern, $regexpsearch, ($webfm_perm == WEBFM_USER) ? $user->uid : 1);
+            $search = new webfm_searchFiles($root_dir, $source, $searchpattern, $regexpsearch, ($webfm_perm == WEBFM_USER) ? $user->uid : 1);
             webfm_json(array('files' => $search->get_files()));
           }
         } else {
@@ -1126,7 +1126,7 @@ function webfm_ajax () {
         //Only admins can insert files into database
         if($webfm_perm == WEBFM_ADMIN) {
           if(isset($_POST["param0"]) && isset($_POST["param1"])) {
-            $source = file_directory_path().trim(rawurldecode($_POST["param0"]));
+            $source = $root_dir.trim(rawurldecode($_POST["param0"]));
             $err_arr[] = array();
             $result = FALSE;
             switch(trim(rawurldecode($_POST["param1"]))) {
@@ -1378,7 +1378,9 @@ function webfm_main () {
   $debug_link = (($user->uid == 1||user_access('administer webfm')) && (drupal_to_js(variable_get('webfm_debug','')))) ? t('[<a href=# id="webfm-debug-link">debug</a>]') : '';
   $settings_link = ($user->uid == 1||user_access('administer webfm')) ? t('[<a href="@link">settings...</a>]',array('@link'=>url("admin/settings/webfm"))) : '';
 
-  $output  = '<div class="more-help-link">'.$debug_link.$settings_link.t('[<a href="@link">more help...</a>]',array('@link'=>url("admin/help/webfm"))).'</div>';
+  if($user->uid == 1 || user_access('administer webfm')) {
+    $output  = '<div class="more-help-link">'.$debug_link.$settings_link.t('[<a href="@link">more help...</a>]',array('@link'=>url("admin/help/webfm"))).'</div>';
+  }
   $output .= '<noscript><p class="err">JavaScript must be enabled in order to use webfm!</p></noscript>'."\n";
   $output .= '<div id="webfm">'."\n";
   if($user->uid == 1                  ||
@@ -1475,6 +1477,61 @@ function webfm_check_path($path, $root) {
 }
 
 /**
+ * Helper function to get root path of webfm
+ */
+function webfm_get_root_path () {
+  static $webfm_root_path;
+
+  //Get root directory of module
+  if(empty($webfm_root_path)) {
+    $webfm_root_path = variable_get('webfm_root_dir', '');
+    if(empty($webfm_root_path)) {
+      $webfm_root_path = NULL;
+    } else {
+      $webfm_root_path = '/'.$webfm_root_path;
+    }
+  }
+  return $webfm_root_path;
+}
+
+/**
+ * Helper function to get array of root directories for a role
+ */
+function webfm_get_root_dirs() {
+  global $user;
+  static $webfm_access_roles = array();
+  static $webfm_roots = array();
+
+  // Roles with 'access webfm' perm
+  if(!count($webfm_access_roles)) {
+    //allow anonymous role to have 'access webfm' right
+    $webfm_access_roles = user_roles(FALSE, 'access webfm');
+    $webfm_roots = array();
+    foreach($user->roles as $key => $role) {
+      if(array_key_exists($key, $webfm_access_roles)) {
+        // Roles with 'access webfm' perm that user possesses
+        $path = variable_get("root_dir_".$key, '');
+        if(!empty($path)) {
+          // Prevent redundant trees for roles with common root dir
+          if(!in_array($path, $webfm_roots)) {
+            $webfm_roots[$key] = "/".$path;
+          }
+        }
+      }
+    }
+    //If anonymous role has webfm access...
+    if(array_key_exists(1, $webfm_access_roles)) {
+      $path = variable_get("root_dir_1", '');
+      if(!empty($path)) {
+        $webfm_roots[1] = "/".$path;
+      }
+    }
+  }
+
+  return $webfm_roots;
+}
+
+/**
  * Class to build the directory, file and breadcrumb listings
  * ..for the directory at $path for javascript Load_dirlist()
  */
@@ -1494,12 +1551,10 @@ class webfm_build_dir_list {
     if(is_dir($full_path)) {
       chdir($full_path);
       if($handle = opendir('.')) {
-        if(variable_get('webfm_root_dir', '')) {
-          // breadcrumb keeps file-sys root hidden
-          $non_root_arr = explode('/', trim($path, '/'));
-          foreach($non_root_arr as $piece) {
-            $this->breadcrumb[] = $piece;
-          }
+        // breadcrumb keeps file-sys root hidden
+        $non_root_arr = explode('/', trim($path, '/'));
+        foreach($non_root_arr as $piece) {
+          $this->breadcrumb[] = $piece;
         }
 
         while(($readdir = readdir($handle)) !== false) {
@@ -1578,15 +1633,14 @@ class webfm_build_dir_list {
 /**
  * Build directory tree
  */
-function webfm_tree($rootpath) {
-  if(!isset($_SESSION['tree_'.$rootpath])) {
+function webfm_tree($rootpath, $path) {
+  if(!isset($_SESSION['tree_'.$path])) {
     $tree = array();
-    $rt =  file_directory_path().$rootpath;
-    $tree[$rootpath] = recurse_build_tree($rt, false);
-    $_SESSION['tree_'.$rootpath] = $tree;
+    $tree[$path] = recurse_build_tree($rootpath.$path, false);
+    $_SESSION['tree_'.$path] = $tree;
     return $tree;
   }
-  return $_SESSION['tree_'.$rootpath];
+  return $_SESSION['tree_'.$path];
 }
 
 // Function to recursively read the complete directory tree
@@ -1709,7 +1763,7 @@ class webfm_searchFiles {
   var $uid = 0;
 
   //Constructor
-  function webfm_searchFiles($dir, $searchpattern, $regexpsearch = FALSE, $user) {
+  function webfm_searchFiles($root_dir, $dir, $searchpattern, $regexpsearch = FALSE, $user) {
     $this->hidefilepattern = "^(CVS|\..*)$";
 /*
     if(!$regexpsearch) {
@@ -1717,7 +1771,7 @@ class webfm_searchFiles {
     }
 */
     $this->uid = $user;
-    $this->searchFilesRecur($dir, $searchpattern);
+    $this->searchFilesRecur($root_dir, $dir, $searchpattern);
   }
 
   function get_files() {
@@ -1737,15 +1791,15 @@ class webfm_searchFiles {
     $this->count++;
   }
 
-  function searchFilesRecur($dir, $searchpattern) {
+  function searchFilesRecur($root_dir, $dir, $searchpattern) {
     $dir = rtrim($dir, '/');
     //hide filesys root by not returning full path
-    $full_dir = file_directory_path().$dir;
+    $full_dir = $root_dir.$dir;
     $handle = @opendir($full_dir);
 
     while (($file = @readdir($handle))) {
       if(@is_dir($full_dir."/".$file) && ($file != ".") && ($file != "..")) {
-        $this->searchFilesRecur($dir."/".$file, $searchpattern);
+        $this->searchFilesRecur($root_dir, $dir."/".$file, $searchpattern);
       } else if (ereg(strtolower($searchpattern), strtolower($file)) && !ereg($this->hidefilepattern, $file)) {
         //return files in db (role level permission)
         if($frec = webfm_get_file_record('', $full_dir."/".$file)) {
@@ -1770,18 +1824,77 @@ class webfm_searchFiles {
  * @param bool $attach - 1 = attach / 0 = inline
  */
 function webfm_send_file($fid, $attach = false) {
+  global $user;
+//  static $webfm_access_roles = array();
+//  static $webfm_roots = array();
+
+  $match = FALSE;
+  // User has either admin access, webfm access or view attach access
+  if(($user->uid == 1) || user_access('administer webfm')) {
+    // Admins have total access
+    $webfm_perm = WEBFM_ADMIN;
+    $match = TRUE;
+  } else if(user_access('access webfm')) {
+    $webfm_perm = WEBFM_USER;
+  } else {
+    $webfm_perm = WEBFM_ATTACH_VIEW;
+  }
+
   if(is_numeric($fid)) {
     if(($f = webfm_get_file_record($fid)) === FALSE) {
       print theme('page', "");
       return;
     }
-  } else {
+  } else if($webfm_perm == WEBFM_ADMIN) {
+    // Only allow admins to download files without fid
     $f = new stdClass();
     $f->fpath = file_directory_path().base64_decode($fid);
     if(!(is_file($f->fpath))) {
       print theme('page', "");
       return;
     }
+  } else {
+    print theme('page', "");
+    return;
+  }
+
+  if($webfm_perm != WEBFM_ADMIN) {
+    //Check that the file is attached to a node before downloading
+    $query = 'SELECT nid FROM {webfm_attach} WHERE fid = %d';
+    $result = db_query($query, $f->fid);
+    if($result === FALSE) {
+      print theme('page', "");
+      return;
+    }
+
+    //File is attached to a node - is the node viewable by this user?
+    while ($dbfid = db_fetch_array($result)) {
+      $node = node_load($dbfid['nid']);
+      if (node_access('view', $node)) {
+        $match = TRUE;
+        break;
+      }
+    }
+  }
+
+  if($match == FALSE && $webfm_perm == WEBFM_USER) {
+    // Check that user has access to the root dir of this file
+    $webfm_roots = webfm_get_root_dirs();
+    $webfm_root_path = webfm_get_root_path();
+    if(count($webfm_roots) && $webfm_root_path != NULL) {
+      $rootpath = file_directory_path().$webfm_root_path;
+      foreach($webfm_roots as $key => $path) {
+        if(strpos($f->fpath, $rootpath.$path, 0) === 0) {
+          $match = TRUE;
+          break;
+        }
+      }
+    }
+  }
+
+  if(!$match) {
+    print theme('page', "");
+    return;
   }
 
   $name=basename($f->fpath);

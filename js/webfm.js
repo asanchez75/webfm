@@ -699,8 +699,9 @@ Webfm.list.prototype.fetch = function(curr_dir) {
       this.bcrumb();
       this.loadList();
       var uploadpath = Webfm.$('edit-webfmuploadpath');
-      if(uploadpath)
+      if(uploadpath) {
         uploadpath.value = Webfm.current;
+      }
       Webfm.progressObj.hide();
     } else {
       Webfm.admin = false;
@@ -727,9 +728,10 @@ Webfm.list.prototype.callback = function(string, xmlhttp, cp) {
 
       // Insert current directory path into upload form
       var uploadpath = Webfm.$('edit-webfmuploadpath');
-      if(uploadpath)
+      if(uploadpath) {
         uploadpath.value = cp.content.current;
-Webfm.dbgObj.dbg('uploadpath: ', uploadpath.value);
+        Webfm.dbgObj.dbg('uploadpath: ', uploadpath.value);
+      }
       Webfm.current = cp.content.current;
       cp.adminCtl(Webfm.admin);
     } else {
