@@ -1542,10 +1542,14 @@ Webfm.selectFile = function(path, el, as_file) {
     if(as_file)
       fullpath += '/1';
   } else {
-    var fullpath = el.title
+    //replace / with ~ since server uses / as param delimiter
+    var pths = [];
+    pths = el.title.split('/');
+    var pluspath = pths.join('~');
+    var fullpath = 'webfm_send/' + encodeURIComponent(pluspath);
   }
   var cleanUrl = getCleanUrl();
-  if(cleanUrl || fid == "undefined") {
+  if(cleanUrl) {
     var url = getBaseUrl() + '/' + fullpath;
   } else {
     var url = '?q=' + fullpath;

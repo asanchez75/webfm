@@ -1848,10 +1848,14 @@ function webfm_send_file($fid, $attach = false) {
   } else if($webfm_perm == WEBFM_ADMIN) {
     // Only allow admins to download files without fid
     $f = new stdClass();
-    $f->fpath = file_directory_path().base64_decode($fid);
+    $str_arr = array();
+    $str_arr = split('[~]', rawurldecode($fid));
+    $f->fpath = file_directory_path()."/".implode('/', $str_arr);
     if(!(is_file($f->fpath))) {
       print theme('page', "");
       return;
+    } else {
+      $match = TRUE;
     }
   } else {
     print theme('page', "");
