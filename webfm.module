@@ -14,6 +14,13 @@ define('WEBFM_ADMIN', 1);
 define('WEBFM_USER', 2);
 define('WEBFM_ATTACH_VIEW', 3);
 
+// file access bits
+define('FILE_ACCESS_PUBLIC_VIEW', 1); //publicly viewable via webfm_send link
+define('FILE_ACCESS_ROLE_VIEW', 2);   //role can view/download file (owner/admin can always view)
+define('FILE_ACCESS_ROLE_ATTACH', 4); //role attach permitted (owner/admin can always attach)
+define('FILE_ACCESS_ROLE_FULL', 8);   //role modification of file permitted (owner/admin can always modify)
+define('MAX_FILE_ACCESS', FILE_ACCESS_PUBLIC_VIEW + FILE_ACCESS_ROLE_VIEW + FILE_ACCESS_ROLE_ATTACH + FILE_ACCESS_ROLE_FULL);
+
 /**
  * Implementation of hook_help().
  */
@@ -146,7 +153,7 @@ function webfm_admin_settings() {
           '#default_value' => variable_get('webfm_root_dir', ''),
           '#maxlength' => '100',
           '#size' => '70',
-          '#description' => t('Root directory used to present the filebrowser interface.
+          '#description' => t('Root directory used to present the filebrowser user interface.
                                <br />This path is relative to "File system path" set in admin/settings/file-system.
                                <br />If this directory path is compound (ie: path/to/root) then the path must already
                                <br />exist for this setting to validate (ie: path/to).')
@@ -168,6 +175,46 @@ function webfm_admin_settings() {
           '#maxlength' => 10,
           '#description' => t('The maximum allowed image size (e.g. 640x480). Set to 0 for no restriction.'),
           '#field_suffix' => '<kbd>'. t('WIDTHxHEIGHT') .'</kbd>'
+          );
+
+  $form['file_perm'] =
+    array('#type' => 'fieldset',
+          '#title' => t('Default File Permissions'),
+          '#collapsible' => TRUE,
+          '#collapsed' => TRUE,
+          '#description' => t('Default permissions applied to a file when inserted into the database.
+                               <br />If all boxes are unchecked only the file owner and administrators will have
+                               <br />access to the file via the filebrowser.  File owners and admins can change
+                               <br />these settings for each individual file within the filebrowser UI.')
+          );
+
+  $form['file_perm']['webfm_file_perm_role'] =
+    array('#type' => 'checkbox',
+          '#title' => t('Role View Access'),
+          '#default_value' => variable_get('webfm_file_perm_role', ''),
+          '#description' => t('File is viewable/downloadable in the filebrowser by role.')
+          );
+
+  $form['file_perm']['webfm_file_perm_mod'] =
+    array('#type' => 'checkbox',
+          '#title' => t('Role Full Access'),
+          '#default_value' => variable_get('webfm_file_perm_mod', ''),
+          '#description' => t('Roles that can access this file via the filebrowser have the same access rights as the
+                              <br />file owner except for the right to change the file permissions.')
+          );
+
+  $form['file_perm']['webfm_file_perm_attach'] =
+    array('#type' => 'checkbox',
+          '#title' => t('Role Attach Access'),
+          '#default_value' => variable_get('webfm_file_perm_attach', ''),
+          '#description' => t('Roles that can access this file via the filebrowser have the right to attach it to content.')
+          );
+
+  $form['file_perm']['webfm_file_public'] =
+    array('#type' => 'checkbox',
+          '#title' => t('Public Access'),
+          '#default_value' => variable_get('webfm_file_public', ''),
+          '#description' => t('File is downloadable anonymously via webfm_send.')
           );
 
   $roles = user_roles(0,'access webfm');
@@ -299,8 +346,7 @@ function webfm_admin_settings() {
     array('#type' => 'checkbox',
           '#title' => t('WebFM javascript debug'),
           '#default_value' => variable_get('webfm_debug', ''),
-          '#description' => t('Check this box for javascript debug messaging.  This feature is enabled only
-                               <br />users with "administer WebFM" rights.')
+          '#description' => t('Check this box for javascript debug messaging.')
           );
 
   if($user->uid == 1) {
@@ -352,7 +398,7 @@ function webfm_menu($maycache) {
     $items[] = array(
       'title' => t('File Not Found'),
       'path' => 'webfm_send',
-      'access' => user_access('view webfm attachments'),
+      'access' => true,
       'callback' => 'webfm_send_file',
       'type' => MENU_CALLBACK);
     $items[] = array('path' => 'admin/settings/webfm',
@@ -794,7 +840,6 @@ function webfm_ajax () {
     $webfm_perm = WEBFM_ADMIN;
   } else if(user_access('access webfm')) {
     $webfm_perm = WEBFM_USER;
-    $webfm_roots = webfm_get_root_dirs();
   } else {
     //no feedback
     exit();
@@ -819,6 +864,8 @@ function webfm_ajax () {
           unset($_SESSION['tree_'.$webfm_root_path]);
           $trees[0] = webfm_tree($root_dir, $webfm_root_path);
         } else {
+          //clear static array of roles with webfm access ($webfm_roots cached only for 'read' op)
+          $webfm_roots = webfm_get_root_dirs(TRUE);
           if(count($webfm_roots)) {
             foreach($webfm_roots as $key => $sub_root) {
               //Build webfm directory tree(s) for WEBFM_USER
@@ -837,8 +884,6 @@ function webfm_ajax () {
             $err = t('no root directory set in WebFM settings for this role');
           }
         }
-        //clear static array of roles with webfm access ($webfm_roots cached only for 'read' op)
-        $webfm_access_roles = array();
 
         if(count($trees)) {
           webfm_json(array('status' => TRUE, 'tree' => $trees, 'current' => $webfm_root_path, 'admin' => $webfm_perm == WEBFM_ADMIN, 'err' => $err));
@@ -856,9 +901,12 @@ function webfm_ajax () {
           //Build webfm directory tree
           $current = $webfm_root_path;
         } else if(isset($_POST["param0"])) {
-          if($root = variable_get("root_dir_".trim(rawurldecode($_POST["param0"])), '')) {
-            $root = "/".$root;
-            $current = $root;
+          //role root must exist and this user must be a member of that role
+          $webfm_roots = webfm_get_root_dirs();
+          $root_role = trim(rawurldecode($_POST["param0"]));
+          if(($root = variable_get("root_dir_".$root_role, '')) &&
+             (array_key_exists($root_role, $webfm_roots))) {
+            $current = "/".$root;
           }
         }
         if(!isset($current)) {
@@ -881,21 +929,25 @@ function webfm_ajax () {
       //Read directory set in $_POST["param0"]
       case "read":
         if(isset($_POST["param0"])) {
-          $read_dir = trim(rawurldecode($_POST["param0"]));
-          if(ereg('\.\.', $read_dir)) {
+          $param0 = trim(rawurldecode($_POST["param0"]));
+          if(ereg('\.\.', $param0)) {
             webfm_json(array('status' => FALSE, 'data' => 'illegal read dir'));
             exit();
           }
 
-          // If WEBFM_USER, test that read path is inside a legal root dir
+          // Test access rights
           $perm_flag = FALSE;
           if($webfm_perm == WEBFM_ADMIN) {
-            if(webfm_check_path($read_dir, $webfm_root_path)) {
+            // WEBFM_ADMIN always has access
+            if(webfm_check_path($param0, $webfm_root_path)) {
               $perm_flag = TRUE;
             }
           } else {
+            // If WEBFM_USER, test that read path is inside a legit root dir
+            $webfm_roots = webfm_get_root_dirs();
             foreach($webfm_roots as $key => $sub_root) {
-              if($sub_root && webfm_check_path($read_dir, $sub_root)) {
+              // The read path must be contained within a legitimate role root dir for this user
+              if($sub_root && webfm_check_path($param0, $sub_root)) {
                 $perm_flag = TRUE;
                 break;
               }
@@ -903,15 +955,15 @@ function webfm_ajax () {
           }
 
           if($perm_flag) {
-            if(!is_dir($root_dir.$read_dir)) {
-              webfm_json(array('status' => FALSE, 'data' => $root_dir.$read_dir.' path does not exist - refresh required'));
+            if(!is_dir($root_dir.$param0)) {
+              webfm_json(array('status' => FALSE, 'data' => $root_dir.$param0.' path does not exist - refresh required'));
               exit();
             }
 
             //Build current directory listings
-            $dirlist = new webfm_build_dir_list($root_dir, $read_dir, $webfm_perm);
+            $dirlist = new webfm_build_dir_list($root_dir, $param0, $webfm_perm);
             if($dirlist->get_breadcrumb()) {
-              webfm_json(array('status' => TRUE, 'current' => $read_dir, 'bcrumb' => $dirlist->get_breadcrumb(), 'dirs' => $dirlist->get_dir_listing(), 'files' => $dirlist->get_file_listing(), 'user' => $user->uid, 'admin' => $webfm_perm == WEBFM_ADMIN));
+              webfm_json(array('status' => TRUE, 'current' => $param0, 'bcrumb' => $dirlist->get_breadcrumb(), 'dirs' => $dirlist->get_dir_listing(), 'files' => $dirlist->get_file_listing(), 'user' => $user->uid, 'admin' => $webfm_perm == WEBFM_ADMIN));
             } else {
               //invalid directory
               webfm_json(array('status' => FALSE, 'data' => 'invalid dir'));
@@ -926,23 +978,55 @@ function webfm_ajax () {
         break;
 
       case "delete":
-        //Only admins can delete directories
+        // Get path of object to be deleted
         if(isset($_POST["param0"])) {
-          $source = $root_dir.trim(rawurldecode($_POST["param0"]));
-          if(is_dir($source) && ($webfm_perm != WEBFM_ADMIN)) {
-            //Only admins can delete directories
-            webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
-            exit();
-            break;
+          $param0 = trim(rawurldecode($_POST["param0"]));
+          // prevent any .. shenanigans
+          if($param0 && !ereg('\.\.', $param0)) {
+            $source = $root_dir.$param0;
+
+            if(is_dir($source)) {
+              //Only admins can delete directories (and contained files)
+              if($webfm_perm == WEBFM_ADMIN) {
+                $err_arr[] = array();
+                $ret = webfm_delete_dir_recur($source, TRUE, $err_arr);
+                webfm_json(array('status' => $ret, 'data' => $err_arr));
+                exit();
+                break;
+              }
+            } else if(is_file($source)) {
+              $permit = FALSE;
+              $file = webfm_get_file_record('', $source);
+              if($webfm_perm == WEBFM_ADMIN) {
+                // Admins can delete files
+                $permit = TRUE;
+              } else if($file) {
+                if($user->uid == $file->uid || webfm_file_mod_access($file)) {
+                  // File owner can delete the file
+                  // Files marked as modifiable by role can be deleted
+                  $permit = TRUE;
+                }
+              }
+              if($permit) {
+                // Delete file and file record if in db
+                $error = "";
+                $ret = TRUE;
+                if(@unlink($source)) {
+                  if($file && !webfm_dbdelete_file($file->fid)) {
+                    $error = 'webfm_dbdelete_file() fail for '.$source;
+                    $ret = FALSE;
+                  }
+                } else if(file_exists($source)) {
+                  $error = $source.' could not be deleted';
+                  $ret = FALSE;
+                }
+                webfm_json(array('status' => $ret, 'data' => $error));
+                exit();
+                break;
+              }
+            }
           }
-          // prevent any ../ shenanigans
-          if($source && !ereg('\.\.', $source)) {
-            $err_arr[] = array();
-            $ret = webfm_delete($source, ($webfm_perm == WEBFM_USER) ? $user->uid : 1, $err_arr);
-            webfm_json(array('status' => $ret, 'data' => $err_arr));
-          } else {
-            webfm_json(array('status' => FALSE, 'data' => 'illegal dirname'));
-          }
+          webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
         } else {
           webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
@@ -1009,7 +1093,7 @@ function webfm_ajax () {
           // prevent any ../ shenanigans
           if(!ereg('\.\.', $dest)) {
             $err_arr[] = array();
-            //rename permissions inside webfm_rename (users can change own files)
+            //rename permissions inside webfm_rename
             $ret = webfm_rename($source, $dest, ($webfm_perm == WEBFM_USER) ? $user->uid : 1, $err_arr);
             webfm_json(array('status' => $ret, 'data' => $err_arr));
           } else {
@@ -1043,26 +1127,36 @@ function webfm_ajax () {
         if(isset($_POST["param0"])) {
           $fid = rawurldecode($_POST["param0"]);
           if(($file = webfm_get_file_record($fid)) !== FALSE) {
-            $meta = array();
             //presence of fid used to grant js metadata access
-            if(($webfm_perm == WEBFM_ADMIN) || ($user->uid == $file->uid)) {
-              $meta['id'] = $file->fid;
-            }
-            $meta['u'] = $file->uid;
-            $meta['n'] = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
-            $meta['t'] = $file->ftitle;
-            $meta['d'] = $file->fdesc;
-            $meta['l'] = $file->flang;
-            $meta['p'] = $file->fpublisher;
-            $meta['f'] = $file->fformat;
-            if($i = @getimagesize($file->fpath)) {
-              if(($i[0] != 0) && ($i[1] != 0)) {
-                $meta['i'] = (int)$i[2];
-                $meta['w'] = (int)$i[0];
-                $meta['h'] = (int)$i[1];
+            if($webfm_perm == WEBFM_ADMIN   ||
+               $user->uid == $file->uid     ||
+               webfm_file_mod_access($file) ||
+               webfm_file_view_access($file)) {
+              $meta = array();
+              //presence of fid used to grant js metadata access
+              if($webfm_perm == WEBFM_ADMIN ||
+                 $user->uid == $file->uid   ||
+                 webfm_file_mod_access($file)) {
+                $meta['id'] = $file->fid;
               }
+              $meta['u'] = $file->uid;
+              $meta['n'] = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+              $meta['t'] = $file->ftitle;
+              $meta['d'] = $file->fdesc;
+              $meta['l'] = $file->flang;
+              $meta['p'] = $file->fpublisher;
+              $meta['f'] = $file->fformat;
+              if($i = @getimagesize($file->fpath)) {
+                if(($i[0] != 0) && ($i[1] != 0)) {
+                  $meta['i'] = (int)$i[2];
+                  $meta['w'] = (int)$i[0];
+                  $meta['h'] = (int)$i[1];
+                }
+              }
+              webfm_json(array('status' => TRUE, 'data' => $meta));
+            } else {
+              webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
             }
-            webfm_json(array('status' => TRUE, 'meta' => $meta));
           } else {
             webfm_json(array('status' => FALSE, 'data' => 'file record not found'));
           }
@@ -1079,7 +1173,67 @@ function webfm_ajax () {
           $ret = webfm_putmeta(rawurldecode($_POST["param0"]), rawurldecode($_POST["param1"]), ($webfm_perm == WEBFM_ADMIN)?1:$user->uid, $err);
           webfm_json(array('status' => $ret, 'data' => $err));
         } else {
-          webfm_json(array('status' => FALSE, 'data' => 'unknown action'));
+          webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
+        }
+        exit();
+        break;
+
+      //Get file permissions
+      case "getperm":
+        if(isset($_POST["param0"])) {
+          $fid = rawurldecode($_POST["param0"]);
+          if(($file = webfm_get_file_record($fid)) !== FALSE) {
+            if($webfm_perm == WEBFM_ADMIN ||
+               $user->uid == $file->uid   ||
+               webfm_file_mod_access($file)) {
+              $perm = array();
+              $perm['id'] = $file->fid;
+              $perm['u'] = $file->uid;
+              $perm['n'] = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+              $perm['p'] = $file->perm;
+              webfm_json(array('status' => TRUE, 'data' => $perm));
+            } else {
+              webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
+            }
+          } else {
+            webfm_json(array('status' => FALSE, 'data' => 'file record not found'));
+          }
+        } else {
+          webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
+        }
+        exit();
+        break;
+
+      //Change file permissions
+      case "putperm":
+        if(isset($_POST["param0"]) && isset($_POST["param1"])) {
+          $fid = rawurldecode($_POST["param0"]);
+          if(($file = webfm_get_file_record($fid)) !== FALSE) {
+            if($webfm_perm == WEBFM_ADMIN ||
+               $user->uid == $file->uid   ||
+               webfm_file_mod_access($file)) {
+              $perm = array();
+              $perm['perm'] = (int)rawurldecode($_POST["param1"]);
+              $ret = FALSE;
+              // Validate permission value
+              if($perm['perm'] >= 0 && $perm['perm'] <= MAX_FILE_ACCESS) {
+                if($ret = webfm_dbupdate_file($fid, '', $perm)) {
+                  // Send back permissions to confirm value for form reset
+                  webfm_json(array('status' => TRUE, 'data' => $perm));
+                } else {
+                  webfm_json(array('status' => FALSE, 'data' => 'webfm_dbupdate_file() fail'));
+                }
+              } else {
+                webfm_json(array('status' => FALSE, 'data' => 'invalid permission'));
+              }
+            } else {
+              webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
+            }
+          } else {
+            webfm_json(array('status' => FALSE, 'data' => 'file record not found'));
+          }
+        } else {
+          webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
@@ -1087,31 +1241,41 @@ function webfm_ajax () {
       //Get attached items
       case "attach":
         global $node;
-
-        //if user can see attachments - they can make attachments
-        $node_str = trim(strtolower(rawurldecode($_POST["param0"])));
-        // the 'node' var passed via AJAX is the action attribute of id=node-form
-        if (($node_num = strstr($node_str, 'node/')) !== FALSE) {
-          $node_arr = explode("/", $node_num);
-          //'admin' is true (allow drag&drop) since only owners of a node can edit it
-          webfm_json(array('status' => TRUE, 'attach' => webfm_get_attachments($node_arr[1]), 'admin' => 'attach'));
+        if(isset($_POST["param0"])) {
+          $node_str = trim(strtolower(rawurldecode($_POST["param0"])));
+          // the 'node' var passed via AJAX is the action attribute of id=node-form
+          if (($node_num = strstr($node_str, 'node/')) !== FALSE) {
+            $node_arr = explode("/", $node_num);
+            //'admin' is true (allow drag&drop) since only owners of a node can edit it
+            webfm_json(array('status' => TRUE, 'data' => webfm_get_attachments($node_arr[1]), 'admin' => 'attach'));
+          } else {
+            webfm_json(array('status' => FALSE, 'data' => 'illegal path'));
+          }
         } else {
-          webfm_json(array('status' => FALSE, 'data' => 'illegal path'));
+          webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
         exit();
         break;
 
-      //Get file info by fid for attachment
+      //Get file for attachment to node
       case "attachfile":
         if(isset($_POST["param0"])) {
           // param0 = fid
           $fid = rawurldecode($_POST["param0"]);
           if(($_file = webfm_get_file_record($fid)) !== FALSE) {
-            $file = new webfm_fdesc($_file);
-            if($file->result != FALSE) {
-              webfm_json(array('status' => TRUE, 'attach' => $file, 'admin' => 'attach'));
+
+            if($webfm_perm == WEBFM_ADMIN   ||
+               $user->uid == $_file->uid    ||
+               webfm_file_mod_access($_file)||
+               webfm_file_att_access($_file)) {
+              $file = new webfm_fdesc($_file);
+              if($file->result != FALSE) {
+                webfm_json(array('status' => TRUE, 'data' => $file, 'admin' => 'attach'));
+              } else {
+                webfm_json(array('status' => FALSE, 'data' => 'file '.$fid.' path not found'));
+              }
             } else {
-              webfm_json(array('status' => FALSE, 'data' => 'file '.$fid.' path not found'));
+              webfm_json(array('status' => FALSE, 'data' => 'invalid permission'));
             }
           } else {
             webfm_json(array('status' => FALSE, 'data' => 'file '.$fid.' record not found'));
@@ -1262,8 +1426,15 @@ function webfm_ajax () {
 
                       $newfile = new stdClass();
                       $newfile->filepath = $temp_path;
-                      $newfile->filesize = $record->fsize ? $record->fsize : filesize($temp_path);
+                      $newfile->filesize = $record->fsize ? $record->fsize : @filesize($temp_path);
                       $newfile->filemime = $record->fmime;
+                      $newfile->ftitle = $record->ftitle;
+                      $newfile->fdesc = $record->fdesc;
+                      $newfile->flang = $record->flang;
+                      $newfile->fpublisher = $record->fpublisher;
+                      $newfile->fformat = $record->fformat;
+                      $newfile->perm = $record->perm;
+                      $newfile->dl_cnt = $record->dl_cnt;
                       webfm_dbinsert_file($newfile, $err, (array)$record);
                     }
                   } else {
@@ -1375,12 +1546,16 @@ function webfm_main () {
     $clean = (($clean_url == 0) || ($clean_url == '0')) ? FALSE : TRUE;
     $inline_js = webfm_inline_js($base_url, $clean, $user->uid);
   }
-  $debug_link = (($user->uid == 1||user_access('administer webfm')) && (drupal_to_js(variable_get('webfm_debug','')))) ? t('[<a href=# id="webfm-debug-link">debug</a>]') : '';
-  $settings_link = ($user->uid == 1||user_access('administer webfm')) ? t('[<a href="@link">settings...</a>]',array('@link'=>url("admin/settings/webfm"))) : '';
 
+  $debug_link = (drupal_to_js(variable_get('webfm_debug',''))) ? t('[<a href=# id="webfm-debug-link">debug</a>]') : '';
   if($user->uid == 1 || user_access('administer webfm')) {
-    $output  = '<div class="more-help-link">'.$debug_link.$settings_link.t('[<a href="@link">more help...</a>]',array('@link'=>url("admin/help/webfm"))).'</div>';
+    $settings_link = t('[<a href="@link">settings...</a>]',array('@link'=>url("admin/settings/webfm")));
+    $help_link = t('[<a href="@link">more help...</a>]',array('@link'=>url("admin/help/webfm")));
+    $output = '<div class="more-help-link">'.$debug_link.$settings_link.$help_link.'</div>';
+  } else {
+    $output = '<div class="more-help-link">'.$debug_link.'</div>';
   }
+
   $output .= '<noscript><p class="err">JavaScript must be enabled in order to use webfm!</p></noscript>'."\n";
   $output .= '<div id="webfm">'."\n";
   if($user->uid == 1                  ||
@@ -1495,12 +1670,15 @@ function webfm_get_root_path () {
 }
 
 /**
- * Helper function to get array of root directories for a role
+ * Helper function to get array of role root directories for a user
  */
-function webfm_get_root_dirs() {
+function webfm_get_root_dirs($flush = FALSE) {
   global $user;
   static $webfm_access_roles = array();
   static $webfm_roots = array();
+
+  if($flush)
+    $webfm_access_roles = array();
 
   // Roles with 'access webfm' perm
   if(!count($webfm_access_roles)) {
@@ -1529,6 +1707,62 @@ function webfm_get_root_dirs() {
   }
 
   return $webfm_roots;
+}
+
+/**
+ * Helper function to determine if a webfm_file record is modifiable by a
+ * user with 'access webfm'
+ */
+function webfm_file_mod_access($webfm_file) {
+  if((int)$webfm_file->perm & FILE_ACCESS_ROLE_FULL) {
+    return webfm_path_access($webfm_file->fpath);
+  }
+  return FALSE;
+}
+
+/**
+ * Helper function to determine if a webfm_file record is viewable by a
+ * user with 'access webfm'
+ */
+function webfm_file_view_access($webfm_file) {
+  if((int)$webfm_file->perm & FILE_ACCESS_ROLE_VIEW) {
+    return webfm_path_access($webfm_file->fpath);
+  }
+  return FALSE;
+}
+
+function webfm_file_att_access($webfm_file) {
+  if((int)$webfm_file->perm & FILE_ACCESS_ROLE_ATTACH) {
+    return webfm_path_access($webfm_file->fpath);
+  }
+  return FALSE;
+}
+
+/**
+ * Helper function to determine if a path is accessible by a user with 'access webfm'
+ */
+function webfm_path_access($path) {
+  //admins don't call this routine so include webfm root path
+  $root_dir = file_directory_path().webfm_get_root_path();
+  $webfm_roots = webfm_get_root_dirs();
+  foreach($webfm_roots as $key => $sub_root) {
+    // The read path must be contained within a legitimate role root dir for this user
+    if(webfm_check_path($path, $root_dir.$sub_root)) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Helper function to set default file permissions
+ */
+function webfm_default_file_perm() {
+  $perm =  (int)(variable_get('webfm_file_perm_role', '') ? FILE_ACCESS_ROLE_VIEW : 0);
+  $perm += (int)(variable_get('webfm_file_perm_mod', '') ? FILE_ACCESS_ROLE_FULL : 0);
+  $perm += (int)(variable_get('webfm_file_perm_attach', '') ? FILE_ACCESS_ROLE_ATTACH : 0);
+  $perm += (int)(variable_get('webfm_file_public', '') ? FILE_ACCESS_PUBLIC_VIEW : 0);
+  return $perm;
 }
 
 /**
@@ -1580,19 +1814,35 @@ class webfm_build_dir_list {
       if(is_array($_files)) {
         foreach($_files as $file) {
           if($_file = webfm_get_file_record('', $full_path.'/'.$file)) {
-            $fd = new stdClass();
-            $fd->id = $_file->fid;
-            $fd->u = $_file->uid;
-            $fd->m = $_file->fcreatedate ? date('d/m/y g:i a', $_file->fcreatedate) : date('d/m/y g:i a',  @filemtime($file));
-            $fd->s = $_file->fsize ? $_file->fsize : @filesize($file);
+            if(($perm == WEBFM_ADMIN)                       ||
+               ($_file->uid == $user->uid)                  ||
+               ((int)$_file->perm & FILE_ACCESS_ROLE_FULL)   ||
+               ((int)$_file->perm & FILE_ACCESS_ROLE_VIEW)) {
+              $fd = new stdClass();
+              $fd->id = $_file->fid;
+              if((int)$_file->perm & FILE_ACCESS_ROLE_FULL) {
+                // A bit of a hack for js functionality but safe since this is
+                // always validated on server side
+                $fd->u = $user->uid;
+              } else {
+                $fd->u = $_file->uid;
+              }
+//            $fd->m = $_file->fcreatedate ? date('d/m/y g:i a', $_file->fcreatedate) : date('d/m/y g:i a',  @filemtime($file));
+              $fd->m = date('d/m/y g:i a',  @filemtime($file));
+//              $fd->s = $_file->fsize ? $_file->fsize : @filesize($file);
+              $fd->s = @filesize($file);
+            } else {
+              // permission denied to view this file
+              continue;
+            }
           } else if($perm == WEBFM_ADMIN) {
             $fd = new stdClass();
             $fd->id = 0; //invalid fid signals no db entry
-            $fd->u = 0; //file has no owner(anon user)
-            $fd->m = (filemtime($file)) ? date('d/m/y g:i a',  @filemtime($file)) : "";
+            $fd->u = 0; //file has no owner
+            $fd->m = date('d/m/y g:i a',  @filemtime($file));
             $fd->s = @filesize($file);
           } else {
-            // Only WEBFM_ADMIN can see files not in db
+            // permission denied to view this file
             continue;
           }
 
@@ -1801,9 +2051,10 @@ class webfm_searchFiles {
       if(@is_dir($full_dir."/".$file) && ($file != ".") && ($file != "..")) {
         $this->searchFilesRecur($root_dir, $dir."/".$file, $searchpattern);
       } else if (ereg(strtolower($searchpattern), strtolower($file)) && !ereg($this->hidefilepattern, $file)) {
-        //return files in db (role level permission)
         if($frec = webfm_get_file_record('', $full_dir."/".$file)) {
-          $this->build_file_list($file, $dir, $frec->fid);
+          //return files in db (role level permission)
+          if($this->uid == 1 || $this->uid == $frec->uid || webfm_file_view_access($frec))
+            $this->build_file_list($file, $dir, $frec->fid);
         } else if($this->uid == 1) {
           //admins can search files not in db
           $this->build_file_list($file, $dir, 0);
@@ -1818,17 +2069,16 @@ class webfm_searchFiles {
  * webfm_send_file - streams a file privately for download
  *
  * If $fid arg is numeric then file path is referenced via db, otherwise the arg
- * .. is a base 64 encoded path that must be concatenated to base file dir
+ * ...is a urlencoded path that must be converted and concatenated to base file dir
  *
  * @param object $fid - file id
  * @param bool $attach - 1 = attach / 0 = inline
  */
 function webfm_send_file($fid, $attach = false) {
   global $user;
-//  static $webfm_access_roles = array();
-//  static $webfm_roots = array();
 
   $match = FALSE;
+  $f = false;
   // User has either admin access, webfm access or view attach access
   if(($user->uid == 1) || user_access('administer webfm')) {
     // Admins have total access
@@ -1836,14 +2086,20 @@ function webfm_send_file($fid, $attach = false) {
     $match = TRUE;
   } else if(user_access('access webfm')) {
     $webfm_perm = WEBFM_USER;
-  } else {
+  } else if(user_access('view webfm attachments')) {
     $webfm_perm = WEBFM_ATTACH_VIEW;
+  } else {
+    $webfm_perm = 0;
   }
 
   if(is_numeric($fid)) {
     if(($f = webfm_get_file_record($fid)) === FALSE) {
       print theme('page', "");
       return;
+    } else {
+      if($f->uid == $user->uid)
+        // Even if file has been moved to an inaccessible dir this works
+        $match = TRUE;
     }
   } else if($webfm_perm == WEBFM_ADMIN) {
     // Only allow admins to download files without fid
@@ -1862,38 +2118,32 @@ function webfm_send_file($fid, $attach = false) {
     return;
   }
 
-  if($webfm_perm != WEBFM_ADMIN) {
-    //Check that the file is attached to a node before downloading
-    $query = 'SELECT nid FROM {webfm_attach} WHERE fid = %d';
-    $result = db_query($query, $f->fid);
-    if($result === FALSE) {
-      print theme('page', "");
-      return;
-    }
-
-    //File is attached to a node - is the node viewable by this user?
-    while ($dbfid = db_fetch_array($result)) {
-      $node = node_load($dbfid['nid']);
-      if (node_access('view', $node)) {
-        $match = TRUE;
-        break;
+  // Files that have been attached are alway considered public to whoever can
+  // access that node (nodeaccess security)
+  if($match == FALSE && $webfm_perm != WEBFM_ADMIN) {
+    if($f->perm & FILE_ACCESS_PUBLIC_VIEW) {
+      $match = TRUE;
+    } else if($webfm_perm == WEBFM_USER || $webfm_perm == WEBFM_ATTACH_VIEW){
+      //Check if the file is attached to a node
+      $query = 'SELECT nid FROM {webfm_attach} WHERE fid = %d';
+      $result = db_query($query, $f->fid);
+      if($result !== FALSE) {
+        while ($dbfid = db_fetch_array($result)) {
+          $node = node_load($dbfid['nid']);
+          if (node_access('view', $node)) {
+            $match = TRUE;
+            break;
+          }
+        }
       }
     }
   }
 
-  if($match == FALSE && $webfm_perm == WEBFM_USER) {
-    // Check that user has access to the root dir of this file
-    $webfm_roots = webfm_get_root_dirs();
-    $webfm_root_path = webfm_get_root_path();
-    if(count($webfm_roots) && $webfm_root_path != NULL) {
-      $rootpath = file_directory_path().$webfm_root_path;
-      foreach($webfm_roots as $key => $path) {
-        if(strpos($f->fpath, $rootpath.$path, 0) === 0) {
-          $match = TRUE;
-          break;
-        }
-      }
-    }
+  // Files that are viewable via the filebrowser UI are downloadable
+  if($match == FALSE &&
+     $webfm_perm == WEBFM_USER &&
+     (webfm_file_view_access($f) || webfm_file_mod_access($f))) {
+    $match = TRUE;
   }
 
   if(!$match) {
@@ -1935,17 +2185,28 @@ function webfm_send_file($fid, $attach = false) {
     // prompt for download file or view
     $header[] = 'Pragma: no-cache';
     $header[] = 'Cache-Control: no-cache, must-revalidate';
-      $header[] = 'Content-Disposition: attachment; filename="'.$name.'";' ;
+    $header[] = 'Content-Disposition: attachment; filename="'.$name.'";' ;
+    if(!empty($f->fid)) {
+      $cnt = array();
+      $cnt['dl_cnt'] = (int)$f->dl_cnt + 1;
+      webfm_dbupdate_file($f->fid, '', $cnt);
+    }
   } else {
     // view file via browser
     $header[] = 'Pragma: public'; // required
     $header[] = 'Expires: 0';
     $header[] = 'Cache-Control: must-revalidate, post-check=0, pre-check=0';
     $header[] = 'Content-Transfer-Encoding: binary';
-      $header[] = 'Content-Disposition: inline; filename="'.$name.'";' ;
+    $header[] = 'Content-Disposition: inline; filename="'.$name.'";' ;
+    // consider an app run inside the browser as a 'download'
+    if(!empty($f->fid) && (strpos($type, "application") === 0)) {
+      $cnt = array();
+      $cnt['dl_cnt'] = (int)$f->dl_cnt + 1;
+      webfm_dbupdate_file($f->fid, '', $cnt);
+    }
   }
   $header[] = 'Content-Type: '.$type;
-  $header[] = 'Content-Length: '.(string)(filesize($f->fpath));
+  $header[] = 'Content-Length: '.(string)(@filesize($f->fpath));
   $header[] = 'Connection: close';
 
   //drupal file_transfer will fail if file is not inside file system directory
@@ -1970,8 +2231,10 @@ function webfm_dbinsert_file($file, &$error, $metadata = array()){
   $metadata['uid'] = $user->uid;
   $metadata['fpath'] = $file->filepath;
   $metadata['fname'] = strrev(substr(strrev($file->filepath), 0, strpos(strrev($file->filepath), '/')));
-  $metadata['fsize'] = $file->filesize ? $file->filesize : filesize($file->filepath);
+  $metadata['fsize'] = $file->filesize ? $file->filesize : @filesize($file->filepath);
   $metadata['fcreatedate'] = @filemtime($file->filepath);
+  $metadata['perm'] = $file->perm ? $file->perm : webfm_default_file_perm();
+  $metadata['dl_cnt'] = $file->dl_cnt ? $file->dl_cnt : 0;
 
   // Get file extension
   if($file->filemime) {
@@ -2219,7 +2482,9 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
                                'f'=>array('field'=>'fformat', 'size'=>255));
   }
   if(($file = webfm_get_file_record($fid)) != false) {
-    if($user == 1 || $user == $file->uid) {
+    if($user == 1          ||
+       $user == $file->uid ||
+       webfm_file_mod_access($file)) {
       $fields = explode(',',$metadata);
       $metadata = array();
       foreach($fields as $field) {
@@ -2234,11 +2499,14 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
       }
       if(count($metadata)) {
         $ret = webfm_dbupdate_file($fid, '', $metadata);
-        if(!$ret)
+        if($ret) {
+          $err = "";
+          return TRUE;
+        } else {
           $err = "webfm_dbupdate_file fail";
-        return $ret;
+        }
       } else {
-        $err = "empty";
+        $err = "no update required";
         return TRUE;
       }
     } else {

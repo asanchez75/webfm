@@ -57,7 +57,9 @@ function webfm_rename($source, $dest, $uid, &$err_arr) {
   if(is_file($source) && !is_file($dest)) {
     $file_o = webfm_get_file_record('', $source);
     //if we are admin or owner of target file...
-    if(($uid == 1) || ($file_o && ($uid == $file_o->uid))) {
+    if($uid == 1 ||
+       ($file_o && ($uid == $file_o->uid)) ||
+       ($file_o && webfm_file_mod_access($file_o))) {
       //check validity of new file name
       $file = new stdClass();
       $file->filename = basename($dest);
@@ -141,58 +143,26 @@ function webfm_rename_db_dir_recur($source, $dest, $ret, &$err_arr) {
 }
 
 /**
- * webfm_delete - called from the ajax action - switch case 'delete':
+ * webfm_delete_dir_recur - called from the ajax action - switch case 'delete':
  *
  * @param string $source - the source directory path
- * @param bool   $uid - user id
+ * @param bool   $ret - return value seed
+ * @param string &$err_arr - ref to error array for client feedback
  *
  * @ret   bool   -true if the directory or file is deleted and all file records updated
  */
-function webfm_delete($source, $uid, &$err_arr){
-  if(is_dir($source)) {
-    return webfm_delete_dir_recur($source, $uid, TRUE, $err_arr);
-  } else if(is_file($source)) {
-    if(!webfm_delete_file($source, $uid, $error)) {
-      $err_arr[] = $error;
-      return FALSE;
-    } else {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-function webfm_delete_file($source, $uid, &$error) {
-  $file = webfm_get_file_record('', $source);
-  if(($uid == 1) || ($file && ($uid == $file->uid))) {
-    if(@unlink($source)) {
-      if($file && (!webfm_dbdelete_file($file->fid))) {
-        $error = 'webfm_dbdelete_file() fail for '.$source;
-        return FALSE;
-      }
-    } else if(file_exists($source)) {
-      $error = $source.' could not be deleted';
-      return FALSE;
-    }
-    return TRUE;
-  } else {
-    $error = "permission denied";
-    return FALSE;
-  }
-}
-
-function webfm_delete_dir_recur($source, $uid, $ret, &$err_arr) {
+function webfm_delete_dir_recur($source, $ret, &$err_arr) {
   if($handle = opendir($source)) {
     while(($file = readdir($handle)) !== FALSE) {
       if($file != '.' && $file != '..') {
         $source_item  = $source.'/'.$file;
         if(is_file($source_item)) {
-          if(!(webfm_delete_file($source_item, $uid, $error))) {
+          if(!(webfm_delete_file($source_item, $error))) {
             $err_arr[] = $error;
             $ret = FALSE;
           }
         } elseif (is_dir($source_item)) {
-          webfm_delete_dir_recur($source_item, $uid, $ret, $err_arr);
+          webfm_delete_dir_recur($source_item, $ret, $err_arr);
         }
       }
     }
@@ -204,6 +174,20 @@ function webfm_delete_dir_recur($source, $uid, $ret, &$err_arr) {
   if(($retn = rmdir($source)) == FALSE)
     $err_arr[] = 'Unable to rmdir '.$source;
   return ($retn == TRUE && $ret == TRUE);
+}
+
+function webfm_delete_file($source, &$error) {
+  $file = webfm_get_file_record('', $source);
+  if(@unlink($source)) {
+    if($file && (!webfm_dbdelete_file($file->fid))) {
+      $error = 'webfm_dbdelete_file() fail for '.$source;
+      return FALSE;
+    }
+  } else if(file_exists($source)) {
+    $error = $source.' could not be deleted';
+    return FALSE;
+  }
+  return TRUE;
 }
 
 /**
@@ -229,10 +213,12 @@ function webfm_move($source, $dest, $uid, &$err_arr) {
 
 function webfm_move_file($source, $dest, $uid, &$err_arr) {
   $file = webfm_get_file_record('', $source);
-  //Only admins or owners of file in db can move a file
-  if($uid == 1 || ($file && $uid == $file->uid)) {
+  //Check file permissions
+  if(($uid == 1)                      ||
+     ($file && ($uid == $file->uid))  ||
+     ($file && webfm_file_mod_access($file))) {
     if(file_move($source, $dest, FILE_EXISTS_ERROR)) {
-      if($file->fid) {
+      if($file) {
         if(!webfm_dbupdate_file($file->fid, $dest)) {
           $err_arr[] = "db update for fid=".$file->fid." failed";
           return FALSE;
