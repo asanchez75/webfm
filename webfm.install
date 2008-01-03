@@ -97,3 +97,23 @@ function webfm_uninstall() {
       variable_del('webfm_attach_'.$type->type);
   }
 }
+
+function webfm_update_1() {
+  $ret = array();
+
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("ALTER TABLE {webfm_file} ADD perm tinyint NOT NULL DEFAULT 0");
+      $ret[] = update_sql("ALTER TABLE {webfm_file} ADD dl_cnt int NOT NULL DEFAULT 0");
+      $ret[] = update_sql('ALTER TABLE {webfm_attach} DROP list');
+      break;
+    case 'pgsql':
+      db_add_column($ret, 'webfm_file', 'perm', 'tinyint', array('not null' => TRUE, 'default' => 0));
+      db_add_column($ret, 'webfm_file', 'dl_cnt', 'int', array('not null' => TRUE, 'default' => 0));
+      $ret[] = update_sql('ALTER TABLE {webfm_attach} DROP COLUMN list');
+      break;
+  }
+
+  return $ret;
+}
