@@ -46,6 +46,10 @@ All WebFM directories are sub-directories of this 'File System' path. Set
   - The 'Maximum resolution for uploaded images' input functions in the same
   fashion as the root upload.module.
 
+  - 'Default File Permissions' set the file level permissions for files inserted
+  into the database.  The exception is file uploads that create a version
+  overwrite whereby the new file inherits the permissions from the previous file.
+
   - Roles that are granted the 'access webfm' permission will receive additional
   configuration fields for root path, extension white list, max upload file size
   and max total upload size. Roles with the 'access webfm' right but without a
@@ -82,6 +86,17 @@ Set WebFM rights in admin/user/access per role.
   via the WebFM browser. The user who uploads a file is the the owner of that
   file.
 
+Admins and File owners can set the following file level permissions:
+  - Public download: Allows the file to be downloaded anonymously even if
+    .htaccess exists.
+
+  - Role View/Download: Allows users of the same role to view/download the file.
+
+  - Role Attach: Allows users of the same role to attach the file to nodes.
+
+  - Role Full Access: Allows users of the same role to delete/rename/move the
+    file.  File permission edits are not allowed by role.
+
 Enable attachments in admin/settings/content-types/*type* for each content type
 that will accept attachments (default is disabled).
 
@@ -105,12 +120,13 @@ Features
     restructuring to have no affect on attachment functionality
   - Drag and drop attachment ordering
   - Single file upload with version options for file overwrite
-  - File delete/rename/move/metadata for admins or file owners
-  - File view/attach/detach menu options for users with role access
+  - File delete/rename/move/attach/metadata/permissions menu options for admins
+    or file owners
+  - File menu options for users with role access set by file permission
   - File store-in-db/remove-from-db admin menu options
   - Directory create/rename/delete admin menu options
-  - Directory search for all users
-  - Home directory per role with WebFM access (manually create and configure)
+  - Directory search for files that respects view privileges
+  - Home directory per role with WebFM access
   - Secure file download if .htaccess file used
   - Metadata editor for admins or file owners(fixed fields at this time)
   - Debug window option for admin javascript development
