@@ -2784,7 +2784,7 @@ Webfm.popup = function(Id) {
   this.left = null;
   this.eventListenerArr = [];
 }
-Webfm.popup.prototype.scroll = function () {
+Webfm.popup.prototype.getScrollY = function () {
   var scrY = 0;
   if(typeof(window.pageYOffset) == 'number') {
     scrY = window.pageYOffset;
@@ -2845,20 +2845,28 @@ Webfm.popup.prototype.isEmpty = function () {
 Webfm.pane = function(popupCont, title, paneId, content, paneWidth, contentHeight) {
   this.popupCont = popupCont;
   var cp = this;
+  var body_scroll_top = this.popupCont.getScrollY();
+  var body_height = (Webfm.browser.isIE)? document.documentElement.clientHeight : window.innerHeight;
   // locate pane in centre of screen only if drag container not already in use
   if((!popupCont.width) ||
      (!popupCont.content_height) ||
      (!popupCont.top) ||
      (!popupCont.left)) {
-    var body_scroll_top = (Webfm.browser.isIE)? document.documentElement.scrollTop : window.pageYOffset;
     var body_scroll_left = (Webfm.browser.isIE)? document.documentElement.scrollLeft : window.pageXOffset;
     var body_width = (Webfm.browser.isIE)? document.documentElement.clientWidth : window.innerWidth;
-    var body_height = (Webfm.browser.isIE)? document.documentElement.clientHeight : window.innerHeight;
 
     this.popupCont.width = paneWidth;
     this.popupCont.content_height = contentHeight;
-    this.popupCont.top  = body_scroll_top + (body_height - contentHeight)/2;
+    this.popupCont.top = body_scroll_top + (body_height - contentHeight)/2;
     this.popupCont.left = body_scroll_left + (body_width - paneWidth)/2;
+  }
+
+  //Compensate pane position for scroll
+  if((body_scroll_top + body_height) < this.popupCont.top) {
+    this.popupCont.top = body_scroll_top + (body_height - contentHeight)/2;
+  }
+  if((body_scroll_top) > this.popupCont.top + this.popupCont.content_height) {
+    this.popupCont.top = body_scroll_top + (body_height - contentHeight)/2;
   }
 
   // Set top of drag popup and empty any contents
@@ -2950,7 +2958,7 @@ Webfm.pane.prototype.dragStart = function(event, move) {
     this.width = parseInt(this.pane.offsetWidth);
     this.height = parseInt(this.content.offsetHeight);
     document.onmousemove = function(e) { cp.resize(e); };
-    document.onmouseup = function(e) { cp.resizeEnd(e); };
+    document.onmouseup = function(e) { cp.resizeEnd(e);  };
     this.resize(event);
   }
 }
@@ -2962,7 +2970,7 @@ Webfm.pane.prototype.drag = function(event) {
   var y = pos.y - this.offset.y;
 
   //Scroll page if near top or bottom edge.  Hardcoded values
-  var scroll = this.popupCont.scroll();
+  var scroll = this.popupCont.getScrollY();
   if(typeof(window.innerHeight) == 'number') {
     if(pos.y > (window.innerHeight + scroll - 35)) {
       window.scrollBy(0,20);
@@ -3230,7 +3238,7 @@ Webfm.draggable.prototype.drag = function (event) {
   var y = pos.y - this.offset.y;
 
   //Scroll page if near top or bottom edge.  Hardcoded values
-  var scroll = this.dragCont.scroll();
+  var scroll = this.dragCont.getScrollY();
   if(typeof(window.innerHeight) == 'number') {
     if(pos.y > (window.innerHeight + scroll - 35)) {
       window.scrollBy(0,20);
