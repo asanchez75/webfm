@@ -1681,7 +1681,7 @@ Webfm.context.prototype.hover = function(event, state) {
 // Call Webfm.menuElement execute function
 Webfm.context.prototype.selectMenu = function(event, obj) {
   event = event || window.event;
-  obj.menu[(event.target||event.srcElement).id.substring(7,8)].execFunc(obj);
+  obj.menu[(event.target||event.srcElement).id.substring(7)].execFunc(obj);
   return false;
 }
 
