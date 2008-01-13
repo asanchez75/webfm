@@ -2861,7 +2861,7 @@ Webfm.pane = function(popupCont, title, paneId, content, paneWidth, contentHeigh
     this.popupCont.left = body_scroll_left + (body_width - paneWidth)/2;
   }
 
-  //Compensate pane position for scroll
+  //Compensate pane position for vertical scroll that places it out of view
   if((body_scroll_top + body_height) < this.popupCont.top) {
     this.popupCont.top = body_scroll_top + (body_height - contentHeight)/2;
   }
@@ -3376,7 +3376,7 @@ Webfm.draggable.prototype.callback = function(string, xmlhttp, cp) {
         Webfm.dirTreeObj.fetch(true);
       if(!cp.isTree)
         //listing draggable - update current listing by removing dropped item
-        cp.element.parentNode.removeChild(cp.element)
+        cp.element.parentNode.removeChild(cp.element);
       else
         //tree draggable - update target directory
         Webfm.dirListObj.fetch(cp.droppath);
