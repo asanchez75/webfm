@@ -3,23 +3,26 @@
 
 require_once 'webfm_file.inc';
 
-define('FLUSH', -1);
+define('WEBFM_FLUSH', -1);
 
-define('REPLACE_RENAME', 0);
-define('REPLACE_DELETE', 1);
-define('RENAME_NEW', 2);
-define('CANCEL', 3);
+define('WEBFM_REPLACE_RENAME', 0);
+define('WEBFM_REPLACE_DELETE', 1);
+define('WEBFM_RENAME_NEW', 2);
+define('WEBFM_CANCEL', 3);
 
 define('WEBFM_ADMIN', 1);
 define('WEBFM_USER', 2);
 define('WEBFM_ATTACH_VIEW', 3);
 
 // file access bits
-define('FILE_ACCESS_PUBLIC_VIEW', 1); //publicly viewable via webfm_send link
-define('FILE_ACCESS_ROLE_VIEW', 2);   //role can view/download file (owner/admin can always view)
-define('FILE_ACCESS_ROLE_ATTACH', 4); //role attach permitted (owner/admin can always attach)
-define('FILE_ACCESS_ROLE_FULL', 8);   //role modification of file permitted (owner/admin can always modify)
-define('MAX_FILE_ACCESS', FILE_ACCESS_PUBLIC_VIEW + FILE_ACCESS_ROLE_VIEW + FILE_ACCESS_ROLE_ATTACH + FILE_ACCESS_ROLE_FULL);
+define('WEBFM_FILE_ACCESS_PUBLIC_VIEW', 1); //publicly viewable via webfm_send link
+define('WEBFM_FILE_ACCESS_ROLE_VIEW', 2);   //role can view/download file (owner/admin can always view)
+define('WEBFM_FILE_ACCESS_ROLE_ATTACH', 4); //role attach permitted (owner/admin can always attach)
+define('WEBFM_FILE_ACCESS_ROLE_FULL', 8);   //role modification of file permitted (owner/admin can always modify)
+define('WEBFM_MAX_FILE_ACCESS', WEBFM_FILE_ACCESS_PUBLIC_VIEW + WEBFM_FILE_ACCESS_ROLE_VIEW + WEBFM_FILE_ACCESS_ROLE_ATTACH + WEBFM_FILE_ACCESS_ROLE_FULL);
+
+define('WEBFM_DATE_FORMAT_DAY', 1);
+define('WEBFM_DATE_FORMAT_MONTH', 2);
 
 /**
  * Implementation of hook_help().
@@ -177,6 +180,14 @@ function webfm_admin_settings() {
           '#field_suffix' => '<kbd>'. t('WIDTHxHEIGHT') .'</kbd>'
           );
 
+  $form['webfm_date_format'] =
+    array('#type' => 'radios',
+          '#title' => t('Date Format'),
+          '#default_value' => variable_get('webfm_date_format', WEBFM_DATE_FORMAT_DAY),
+          '#options' => array(WEBFM_DATE_FORMAT_DAY => t('dd/mm/yy'), WEBFM_DATE_FORMAT_MONTH => t('mm/dd/yy')),
+          '#description' => t('Set the order of day/month in date fields.')
+         );
+
   $form['file_perm'] =
     array('#type' => 'fieldset',
           '#title' => t('Default File Permissions'),
@@ -221,7 +232,7 @@ function webfm_admin_settings() {
   $form['roles'] = array('#type' => 'value', '#value' => $roles);
 
   // Flush extensions regex cache for upload and db enum
-  webfm_get_extensions_regex(FLUSH);
+  webfm_get_extensions_regex(WEBFM_FLUSH);
 
   foreach ($roles as $rid => $role) {
     $form["settings_role_".$rid] =
@@ -640,7 +651,7 @@ function theme_webfm_attachments($files) {
     $row = array();
     array_push($row, $href);
     if($enable_date) {
-      $time = $file->fcreatedate ? date('d/m/y g:i a', $file->fcreatedate) : date('d/m/y g:i a',  @filemtime($file->p . '/'. $file->n));
+      $time = $file->fcreatedate ? date(webfm_get_date_format(), $file->fcreatedate) : date(webfm_get_date_format(),  @filemtime($file->p . '/'. $file->n));
       array_push($row, array('data' => $time, 'class' => 'att-time'));
     }
     if($enable_size) {
@@ -1216,7 +1227,7 @@ function webfm_ajax () {
               $perm['perm'] = (int)rawurldecode($_POST["param1"]);
               $ret = FALSE;
               // Validate permission value
-              if($perm['perm'] >= 0 && $perm['perm'] <= MAX_FILE_ACCESS) {
+              if($perm['perm'] >= 0 && $perm['perm'] <= WEBFM_MAX_FILE_ACCESS) {
                 if($ret = webfm_dbupdate_file($fid, '', $perm)) {
                   // Send back permissions to confirm value for form reset
                   webfm_json(array('status' => TRUE, 'data' => $perm));
@@ -1357,12 +1368,12 @@ function webfm_ajax () {
           $filename = trim(rawurldecode($_POST["param1"]));
           if(strcmp($_SESSION['temp_upload']->filename, $filename) === 0) {
             switch($op) {
-              case CANCEL:
+              case WEBFM_CANCEL:
                 //Cancel button
                 webfm_json(array('status' => FALSE, 'data' => 'Upload Cancelled'));
                 break;
 
-              case RENAME_NEW:
+              case WEBFM_RENAME_NEW:
                 // Insert new file into database with munged name & auto-incremented fid
                 if(file_move($_SESSION['temp_upload'], $_SESSION['temp_upload']->dest)) {
                   // file was moved to its final destination
@@ -1384,7 +1395,7 @@ function webfm_ajax () {
                 }
                 break;
 
-              case REPLACE_RENAME:
+              case WEBFM_REPLACE_RENAME:
                 // Retrieve file record for original file
                 // Rename (munge) original file
                 // Move new file to destination
@@ -1447,7 +1458,7 @@ function webfm_ajax () {
                 }
                 break;
 
-              case REPLACE_DELETE:
+              case WEBFM_REPLACE_DELETE:
                 // Retrieve db record for original file & rename file
                 // Move new file to destination
                 // Update existing original record with data from new file
@@ -1714,7 +1725,7 @@ function webfm_get_root_dirs($flush = FALSE) {
  * user with 'access webfm'
  */
 function webfm_file_mod_access($webfm_file) {
-  if((int)$webfm_file->perm & FILE_ACCESS_ROLE_FULL) {
+  if((int)$webfm_file->perm & WEBFM_FILE_ACCESS_ROLE_FULL) {
     return webfm_path_access($webfm_file->fpath);
   }
   return FALSE;
@@ -1725,14 +1736,14 @@ function webfm_file_mod_access($webfm_file) {
  * user with 'access webfm'
  */
 function webfm_file_view_access($webfm_file) {
-  if((int)$webfm_file->perm & FILE_ACCESS_ROLE_VIEW) {
+  if((int)$webfm_file->perm & WEBFM_FILE_ACCESS_ROLE_VIEW) {
     return webfm_path_access($webfm_file->fpath);
   }
   return FALSE;
 }
 
 function webfm_file_att_access($webfm_file) {
-  if((int)$webfm_file->perm & FILE_ACCESS_ROLE_ATTACH) {
+  if((int)$webfm_file->perm & WEBFM_FILE_ACCESS_ROLE_ATTACH) {
     return webfm_path_access($webfm_file->fpath);
   }
   return FALSE;
@@ -1758,11 +1769,34 @@ function webfm_path_access($path) {
  * Helper function to set default file permissions
  */
 function webfm_default_file_perm() {
-  $perm =  (int)(variable_get('webfm_file_perm_role', '') ? FILE_ACCESS_ROLE_VIEW : 0);
-  $perm += (int)(variable_get('webfm_file_perm_mod', '') ? FILE_ACCESS_ROLE_FULL : 0);
-  $perm += (int)(variable_get('webfm_file_perm_attach', '') ? FILE_ACCESS_ROLE_ATTACH : 0);
-  $perm += (int)(variable_get('webfm_file_public', '') ? FILE_ACCESS_PUBLIC_VIEW : 0);
+  $perm =  (int)(variable_get('webfm_file_perm_role', '') ? WEBFM_FILE_ACCESS_ROLE_VIEW : 0);
+  $perm += (int)(variable_get('webfm_file_perm_mod', '') ? WEBFM_FILE_ACCESS_ROLE_FULL : 0);
+  $perm += (int)(variable_get('webfm_file_perm_attach', '') ? WEBFM_FILE_ACCESS_ROLE_ATTACH : 0);
+  $perm += (int)(variable_get('webfm_file_public', '') ? WEBFM_FILE_ACCESS_PUBLIC_VIEW : 0);
   return $perm;
+}
+
+/**
+ * Helper function to get date format string
+ */
+function webfm_get_date_format() {
+  static $dateformat;
+
+  if(!$dateformat) {
+    $date_format_type = (variable_get('webfm_date_format', WEBFM_DATE_FORMAT_DAY));
+    switch($date_format_type)
+    {
+      case WEBFM_DATE_FORMAT_MONTH:
+        $dateformat = 'm/d/y g:i a';
+        break;
+
+      case WEBFM_DATE_FORMAT_DAY:
+      default:
+        $dateformat = 'd/m/y g:i a';
+        break;
+    }
+  }
+  return $dateformat;
 }
 
 /**
@@ -1807,7 +1841,7 @@ class webfm_build_dir_list {
           $dd = new stdClass();
           $dd->n = $dir;
           $dd->p = $path."/".$dir;
-          $dd->m = (filemtime($dir)) ? date('d/m/y g:i a',  @filemtime($dir)) : "";
+          $dd->m = (filemtime($dir)) ? date(webfm_get_date_format(),  @filemtime($dir)) : "";
           $this->dirs[] = $dd;
         }
       }
@@ -1816,19 +1850,19 @@ class webfm_build_dir_list {
           if($_file = webfm_get_file_record('', $full_path.'/'.$file)) {
             if(($perm == WEBFM_ADMIN)                       ||
                ($_file->uid == $user->uid)                  ||
-               ((int)$_file->perm & FILE_ACCESS_ROLE_FULL)   ||
-               ((int)$_file->perm & FILE_ACCESS_ROLE_VIEW)) {
+               ((int)$_file->perm & WEBFM_FILE_ACCESS_ROLE_FULL)   ||
+               ((int)$_file->perm & WEBFM_FILE_ACCESS_ROLE_VIEW)) {
               $fd = new stdClass();
               $fd->id = $_file->fid;
-              if((int)$_file->perm & FILE_ACCESS_ROLE_FULL) {
+              if((int)$_file->perm & WEBFM_FILE_ACCESS_ROLE_FULL) {
                 // A bit of a hack for js functionality but safe since this is
                 // always validated on server side
                 $fd->u = $user->uid;
               } else {
                 $fd->u = $_file->uid;
               }
-//            $fd->m = $_file->fcreatedate ? date('d/m/y g:i a', $_file->fcreatedate) : date('d/m/y g:i a',  @filemtime($file));
-              $fd->m = date('d/m/y g:i a',  @filemtime($file));
+//            $fd->m = $_file->fcreatedate ? date(webfm_get_date_format(), $_file->fcreatedate) : date(webfm_get_date_format(),  @filemtime($file));
+              $fd->m = date(webfm_get_date_format(),  @filemtime($file));
 //              $fd->s = $_file->fsize ? $_file->fsize : @filesize($file);
               $fd->s = @filesize($file);
             } else {
@@ -1839,7 +1873,7 @@ class webfm_build_dir_list {
             $fd = new stdClass();
             $fd->id = 0; //invalid fid signals no db entry
             $fd->u = 0; //file has no owner
-            $fd->m = date('d/m/y g:i a',  @filemtime($file));
+            $fd->m = date(webfm_get_date_format(),  @filemtime($file));
             $fd->s = @filesize($file);
           } else {
             // permission denied to view this file
@@ -1970,7 +2004,7 @@ class webfm_fdesc {
               $this->fformat = $file->fformat;
               $this->fversion = $file->fversion;
 
-              $this->m = (filemtime($readdir)) ? date('d/m/y g:i a',  @filemtime($readdir)) : "";
+              $this->m = (filemtime($readdir)) ? date(webfm_get_date_format(),  @filemtime($readdir)) : "";
 
               if($i = @getimagesize($readdir)) {
                 $this->w = (int) $i[0];
@@ -2121,7 +2155,7 @@ function webfm_send_file($fid, $attach = false) {
   // Files that have been attached are alway considered public to whoever can
   // access that node (nodeaccess security)
   if($match == FALSE && $webfm_perm != WEBFM_ADMIN) {
-    if($f->perm & FILE_ACCESS_PUBLIC_VIEW) {
+    if($f->perm & WEBFM_FILE_ACCESS_PUBLIC_VIEW) {
       $match = TRUE;
     } else if($webfm_perm == WEBFM_USER || $webfm_perm == WEBFM_ATTACH_VIEW){
       //Check if the file is attached to a node
@@ -2325,7 +2359,7 @@ function webfm_dbupdate_file($fid, $path = FALSE, $metadata = array()){
 function webfm_get_extensions_regex($rid) {
   static $role_ext_regex = array();
 
-  if($rid == FLUSH) {
+  if($rid == WEBFM_FLUSH) {
     //flush static array
     $role_ext_regex = array();
     return '';
