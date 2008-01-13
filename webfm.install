@@ -96,6 +96,11 @@ function webfm_uninstall() {
     if ($type->type)
       variable_del('webfm_attach_'.$type->type);
   }
+  variable_del('webfm_file_perm_role');
+  variable_del('webfm_file_perm_mod');
+  variable_del('webfm_file_perm_attach');
+  variable_del('webfm_file_public');
+  variable_del('webfm_date_format');
 }
 
 function webfm_update_1() {
