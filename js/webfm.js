@@ -74,6 +74,7 @@ Webfm.meta_msg["ver"] = "version";
 Webfm.meta_msg["type"] = "image type";
 Webfm.meta_msg["width"] = "width";
 Webfm.meta_msg["height"] = "height";
+Webfm.meta_msg["dl_cnt"] = "downloads";
 
 Webfm.perm_msg = [];
 Webfm.perm_msg["pub_view"] = "Public download";
@@ -136,6 +137,7 @@ Webfm.renameActive = null;
 Webfm.admin = false;
 
 Webfm.zindex = 1000;
+Webfm.scrollVal = null; // freeze scroll
 
 Webfm.eventListeners = [];
 
@@ -377,6 +379,7 @@ Webfm.commonInterface = function(parent) {
   Webfm.metadataHT.put('i', new Webfm.metaElement(Webfm.meta_msg["type"],  false,0  ));
   Webfm.metadataHT.put('w', new Webfm.metaElement(Webfm.meta_msg["width"], false,0  ));
   Webfm.metadataHT.put('h', new Webfm.metaElement(Webfm.meta_msg["height"],false,0  ));
+  Webfm.metadataHT.put('c', new Webfm.metaElement(Webfm.meta_msg["dl_cnt"],false,0  ));
 
   //build permissions hashtable
   //key is permission bit, value is string
@@ -560,7 +563,7 @@ Webfm.list = function(parent, id, type, class_name, dd_enable, dir_menu, file_me
   this.sc_m = 0;
   this.sc_s = 0;
   this.content = '';
-  this.iconDir = getIconDir();
+  this.iconDir = getWebfmIconDir();
   this.dir_menu = dir_menu;
   this.file_menu = file_menu;
   //directory cache hashtable (key= directory path, val= directory contents)
@@ -930,7 +933,7 @@ Webfm.list.prototype.sortTable = function(arr, key) {
 Webfm.dirrow = function(parent, dir, index, dd_enable, menu, eventListenerArr) {
   var dr = this;
   this.draggable = dd_enable;
-  this.iconDir = getIconDir();
+  this.iconDir = getWebfmIconDir();
   //id used for drop container
   var _id = 'dirlist' + index;
   var elTr = Webfm.ce('tr');
@@ -967,7 +970,7 @@ Webfm.dirrow = function(parent, dir, index, dd_enable, menu, eventListenerArr) {
 
   var elTd = Webfm.ce('td');
   elTd.className = 'txt';
-  elTd.appendChild(Webfm.ctn(dir.m));
+  elTd.appendChild(Webfm.ctn(Webfm.convertunixtime(parseInt(dir.m))));
   elTr.appendChild(elTd);
 
   var elTd = Webfm.ce('td');
@@ -1050,7 +1053,7 @@ Webfm.dirrow.prototype.select = function(event) {
 Webfm.filerow = function(parent, fileObj, idtype, index, dd_enable, file_menu, eventListenerArr) {
   var fr = this;
   this.draggable = dd_enable;
-  this.iconDir = getIconDir();
+  this.iconDir = getWebfmIconDir();
   this.ext = fileObj.e;
   this.filepath = fileObj.p + '/' + fileObj.n;
   this.uid = fileObj.u;
@@ -1073,7 +1076,7 @@ Webfm.filerow = function(parent, fileObj, idtype, index, dd_enable, file_menu, e
   elTr.setAttribute('title', this.filepath);
   if(dd_enable) {
     //Only admins or owner of file can move it
-    if(Webfm.admin || fileObj.u == getUid()) {
+    if(Webfm.admin || fileObj.u == getWebfmUid()) {
       this.dd = new Webfm.draggable(Webfm.dragCont, elTr, elTr.className);
     } else {
       this.draggable = false;
@@ -1108,7 +1111,7 @@ Webfm.filerow = function(parent, fileObj, idtype, index, dd_enable, file_menu, e
 
   var elTd = Webfm.ce('td');
   elTd.className = 'txt';
-  elTd.appendChild(Webfm.ctn(fileObj.m));
+  elTd.appendChild(Webfm.ctn(Webfm.convertunixtime(parseInt(fileObj.m))));
   elTr.appendChild(elTd);
 
   var elTd = Webfm.ce('td');
@@ -1259,7 +1262,7 @@ Webfm.tree = function(parent, treeIdx, root_menu, dir_menu) {
   var wt = this;
   this.id = 'dirtree' + treeIdx;
   this.treeIdx = treeIdx;
-  this.icondir = getIconDir();
+  this.icondir = getWebfmIconDir();
   this.content = '';
   this.expAllData = [['collapse', 'minus', 'block'], ['expand', 'plus', 'none']];
   // Set tree exp/collapse behaviour on load (0 = expanded, 1 = collapsed)
@@ -1492,7 +1495,7 @@ Webfm.treeNode = function(parent, path, id, expImg, menu, eventListenerArr) {
   var tn = this;
   this.parent = parent;
   this.element = parent.parentNode;
-  var icondir = getIconDir();
+  var icondir = getWebfmIconDir();
   this.expClickObj = expImg;
   var elImg = Webfm.ce('img');
   elImg.setAttribute('id', id + 'dd');
@@ -1574,7 +1577,7 @@ Webfm.selectFile = function(path, el, as_file) {
     var pluspath = pths.join('~');
     var fullpath = 'webfm_send/' + encodeURIComponent(pluspath);
   }
-  var cleanUrl = getCleanUrl();
+  var cleanUrl = getWebfmCleanUrl();
   if(cleanUrl) {
     var url = getBaseUrl() + '/' + fullpath;
   } else {
@@ -1897,7 +1900,7 @@ Webfm.menuFileUid = function(obj) {
   if(Webfm.admin)
     return true;
   //determine if we are the owner of this file
-  return(obj.uid == getUid());
+  return(obj.uid == getWebfmUid());
 }
 Webfm.menuAdminFidVal = function(obj) {
   if(Webfm.admin)
@@ -2035,7 +2038,7 @@ Webfm.perm = function(container, width, height) {
 Webfm.perm.prototype.createForm = function(data) {
   cp = this;
   this.data = data;
-  this.permit = (Webfm.admin || this.data["u"] == getUid()) ? true : false;
+  this.permit = (Webfm.admin || this.data["u"] == getWebfmUid()) ? true : false;
   //clear any permissions info
   this.resetForm();
   //create new pane to house this perm object
@@ -2248,7 +2251,7 @@ Webfm.metadata.prototype.fillFormData = function() {
           elTextArea.setAttribute('name', i);
           elTextArea.cols = "40";
           elTextArea.rows = "4";
-          elTextArea.value = this.data[i];
+          elTextArea.value = unescape(this.data[i]);
           elTd.appendChild(elTextArea);
           break;
         default:
@@ -2257,12 +2260,12 @@ Webfm.metadata.prototype.fillFormData = function() {
           elInput.setAttribute('type', 'textfield');
           elInput.setAttribute('name', i);
           elInput.setAttribute('size', '40');
-          elInput.setAttribute('value', this.data[i]);
+          elInput.setAttribute('value', unescape(this.data[i]));
           elTd.appendChild(elInput);
           break;
       }
     } else {
-      elTd.appendChild(Webfm.ctn(this.data[i]));
+      elTd.appendChild(Webfm.ctn(unescape(this.data[i])));
     }
     elTr.appendChild(elTd);
 
@@ -2479,7 +2482,7 @@ Webfm.search = function(container, width, height) {
   this.results = elResults;
   this.width = width;
   this.height = height;
-  this.iconDir = getIconDir();
+  this.iconDir = getWebfmIconDir();
   this.eventListeners = this.container.eventListenerArr;
 }
 
@@ -2812,9 +2815,9 @@ Webfm.popup.prototype.objPosition = function(element, comp) {
   }
   // IE must compensate for relative positioning in css
   if(Webfm.browser.isIE && comp) {
-    curleft += parseInt(getIEListOffset());
+    curleft += parseInt(getWebfmIEListOffset());
     if(comp == 'tree') {
-      curleft += parseInt(getIETreeOffset());
+      curleft += parseInt(getWebfmIETreeOffset());
     }
   }
   return { x:curleft, y:curtop };
@@ -2875,7 +2878,7 @@ Webfm.pane = function(popupCont, title, paneId, content, paneWidth, contentHeigh
   this.popupCont.destroy();
 
   // Pane container div
-  var iconDir = getIconDir();
+  var iconDir = getWebfmIconDir();
   var pane = Webfm.ce('div');
   this.pane = pane;
   pane.id = paneId;
@@ -2959,6 +2962,7 @@ Webfm.pane.prototype.dragStart = function(event, move) {
     this.height = parseInt(this.content.offsetHeight);
     document.onmousemove = function(e) { cp.resize(e); };
     document.onmouseup = function(e) { cp.resizeEnd(e);  };
+    Webfm.scrollVal = this.popupCont.getScrollY();
     this.resize(event);
   }
 }
@@ -3018,6 +3022,8 @@ Webfm.pane.prototype.resizeEnd = function (event) {
   this.popupCont.width = parseInt(this.pane.style.width);
   this.popupCont.content_height = parseInt(this.content.style.height);
   this.end(event);
+  // counter browser scrolling
+  setTimeout(function(){window.scrollTo(0, Webfm.scrollVal);}, 1);
 }
 Webfm.pane.prototype.end = function (event) {
   this.content.style.visibility = "visible";
@@ -3058,7 +3064,7 @@ Webfm.draggable = function(popupCont, element, _class) {
   this.isTree = _class.substring(0,4) == 'tree';
   this.isDir = (_class == 'dirrow') || this.isTree;
   this.isAttach = _class == 'attachrow';
-  this.icondir = getIconDir();
+  this.icondir = getWebfmIconDir();
   this.comp = this.isTree ? 'tree' : 'list';
 }
 
@@ -3518,6 +3524,7 @@ Webfm.clearNodeById = function(elementId) {
     node.removeChild(node.firstChild);
 }
 
+// Sort methods
 Webfm.sortByName = function(a, b) {
   var x = a.n.toLowerCase();
   var y = b.n.toLowerCase();
@@ -3537,6 +3544,36 @@ Webfm.sortByKey = function(a, b) {
   var x = a.toLowerCase();
   var y = b.toLowerCase();
   return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+}
+
+// Build date stamp
+Webfm.convertunixtime = function(unixtime) {
+  // unix date format doesn't have millisec component
+  var _date = new Date(unixtime * 1000);
+
+  var _min = _date.getMinutes();
+  var _hours = _date.getHours();
+  var _day = _date.getDate();
+  var _mon = _date.getMonth() + 1;
+  var _year = _date.getYear();
+
+  _min = Webfm.doubleDigit(_min);
+  _hours = Webfm.doubleDigit(_hours);
+  _day = Webfm.doubleDigit(_day);
+  _mon = Webfm.doubleDigit(_mon);
+  if(_year >= 100)
+    _year -= 100;
+  _year = Webfm.doubleDigit(_year);
+
+  // Get day/month order from db variable
+  var format = getWebfmDateFormat();
+  if(format == 1)
+    return _day + "/" + _mon + "/" + _year + " " + _hours + ":" + _min;
+  else
+    return _mon + "/" + _day + "/" + _year + " " + _hours + ":" + _min;
+}
+Webfm.doubleDigit = function(num) {
+  return(num < 10) ? "0" + num : num;
 }
 
 Webfm.size = function(sz) {
