@@ -22,12 +22,13 @@ function webfm_install(){
         fpublisher varchar(255) NOT NULL default '',
         fformat varchar(255) NOT NULL default '',
         fversion int(10) NOT NULL default '0',
+        perm tinyint NOT NULL default '0',
+        dl_cnt int(10) NOT NULL default '0',
         PRIMARY KEY (`fid`)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE {webfm_attach} (
         nid int(10) NOT NULL default '0',
         fid int(10) NOT NULL default '0',
-        list tinyint(4) NOT NULL default '0',
         weight int(10) NOT NULL default '0',
         PRIMARY KEY (`nid`,`fid`)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
@@ -48,12 +49,13 @@ function webfm_install(){
         fpublisher varchar(255) NOT NULL default '',
         fformat varchar(255) NOT NULL default '',
         fversion integer NOT NULL default 0,
+        perm smallint NOT NULL default 0,
+        dl_cnt integer NOT NULL default 0,
         PRIMARY KEY (fid)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE {webfm_attach} (
         nid integer NOT NULL default 0,
         fid integer NOT NULL default 0,
-        list smallint NOT NULL default 0,
         weight integer NOT NULL default '0',
         PRIMARY KEY (nid,fid)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
@@ -111,10 +113,10 @@ function webfm_update_1() {
     case 'mysqli':
       $ret[] = update_sql("ALTER TABLE {webfm_file} ADD perm tinyint NOT NULL DEFAULT 0");
       $ret[] = update_sql("ALTER TABLE {webfm_file} ADD dl_cnt int NOT NULL DEFAULT 0");
-      $ret[] = update_sql('ALTER TABLE {webfm_attach} DROP list');
+      $ret[] = update_sql("ALTER TABLE {webfm_attach} DROP list");
       break;
     case 'pgsql':
-      db_add_column($ret, 'webfm_file', 'perm', 'tinyint', array('not null' => TRUE, 'default' => 0));
+      db_add_column($ret, 'webfm_file', 'perm', 'smallint', array('not null' => TRUE, 'default' => 0));
       db_add_column($ret, 'webfm_file', 'dl_cnt', 'int', array('not null' => TRUE, 'default' => 0));
       $ret[] = update_sql('ALTER TABLE {webfm_attach} DROP COLUMN list');
       break;
