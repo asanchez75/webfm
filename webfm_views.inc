@@ -89,43 +89,60 @@ function webfm_views_tables(){
                                       'name' => t('WebFM metadata:  File publisher'),
                                       'sortable' => true,
                                       'help' => t('Display the publisher of files that have been attached to a node via WebFM')
-                                    )
+                                    ),
+                                    'dl_cnt' => array(
+                                      'name' => t('WebFM:  Download Count'),
+                                      'sortable' => true,
+                                      'help' => t('Display the number of times a file has been downloaded via WebFM')
+                                    ),
                                   ),
                                   'filters' => array(
                                     'fname' => array(
                                       'name' => t('WebFM: File name'),
                                       'operator' => 'views_handler_operator_like',
                                       'handler' => 'views_handler_filter_like',
-                                      'help' => t('This filter allows nodes to be filtered by the names of files that have been attached via WebFM.  e.g. show only nodes with a file called "foo.txt" attached to them'),
+                                      'help' => t('Filter nodes by the names of files that have been attached via WebFM.  e.g. show only nodes with a file called "foo.txt" attached to them'),
                                     ),
                                     'fsize' => array(
                                       'name' => t('WebFM: File size'),
                                       'operator' => 'views_handler_operator_gtlt',
-                                      'help' => t('This filter allows nodes to be filtered by the size of files that have been attached via WebFM. e.g. show only nodes with files larger than 1M attached to them'),
+                                      'help' => t('Filter nodes by the size of files that have been attached via WebFM. e.g. show only nodes with files larger than 1M attached to them'),
                                     ),
                                     'fmime' => array(
                                       'name' => t('WebFM: File mime type'),
                                       'operator' => 'views_handler_operator_like',
                                       'handler' => 'views_handler_filter_like',
-                                      'help' => t('This filter allows nodes to be filtered by the mime type of files that have been attached via WebFM.  e.g. show only nodes with a .pdf document attached to them'),
+                                      'help' => t('Filter nodes by the mime type of files that have been attached via WebFM.  e.g. show only nodes with a .pdf document attached to them'),
                                     ),
                                     'ftitle' => array(
                                       'name' => t('WebFM metadata: File title'),
                                       'operator' => 'views_handler_operator_like',
                                       'handler' => 'views_handler_filter_like',
-                                      'help' => t('This filter allows nodes to be filtered by the title of files that have been attached via WebFM.  e.g. show only nodes with a file attached wich has a metadata title like "bar"'),
+                                      'help' => t('Filter nodes by the title of files that have been attached via WebFM.  e.g. show only nodes with a file attached wich has a metadata title like "bar"'),
                                     ),
                                     'fdesc' => array(
                                       'name' => t('WebFM metadata: File description'),
                                       'operator' => 'views_handler_operator_like',
                                       'handler' => 'views_handler_filter_like',
-                                      'help' => t('This filter allows nodes to be filtered by the description of files that have been attached via WebFM.  e.g. show only nodes with a file attached which have a metadata description which contains all the words "foo, bar and baz"'),
+                                      'help' => t('Filter nodes by the description of files that have been attached via WebFM.  e.g. show only nodes with a file attached which have a metadata description which contains all the words "foo, bar and baz"'),
                                     ),
                                     'flang' => array(
                                       'name' => t('WebFM metadata: File language'),
                                       'operator' => 'views_handler_operator_like',
                                       'handler' => 'views_handler_filter_like',
-                                      'help' => t('This filter allows nodes to be filtered by the language of files that have been attached via WebFM.  e.g. show only nodes with a file attached which have a metadata language equal to "fr"'),
+                                      'help' => t('Filter nodes by the language of files that have been attached via WebFM.  e.g. show only nodes with a file attached which have a metadata language equal to "fr"'),
+                                    ),
+                                    'fpublisher' => array(
+                                      'name' => t('WebFM metadata: Sort by file publisher'),
+                                      'operator' => 'views_handler_operator_like',
+                                      'handler' => 'views_handler_filter_like',
+                                      'help' => t('Filter nodes by publisher of files that have been attached via WebFM.'),
+                                    ),
+                                    'dl_cnt' => array(
+                                      'name' => t('WebFM:  Download Count'),
+                                      'operator' => 'views_handler_operator_like',
+                                      'handler' => 'views_handler_filter_like',
+                                      'help' => t('Filter nodes by downloaded count of files that have been attached via WebFM.'),
                                     ),
                                   ),
                                   'sorts' => array(
@@ -147,11 +164,15 @@ function webfm_views_tables(){
                                     ),
                                     'flang' => array(
                                       'name' => t('WebFM metadata: Sort by file language'),
-                                      'help' => t('Sort by mime type.'),
+                                      'help' => t('Sort by file language.'),
                                     ),
                                     'fpublisher' => array(
                                       'name' => t('WebFM metadata: Sort by file publisher'),
-                                      'help' => t('Sort by mime type.'),
+                                      'help' => t('Sort by file publisher.'),
+                                    ),
+                                    'dl_cnt' => array(
+                                      'name' => t('WebFM: Download Count'),
+                                      'help' => t('Sort by file downloaded count'),
                                     ),
                                   )
                                  );
