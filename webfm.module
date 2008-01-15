@@ -1157,6 +1157,7 @@ function webfm_ajax () {
               $meta['l'] = $file->flang;
               $meta['p'] = $file->fpublisher;
               $meta['f'] = $file->fformat;
+              $meta['c'] = $file->dl_cnt;
               if($i = @getimagesize($file->fpath)) {
                 if(($i[0] != 0) && ($i[1] != 0)) {
                   $meta['i'] = (int)$i[2];
@@ -1644,7 +1645,7 @@ function theme_webfm_upload_form($form) {
  * Function to pass base_url, icon directory, debug and cleanurl flags
  */
 function webfm_inline_js($base_url, $clean_url, $uid) {
-  $js = '<script type="text/javascript">function getBaseUrl(){return '.drupal_to_js($base_url).';} function getIconDir(){return '.drupal_to_js($base_url."/".variable_get('webfm_icon_dir','')).';} function getCleanUrl(){return '.drupal_to_js($clean_url).'; }function getIETreeOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_tree_offset', '')).';}function getIEListOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_list_offset', '')).';} function getUid(){return '.drupal_to_js($uid).';}</script>';
+  $js = '<script type="text/javascript">function getBaseUrl(){return '.drupal_to_js($base_url).';} function getWebfmIconDir(){return '.drupal_to_js($base_url."/".variable_get('webfm_icon_dir','')).';} function getWebfmCleanUrl(){return '.drupal_to_js($clean_url).'; }function getWebfmIETreeOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_tree_offset', '')).';}function getWebfmIEListOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_list_offset', '')).';} function getWebfmUid(){return '.drupal_to_js($uid).';} function getWebfmDateFormat(){return '.variable_get('webfm_date_format', WEBFM_DATE_FORMAT_DAY).';}</script>' ;
   drupal_set_html_head($js);
   return $js;
 }
@@ -1841,7 +1842,7 @@ class webfm_build_dir_list {
           $dd = new stdClass();
           $dd->n = $dir;
           $dd->p = $path."/".$dir;
-          $dd->m = (filemtime($dir)) ? date(webfm_get_date_format(),  @filemtime($dir)) : "";
+          $dd->m = (filemtime($dir)) ? @filemtime($dir) : "";
           $this->dirs[] = $dd;
         }
       }
@@ -1861,9 +1862,7 @@ class webfm_build_dir_list {
               } else {
                 $fd->u = $_file->uid;
               }
-//            $fd->m = $_file->fcreatedate ? date(webfm_get_date_format(), $_file->fcreatedate) : date(webfm_get_date_format(),  @filemtime($file));
-              $fd->m = date(webfm_get_date_format(),  @filemtime($file));
-//              $fd->s = $_file->fsize ? $_file->fsize : @filesize($file);
+              $fd->m = @filemtime($file);
               $fd->s = @filesize($file);
             } else {
               // permission denied to view this file
@@ -1873,7 +1872,8 @@ class webfm_build_dir_list {
             $fd = new stdClass();
             $fd->id = 0; //invalid fid signals no db entry
             $fd->u = 0; //file has no owner
-            $fd->m = date(webfm_get_date_format(),  @filemtime($file));
+
+            $fd->m = @filemtime($file);
             $fd->s = @filesize($file);
           } else {
             // permission denied to view this file
@@ -1996,15 +1996,15 @@ class webfm_fdesc {
               $this->fsize = $file->fsize;
               $this->fmime = $file->fmime;
 */
-              $this->ftitle = $file->ftitle;
-              $this->fdesc = $file->fdesc;
+              // urldecode required for fields where user input is urlencoded
+              $this->ftitle = urldecode($file->ftitle);
+              $this->fdesc = urldecode($file->fdesc);
               $this->fcreatedate = $file->fcreatedate;
-              $this->flang = $file->flang;
-              $this->fpublisher = $file->fpublisher;
-              $this->fformat = $file->fformat;
+              $this->flang = urldecode($file->flang);
+              $this->fpublisher = urldecode($file->fpublisher);
+              $this->fformat = urldecode($file->fformat);
               $this->fversion = $file->fversion;
-
-              $this->m = (filemtime($readdir)) ? date(webfm_get_date_format(),  @filemtime($readdir)) : "";
+              $this->m = (filemtime($readdir)) ? @filemtime($readdir) : "";
 
               if($i = @getimagesize($readdir)) {
                 $this->w = (int) $i[0];
