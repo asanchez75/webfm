@@ -97,6 +97,7 @@ Webfm.menu_msg["view"] = "View file";
 Webfm.menu_msg["enum"] = "Add file to database";
 Webfm.menu_msg["denum"] = "Remove file from database";
 Webfm.menu_msg["perm"] = "File permissions";
+Webfm.menu_msg["clip"] = "put link in clipboard";
 //Do not translate any code below this line
 
 Webfm.current = null;
@@ -359,7 +360,8 @@ Webfm.commonInterface = function(parent) {
     Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["dwnld"], Webfm.menuDownload, Webfm.menuFidVal));
     Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["enum"], Webfm.menuInsert, Webfm.menuAdminNoFidVal));
     Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["denum"], Webfm.menuDbRem, Webfm.menuAdminFidVal));
-    Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["perm"], Webfm.menuGetPerm, Webfm.menuFileUid));
+    Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["perm"], Webfm.menuGetPerm, Webfm.menuFilePerm));
+    Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["clip"], Webfm.menuPutLinkInClipboard, Webfm.menuFidVal))
   } catch(err) {
     alert("Menu Create err\n" + err);
   }
@@ -1891,6 +1893,11 @@ Webfm.insert_callback = function(string, xmlhttp, path) {
   }
 }
 
+Webfm.menuPutLinkInClipboard = function(obj) {
+  var url = getBaseUrl();
+  var string = "<a href=\"" + url + "\/webfm_send\/" + obj.element.id.substring(3) + "\">" + obj.element.title + "</a>";
+  Webfm.copyToClipboard(string);
+}
 
 Webfm.menuAdmin = function() {
   return(Webfm.admin);
@@ -1901,6 +1908,13 @@ Webfm.menuFileUid = function(obj) {
     return true;
   //determine if we are the owner of this file
   return(obj.uid == getWebfmUid());
+}
+Webfm.menuFilePerm = function(obj) {
+  // object must be file in db with user access
+  if(Webfm.menuFidVal(obj)) {
+    return(Webfm.menuFileUid(obj));
+  }
+  return false;
 }
 Webfm.menuAdminFidVal = function(obj) {
   if(Webfm.admin)
@@ -3617,6 +3631,46 @@ Webfm.rclick= function(event) {
       var rightclick = (event.button == 2);
   }
   return rightclick;
+}
+
+Webfm.copyToClipboard = function(s)
+{
+  Webfm.dbgObj.dbg("clip:", s);
+  if( window.clipboardData && clipboardData.setData ) {
+  	clipboardData.setData("Text", s);
+  } else if (window.netscape) {
+  	// You have to sign the code to enable this or allow the action in about:config by changing
+    // user_pref("signed.applets.codebase_principal_support", true);
+  	netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+  	var clip = Components.classes['@mozilla.org/widget/clipboard;1'].createInstance(Components.interfaces.nsIClipboard);
+  	if (!clip) return;
+
+  	// create a transferable
+  	var trans = Components.classes['@mozilla.org/widget/transferable;1'].createInstance(Components.interfaces.nsITransferable);
+  	if (!trans) return;
+
+  	// specify the data we wish to handle. Plaintext in this case.
+  	trans.addDataFlavor('text/unicode');
+
+  	// To get the data from the transferable we need two new objects
+  	var str = new Object();
+  	var len = new Object();
+
+    var str = Components.classes["@mozilla.org/supports-string;1"].createInstance(Components.interfaces.nsISupportsString);
+
+  	var copytext=s;
+
+  	str.data=copytext;
+
+  	trans.setTransferData("text/unicode",str,copytext.length*2);
+
+  	var clipid=Components.interfaces.nsIClipboard;
+
+  	if (!clip) return false;
+
+  	clip.setData(trans,null,clipid.kGlobalClipboard);
+  }
 }
 
 // Dump debug function
