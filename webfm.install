@@ -89,6 +89,7 @@ function webfm_uninstall() {
   variable_del('webfm_ie_dd_tree_offset');
   $roles = user_roles(1, 'access webfm');
   foreach ($roles as $rid => $role) {
+   variable_del('root_dir_'.$rid);
    variable_del('webfm_extensions_'.$rid);
    variable_del('webfm_uploadsize_'.$rid);
    variable_del('webfm_usersize_'.$rid);
@@ -103,6 +104,7 @@ function webfm_uninstall() {
   variable_del('webfm_file_perm_attach');
   variable_del('webfm_file_public');
   variable_del('webfm_date_format');
+  variable_del('webfm_attach_new_window');
 }
 
 function webfm_update_1() {
