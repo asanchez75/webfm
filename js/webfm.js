@@ -3569,14 +3569,16 @@ Webfm.convertunixtime = function(unixtime) {
   var _hours = _date.getHours();
   var _day = _date.getDate();
   var _mon = _date.getMonth() + 1;
-  var _year = _date.getYear();
+  var _year = _date.getFullYear();
 
   _min = Webfm.doubleDigit(_min);
   _hours = Webfm.doubleDigit(_hours);
   _day = Webfm.doubleDigit(_day);
   _mon = Webfm.doubleDigit(_mon);
-  if(_year >= 100)
-    _year -= 100;
+  if(_year > 1999)
+    _year -= 2000;
+  else
+    _year -= 1900;
   _year = Webfm.doubleDigit(_year);
 
   // Get day/month order from db variable
