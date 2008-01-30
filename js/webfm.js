@@ -2265,7 +2265,7 @@ Webfm.metadata.prototype.fillFormData = function() {
           elTextArea.setAttribute('name', i);
           elTextArea.cols = "40";
           elTextArea.rows = "4";
-          elTextArea.value = unescape(this.data[i]);
+          elTextArea.value = decodeURI(this.data[i]);
           elTd.appendChild(elTextArea);
           break;
         default:
@@ -2274,12 +2274,12 @@ Webfm.metadata.prototype.fillFormData = function() {
           elInput.setAttribute('type', 'textfield');
           elInput.setAttribute('name', i);
           elInput.setAttribute('size', '40');
-          elInput.setAttribute('value', unescape(this.data[i]));
+          elInput.setAttribute('value', decodeURI(this.data[i]));
           elTd.appendChild(elInput);
           break;
       }
     } else {
-      elTd.appendChild(Webfm.ctn(unescape(this.data[i])));
+      elTd.appendChild(Webfm.ctn(decodeURI(this.data[i])));
     }
     elTr.appendChild(elTd);
 
