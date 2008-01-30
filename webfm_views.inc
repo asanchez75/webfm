@@ -71,23 +71,30 @@ function webfm_views_tables(){
                                       'help' => t('Display the file mime type of files that have been attached to a node via WebFM'),
                                     ),
                                     'ftitle' => array(
-                                      'name' => t('WebFM metadata:  file title'),
+                                      'name' => t('WebFM metadata:  File title'),
+ 				                              'handler' => array (
+ 					                               'webfm_views_handler_file_meta_download' => t('With links'),
+ 					                               'webfm_views_handler_file_meta' => t('Without links')),
                                       'sortable' => true,
-                                      'help' => t('Display the file title of files that have been attached to a node via WebFM')
+ 				                              'addlfields' => array('fid'),
+                                      'help' => t('Display the file title of files that have been attached to a node via WebFM (with or without links to the files themselves)')
                                     ),
                                     'fdesc' => array(
                                       'name' => t('WebFM metadata:  File description'),
                                       'sortable' => true,
+                                      'handler' => 'webfm_views_handler_file_meta',
                                       'help' => t('Display the description of files that have been attached to a node via WebFM')
                                     ),
                                     'flang' => array(
                                       'name' => t('WebFM metadata:  File language'),
                                       'sortable' => true,
+                                      'handler' => 'webfm_views_handler_file_meta',
                                       'help' => t('Display the language of files that have been attached to a node via WebFM')
                                     ),
                                     'fpublisher' => array(
                                       'name' => t('WebFM metadata:  File publisher'),
                                       'sortable' => true,
+                                      'handler' => 'webfm_views_handler_file_meta',
                                       'help' => t('Display the publisher of files that have been attached to a node via WebFM')
                                     ),
                                     'dl_cnt' => array(
@@ -212,6 +219,14 @@ function webfm_views_handler_file_filename_download($fieldinfo, $fielddata, $val
 
 function webfm_views_handler_file_size($fieldinfo, $fielddata, $value, $data){
   return format_size($value);
+}
+
+function webfm_views_handler_file_meta($fieldinfo, $fielddata, $value, $data) {
+  return rawurldecode($value);
+}
+
+function webfm_views_handler_file_meta_download($fieldinfo, $fielddata, $value, $data){
+  return l(check_plain(rawurldecode($value)), 'webfm_send/'.$data->webfm_file_fid);
 }
 
 
