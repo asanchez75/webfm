@@ -75,6 +75,7 @@ Webfm.meta_msg["type"] = "image type";
 Webfm.meta_msg["width"] = "width";
 Webfm.meta_msg["height"] = "height";
 Webfm.meta_msg["dl_cnt"] = "downloads";
+Webfm.meta_msg["link"] = "link";
 
 Webfm.perm_msg = [];
 Webfm.perm_msg["pub_view"] = "Public download";
@@ -327,11 +328,11 @@ Webfm.commonInterface = function(parent) {
 
   //create metadata popup
   Webfm.metaCont = new Webfm.popup("webfm-paneCont");
-  Webfm.metaObj = new Webfm.metadata(Webfm.metaCont, 400, 430);
+  Webfm.metaObj = new Webfm.metadata(Webfm.metaCont, 440, 420);
 
   //create file permissions popup
   Webfm.permCont = new Webfm.popup("webfm-permCont");
-  Webfm.permObj = new Webfm.perm(Webfm.permCont, 300, 240);
+  Webfm.permObj = new Webfm.perm(Webfm.permCont, 300, 200);
 
   //create search popup
   Webfm.searchCont = new Webfm.popup("webfm-searchCont");
@@ -382,6 +383,7 @@ Webfm.commonInterface = function(parent) {
   Webfm.metadataHT.put('w', new Webfm.metaElement(Webfm.meta_msg["width"], false,0  ));
   Webfm.metadataHT.put('h', new Webfm.metaElement(Webfm.meta_msg["height"],false,0  ));
   Webfm.metadataHT.put('c', new Webfm.metaElement(Webfm.meta_msg["dl_cnt"],false,0  ));
+  Webfm.metadataHT.put('lk', new Webfm.metaElement(Webfm.meta_msg["link"], false,0  ));
 
   //build permissions hashtable
   //key is permission bit, value is string
@@ -413,6 +415,7 @@ Webfm.commonInterface = function(parent) {
 
   //insert trees, listing, search, metadata, progress and alert divs before upload fset built in php
   parent.insertBefore(layout_cont, parent.firstChild);
+//  parent.appendChild(layout_cont); //If upload desired to be placed above browser
 
   webfmUploadAutoAttach();
 }
@@ -1895,7 +1898,7 @@ Webfm.insert_callback = function(string, xmlhttp, path) {
 
 Webfm.menuPutLinkInClipboard = function(obj) {
   var url = getBaseUrl();
-  var string = "<a href=\"" + url + "\/webfm_send\/" + obj.element.id.substring(3) + "\">" + obj.element.title + "</a>";
+  var string = "<a href=\"" + url + "\/webfm_send\/" + obj.element.id.substring(3) + "\">" + obj.element.title.substring(obj.element.title.lastIndexOf("/")+1) + "</a>";
   Webfm.copyToClipboard(string);
 }
 
