@@ -46,6 +46,8 @@ All WebFM directories are sub-directories of this 'File System' path. Set
   - The 'Maximum resolution for uploaded images' input functions in the same
   fashion as the root upload.module.
 
+  - The 'Date Format' sets the day/month order in the browser listing date field.
+
   - 'Default File Permissions' set the file level permissions for files inserted
   into the database.  The exception is file uploads that create a version
   overwrite whereby the new file inherits the permissions from the previous file.
@@ -55,9 +57,8 @@ All WebFM directories are sub-directories of this 'File System' path. Set
   and max total upload size. Roles with the 'access webfm' right but without a
   root directory cannot access the filesystem.
 
-  - Roles granted the 'attach WebFM files' permission will be able to see and
-  download attached files. 'Attachment List Properties' sets the presentation of
-  attached files.
+  - The 'WebFM attachments' section allows WebFM to attach files to nodes.
+  'Attachment List Properties' sets the presentation of attached files.
 
   - The 'IE Drag-and-Drop Normalization' is a sub-optimal solution for
   compensating for relative positioning in theme css.
