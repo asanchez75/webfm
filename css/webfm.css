@@ -46,7 +46,7 @@ img { border: 0; }
 .pane { font-size:8pt; border: 2px solid black; background-color: white; overflow: hidden; }
 .pane input { font-size:8pt; }
 .pane-header { background-color: #e7e7e7; cursor: move; overflow: hidden; width: auto; }
-.pane-content { clear:left; border-top: 1px solid black; border-bottom: 1px solid black; background-color: white; color: black; padding: 2px; overflow: auto; }
+.pane-content { clear:left; border-top: 1px solid black; border-bottom: 1px solid black; background-color: white; color: black; padding: 2px; line-height: 12px; overflow: auto; }
 .pane-header .pane-close { position: absolute; right: 5px; top: 4px; cursor: hand; cursor: pointer; }
 .pane-footer { height:15px; }
 .pane-title { float:left; padding: 1px; text-indent: 3px; font-weight:bold; font-size:10pt; }
