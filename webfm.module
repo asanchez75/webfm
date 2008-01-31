@@ -1165,6 +1165,11 @@ function webfm_ajax () {
                   $meta['h'] = (int)$i[1];
                 }
               }
+              if($file->perm & WEBFM_FILE_ACCESS_PUBLIC_VIEW) {
+                //permissions allow file to be linked for public view
+                global $base_url;
+                $meta['lk'] = '<a href="'.$base_url.'/webfm_send/'.$file->fid.'">'.$meta['n'].'</a>';
+              }
               webfm_json(array('status' => TRUE, 'data' => $meta));
             } else {
               webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
