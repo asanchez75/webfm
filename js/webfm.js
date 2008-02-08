@@ -355,7 +355,7 @@ Webfm.commonInterface = function(parent) {
     Webfm.menuHT.put('dir', new Webfm.menuElement(Webfm.menu_msg["search"], Webfm.menuSearch, ''));
 
     Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["rm"], Webfm.menuRemove, Webfm.menuFileUid));
-    Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["ren"], Webfm.menuRename, Webfm.menuFileUid));
+    Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["ren"], Webfm.menuRename, Webfm.menuRenFileUid));
     Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["meta"], Webfm.menuGetMeta, Webfm.menuFidVal));
     Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["view"], Webfm.menuView, ''));
     Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg["dwnld"], Webfm.menuDownload, Webfm.menuFidVal));
@@ -1062,6 +1062,9 @@ Webfm.filerow = function(parent, fileObj, idtype, index, dd_enable, file_menu, e
   this.ext = fileObj.e;
   this.filepath = fileObj.p + '/' + fileObj.n;
   this.uid = fileObj.u;
+  this.ftitle = null;
+  if(typeof fileObj.ftitle != "undefined")
+    this.ftitle = fileObj.ftitle;
   var elTr = Webfm.ce('tr');
   this.element = elTr;
   elTr.className = idtype + 'row';
@@ -1110,7 +1113,10 @@ Webfm.filerow = function(parent, fileObj, idtype, index, dd_enable, file_menu, e
     this.clickObj.setAttribute('title', this.filepath);
   else
     this.clickObj.setAttribute('title', fileObj.id);
-  this.clickObj.appendChild(Webfm.ctn(fileObj.n));
+  if(this.ftitle)
+    this.clickObj.appendChild(Webfm.ctn(fileObj.ftitle));
+  else
+    this.clickObj.appendChild(Webfm.ctn(fileObj.n));
   elTd.appendChild(this.clickObj);
   elTr.appendChild(elTd);
 
@@ -1907,10 +1913,14 @@ Webfm.menuAdmin = function() {
 }
 
 Webfm.menuFileUid = function(obj) {
-  if(Webfm.admin)
-    return true;
   //determine if we are the owner of this file
-  return(obj.uid == getWebfmUid());
+  return((Webfm.admin || obj.uid == getWebfmUid()) ? true : false);
+}
+Webfm.menuRenFileUid =function(obj) {
+  if(Webfm.menuFileUid(obj))
+    // Determine if name is a metadata title
+    return(obj.ftitle == null);
+  return false;
 }
 Webfm.menuFilePerm = function(obj) {
   // object must be file in db with user access
