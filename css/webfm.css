@@ -38,7 +38,7 @@ img { border: 0; }
 #webfm-dragCont ul { margin:0; padding:0; background:transparent none; }
 #webfm-dragCont li { margin:0; padding-left:20px; background:transparent none; }
 
-#webfm-cxtCont { border:1px solid #202867; background:#FFF none; }
+#webfm-cxtCont { border:1px solid #202867; background:#FFF none; font-size:10pt; line-height: 14px; }
 #webfm-cxtCont ul { list-style-type:none; margin:0; padding:0;}
 #webfm-cxtCont ul li { padding:3px; margin: 0; background: #FFF none; text-align: left; }
 #webfm-cxtCont ul li.selected { background:#E2EBED none; color:red; cursor:pointer;}
@@ -59,7 +59,7 @@ img { border: 0; }
 
 #webfm-meta-form table { border: 0; margin: 0; padding: 0; }
 #webfm-meta-form tbody { border: 0; }
-#webfm-meta-form .meta-button { font-weight:bold; margin:0 5px 0 5px; }
+#webfm-meta-form .meta-button { font-weight:bold; margin:5px 5px 0 5px; }
 
 #webfm-debug .g { color: green; font-size: 120%; }
 #webfm-debug .dbg-button { font-weight:bold; margin:0 5px 0 5px; }
