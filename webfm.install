@@ -12,7 +12,6 @@ function webfm_install(){
         fid int(10) NOT NULL auto_increment,
         uid int(10) NOT NULL default '0',
         fpath longtext NOT NULL,
-        fname varchar(255) NOT NULL default '',
         fsize int(10) NOT NULL default '0',
         fmime varchar(255) NOT NULL default '',
         ftitle varchar(255) NOT NULL default '',
@@ -39,7 +38,6 @@ function webfm_install(){
         fid SERIAL NOT NULL,
         uid integer NOT NULL default 0,
         fpath text NOT NULL,
-        fname varchar(255) NOT NULL default '',
         fsize integer NOT NULL default 0,
         fmime varchar(255) NOT NULL default '',
         ftitle varchar(255) NOT NULL default '',
@@ -82,8 +80,8 @@ function webfm_uninstall() {
   variable_del('webfm_attach_date');
   variable_del('webfm_attach_size');
   variable_del('webfm_debug');
+  variable_del('webfm_display_title');
   variable_del('webfm_cron');
-  variable_del('webfm_frbdn');
   variable_del('webfm_max_resolution');
   variable_del('webfm_ie_dd_list_offset');
   variable_del('webfm_ie_dd_tree_offset');
@@ -121,6 +119,22 @@ function webfm_update_1() {
       db_add_column($ret, 'webfm_file', 'perm', 'smallint', array('not null' => TRUE, 'default' => 0));
       db_add_column($ret, 'webfm_file', 'dl_cnt', 'int', array('not null' => TRUE, 'default' => 0));
       $ret[] = update_sql('ALTER TABLE {webfm_attach} DROP COLUMN list');
+      break;
+  }
+
+  return $ret;
+}
+
+function webfm_update_2() {
+  $ret = array();
+
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("ALTER TABLE {webfm_file} DROP fname");
+      break;
+    case 'pgsql':
+      $ret[] = update_sql('ALTER TABLE {webfm_file} DROP COLUMN fname');
       break;
   }
 
