@@ -46,7 +46,13 @@ All WebFM directories are sub-directories of this 'File System' path. Set
   - The 'Maximum resolution for uploaded images' input functions in the same
   fashion as the root upload.module.
 
-  - The 'Date Format' sets the day/month order in the browser listing date field.
+  - The 'Date Format' radio buttons set the day/month order in the browser
+  listing date field.
+
+  - The 'Display metadata title' checkbox sets the browser to display metadata
+  titles rather than the actual filename if the metadata tile exists. Renaming
+  files that use the metadata title must be done via the metadata editor.  Note
+  that node attachments always display the metadata title if available.
 
   - 'Default File Permissions' set the file level permissions for files inserted
   into the database.  The exception is file uploads that create a version
@@ -61,7 +67,8 @@ All WebFM directories are sub-directories of this 'File System' path. Set
   'Attachment List Properties' sets the presentation of attached files.
 
   - The 'IE Drag-and-Drop Normalization' is a sub-optimal solution for
-  compensating for relative positioning in theme css.
+  compensating for relative positioning in theme css.  This feature is only
+  available to #1 user.
 
   - The 'Webfm javascript debug' checkbox is only useful for users interested
   in looking under the covers or who want to develop the module.
@@ -133,14 +140,115 @@ Features
   - Debug window option for admin javascript development
 
 
+Usage
+------------------------------------------------------------------------------
+
+There are many ways to setup a file system hierarchy. The rules of any given
+system must be applied carefully if security of data is important.
+
+The basic rules for users in a role with 'access webfm' rights:
+
+    * The role root directory defines the domain and all subdirectories are
+      accessible to the user.
+    * The user cannot navigate above the role root directory.
+    * Only files in the webfm_file table are accessible. Files uploaded by the
+      user are owned by the user and are automatically in the database. Only
+      module admins can view/operate on files not in the database.
+    * The user has full control over files that he/she owns that stay within an
+      accessible role root domain. File permissions can be locked down so that
+      only the owner/admins can see or operate on a file. File permissions can
+      be opened up so that anyone within the role can view or operate on the
+      file.
+    * Users with 'access webfm' rights cannot create/delete/move/rename
+      directories. Only module administrators (users with 'administer webfm'
+      permission or #1 user) can control the directory structure.
+
+Roles with 'access webfm' rights can be subsets of other roles with 'access webfm'
+rights or they can be exclusive. Users can be members of multiple roles and will
+consequently have a separate left-hand tree for each unique root directory
+(roles can even share the same root directory).
+
+It is difficult to foresee how diverse users of the module will choose to set up
+their systems but the following simple examples are typical arrangements. Both
+examples presume that the drupal file-system directory is set to 'files', the
+WebFM module is installed and the 'WebFM root directory' is set to 'webfm'.
+
+Example 1
+---------
+
+The site requires 1 class of privileged users (A) to administer the file system
+and 2 classes of WebFM users (B & C) with access to file resources. Both roles
+will be able to upload files. Some WebFM users are members of both B & C while
+others are members of only one. Uploaded files are by default only accessible by
+the file owner and admins.
+
+    * A site administrator will create 3 the roles A, B and C. Role A will have
+      the 'administer webfm' permission set in .../admin/user/access. B & C will
+      have the 'access webfm' and the 'webfm upload' permission set.
+    * WebFM settings will now have a fieldset for roles B & C where the root
+      directory for each role is set. The root of B is set to 'B' which
+      automatically creates the 'files/webfm/B' directory. The root of C is set
+      to 'C' which creates the directory 'files/webfm/C'. A user who is a member
+      of only one of B or C will see a single left-hand directory tree that
+      contains their domain. They will have no access to files within the other
+      role domain. Users who are members of both B & C will have two left-hand
+      directory trees and have the ability to move files they own or control
+      between the two domains.
+
+      Role A's root directory is the 'WebFM root directory' and thus A users see
+      only a single left-hand tree of the entire module file-sys.
+    * In WebFM settings, the 'Default File Permissions' are configured with all
+      checkboxes unset. This combination of default file permissions means that
+      files that are uploaded will initially only be viewable by the B or C user
+      doing the upload (owner) and by A users. Individual file permissions are
+      editable by the file owner or A user to permit other users to view/attach/
+      modify the file. One consequence of granting the permission 'Role Full
+      Access' is that a non-admin user with a single domain could lose contact
+      with their own file if a dual domain non-admin user moves it to the other
+      domain.
+
+Example 2
+---------
+
+The site requires 1 class of privileged users (A) to administer the file system
+and 2 classes of users (B & C) with access to file resources. C is determined to
+be a subset of B such that B can access it's own files as well as those of C. C
+will not be able to upload files to the browser but will only be able to view/
+download  or attach files to nodes. B will be able to upload files.
+
+    * A site administrator will create 3 the roles A, B and C. Role A will have
+      the 'administer webfm' permission set in .../admin/user/access. B & C will
+      have the 'access webfm' permission set. B will also have the 'webfm upload'
+      permission set.
+    * WebFM settings will now have a fieldset for roles B & C where the root
+      directory for each role is set. First the root of B is set to 'B' which
+      automatically creates the 'files/webfm/B' directory. Next the root of C is
+      set to 'B/C' which creates the directory 'files/webfm/B/C'. Since C is a
+      sub-dir of B, role B will have access to C but C will not be able to
+      navigate above it's root to see B's files. The left-hand directory tree
+      will appear different for B & C. B's tree will start at 'B' and have a 'C'
+      sub-directory (and potentially other sub-directories as set up by A). C's
+      tree is a subset of B's tree.
+
+      Role A's root directory is the 'WebFM root directory'.
+    * In WebFM settings, the 'Default File Permissions' are configured with
+      'Role View Access' and 'Role Attach Access' set. This combination of file
+      permissions means that files that a B user uploads/moves into the C realm
+      will by default be viewable by C and be attachable to nodes that C creates.
+      A B file owner can manually modify the file permissions of each individual
+      file to hide it or prevent it from being attached to content by a C user.
+      Likewise the file permissions can be opened so that a C user can edit file
+      attributes or move the file into another sub-directory of C.
+
+In the above examples the site administrator may simply create the roles/access
+rules and then let an A user configure WebFM for B & C.
+
+
 To Do
 ------------------------------------------------------------------------------
 
   - Flexible metadata scheme and standards based access for data mining
   - API for content/metadata search/sort.
-  - Menu option to place links to filesystem files inside node content (TinyMCE
-    plugin?)
-  - HTTPS?
 
 
 Credits / Contact
