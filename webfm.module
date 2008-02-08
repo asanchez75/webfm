@@ -188,6 +188,15 @@ function webfm_admin_settings() {
           '#description' => t('Set the order of day/month in date fields.')
          );
 
+  $form['webfm_display_title'] =
+    array('#type' => 'checkbox',
+          '#title' => t('Display metadata title'),
+          '#default_value' => variable_get('webfm_display_title', ''),
+          '#description' => t('Check this box to display the metadata title in the browser instead of the filename.
+                               <br />If a metadata title doesn\'t exist, the filename is used and rename functions normally.
+                               <br />If metadata title is used, renaming is available inside the metadata editor.')
+         );
+
   $form['file_perm'] =
     array('#type' => 'fieldset',
           '#title' => t('Default File Permissions'),
@@ -560,6 +569,10 @@ function webfm_form_alter($form_id, &$form) {
         '#collapsed' => TRUE
       );
       if($user->uid == 1                  ||
+         user_access('administer webfm')) {
+        $form['webfm-attach']['attach']['browser'] += webfm_links();
+      }
+      if($user->uid == 1                  ||
          user_access('administer webfm')  ||
          user_access('webfm upload')) {
         $form['webfm-attach']['attach']['browser']['wrapper'] = array(
@@ -588,6 +601,28 @@ function webfm_form_alter($form_id, &$form) {
       }
     }
   }
+}
+
+function webfm_links() {
+  $form['#theme'] = 'webfm_attach_attached_form';
+
+  $debug_link = (drupal_to_js(variable_get('webfm_debug',''))) ? t('[<a href=# id="webfm-debug-link">debug</a>]') : '';
+  $settings_link = t('[<a href="@link">settings...</a>]',array('@link'=>url("admin/settings/webfm")));
+  $help_link = t('[<a href="@link">more help...</a>]',array('@link'=>url("admin/help/webfm")));
+  $output = $debug_link.$settings_link.$help_link;
+
+  if($output) {
+    $form['links'] = array(
+      '#prefix' => '<div class="more-help-link">',
+      '#suffix' => '</div>'
+    );
+    $form['links']['content'] = array(
+      '#type' => 'markup',
+      '#value' => $output
+    );
+  }
+
+  return $form;
 }
 
 function webfm_attach_attached_form($node) {
@@ -899,7 +934,7 @@ function webfm_ajax () {
         if(count($trees)) {
           webfm_json(array('status' => TRUE, 'tree' => $trees, 'current' => $webfm_root_path, 'admin' => $webfm_perm == WEBFM_ADMIN, 'err' => $err));
         } else {
-          webfm_json(array('status' => FALSE, 'err' => $err));
+          webfm_json(array('status' => FALSE, 'err' => t('no trees found')));
         }
         exit();
         break;
@@ -1650,7 +1685,7 @@ function theme_webfm_upload_form($form) {
  * Function to pass base_url, icon directory, debug and cleanurl flags
  */
 function webfm_inline_js($base_url, $clean_url, $uid) {
-  $js = '<script type="text/javascript">function getBaseUrl(){return '.drupal_to_js($base_url).';} function getWebfmIconDir(){return '.drupal_to_js($base_url."/".variable_get('webfm_icon_dir','')).';} function getWebfmCleanUrl(){return '.drupal_to_js($clean_url).'; }function getWebfmIETreeOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_tree_offset', '')).';}function getWebfmIEListOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_list_offset', '')).';} function getWebfmUid(){return '.drupal_to_js($uid).';} function getWebfmDateFormat(){return '.variable_get('webfm_date_format', WEBFM_DATE_FORMAT_DAY).';}</script>' ;
+  $js = '<script type="text/javascript">function getBaseUrl(){return '.drupal_to_js($base_url).';} function getWebfmIconDir(){return '.drupal_to_js($base_url."/".variable_get('webfm_icon_dir','')).';} function getWebfmCleanUrl(){return '.drupal_to_js($clean_url).'; }function getWebfmIETreeOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_tree_offset', '')).';}function getWebfmIEListOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_list_offset', '')).';} function getWebfmUid(){return '.drupal_to_js($uid).';} function getWebfmDateFormat(){return '.drupal_to_js(variable_get('webfm_date_format', WEBFM_DATE_FORMAT_DAY)).';} function getWebfmMetaName(){return '.drupal_to_js(variable_get('webfm_display_title', '')).';}</script>' ;
   drupal_set_html_head($js);
   return $js;
 }
@@ -1885,6 +1920,9 @@ class webfm_build_dir_list {
             continue;
           }
 
+          if(variable_get('webfm_display_title', '') && $_file->ftitle) {
+            $fd->ftitle = urldecode($_file->ftitle);
+          }
           $fd->n = $file;
           $fd->p = $path;
           //if file is an image...
@@ -1994,13 +2032,6 @@ class webfm_fdesc {
               $this->s = $file->fsize;
 
               $this->uid = $file->uid;
-/* rename fields for expected js variables
-              $this->fid = $file->fid;
-              $this->fpath = $file->fpath;
-              $this->fname = $file->fname;
-              $this->fsize = $file->fsize;
-              $this->fmime = $file->fmime;
-*/
               // urldecode required for fields where user input is urlencoded
               $this->ftitle = urldecode($file->ftitle);
               $this->fdesc = urldecode($file->fdesc);
@@ -2269,7 +2300,6 @@ function webfm_dbinsert_file($file, &$error, $metadata = array()){
   unset($metadata['fid']);
   $metadata['uid'] = $user->uid;
   $metadata['fpath'] = $file->filepath;
-  $metadata['fname'] = strrev(substr(strrev($file->filepath), 0, strpos(strrev($file->filepath), '/')));
   $metadata['fsize'] = $file->filesize ? $file->filesize : @filesize($file->filepath);
   $metadata['fcreatedate'] = @filemtime($file->filepath);
   $metadata['perm'] = $file->perm ? $file->perm : webfm_default_file_perm();
