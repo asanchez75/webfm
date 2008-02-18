@@ -813,7 +813,6 @@ function webfm_upload () {
   if($_POST['webfmuploadpath']) {
     $root_dir = (($user->uid == 1) || user_access('administer webfm'))? file_directory_path() : file_directory_path().webfm_get_root_path();
     $dest = $root_dir.$_POST['webfmuploadpath'];
-    $db_check = TRUE;
     // Save new file uploads to tmp dir.
     if(($file = file_check_upload('webfm_upload')) != FALSE) {
       // Scale image uploads.
@@ -824,26 +823,29 @@ function webfm_upload () {
         // positive response will swap fid and munged name
         $check_file_exist = $dest.'/'.$file->filename;
         if(is_file($check_file_exist)) {
-          if(webfm_get_file_record('', $check_file_exist))
-            $file->db_check = $db_check;
+          $file->db_check = (webfm_get_file_record('', $check_file_exist)) ? TRUE : FALSE;
           $file->dest = $dest;
           $_SESSION['temp_upload'] = $file;
           $json_data['file'] = $file->filename;
-          $json_data['html'] = webfm_reload_upload('webfm/upload', webfm_version_form($file->filename));
-        } else if(file_move($file, $dest)) {
-          // file was moved to its final destination
-          if($db_check == TRUE) {
-            //Insert file into database if under webfm_root
-            if(webfm_dbinsert_file($file, $err)) {
+          if($file->db_check) {
+            $json_data['html'] = webfm_reload_upload('webfm/upload', webfm_version_form($file->filename));
+          } else {
+            $msg = '';
+            if(webfm_version_upload(WEBFM_REPLACE_RENAME, &$msg)) {
               // file was inserted into the database
               drupal_set_message(t('Upload Success'));
             } else {
-              file_delete($file->filepath);
               drupal_set_message(t('Insertion into database fail'), error);
             }
+          }
+        } else if(file_move($file, $dest)) {
+          // file was moved to its final destination
+          // Insert file into database
+          if(webfm_dbinsert_file($file, $err)) {
+            drupal_set_message(t('Upload Success'));
           } else {
-            // Uploaded to non-db-controlled area
-            drupal_set_message(t('Upload success'));
+            file_delete($file->filepath);
+            drupal_set_message(t('Insertion into database fail'), error);
           }
         } else {
           drupal_set_message(t('file_move to %path failed', array('%path' => $dest)), error);
@@ -864,6 +866,9 @@ function webfm_upload () {
   exit();
 }
 
+/**
+ * Rebuild upload form for upload iframe
+ */
 function webfm_reload_upload ($url, $confirm_form = '') {
   $form = array();
   if($confirm_form)
@@ -1408,144 +1413,16 @@ function webfm_ajax () {
           $op = trim(rawurldecode($_POST["param0"]));
           $filename = trim(rawurldecode($_POST["param1"]));
           if(strcmp($_SESSION['temp_upload']->filename, $filename) === 0) {
-            switch($op) {
-              case WEBFM_CANCEL:
-                //Cancel button
-                webfm_json(array('status' => FALSE, 'data' => 'Upload Cancelled'));
-                break;
-
-              case WEBFM_RENAME_NEW:
-                // Insert new file into database with munged name & auto-incremented fid
-                if(file_move($_SESSION['temp_upload'], $_SESSION['temp_upload']->dest)) {
-                  // file was moved to its final destination
-                  if($_SESSION['temp_upload']->db_check == TRUE) {
-                    //Insert file into database if under webfm_root
-                    if(webfm_dbinsert_file($_SESSION['temp_upload'], $err)) {
-                      // file was inserted into the database
-                      webfm_json(array('status' => TRUE, 'data' => 'Upload success'));
-                    } else {
-                      file_delete($_SESSION['temp_upload']->filepath);
-                      webfm_json(array('status' => FALSE, 'data' => 'file insertion failed'));
-                    }
-                  } else {
-                    // Uploaded to non-db-controlled area
-                    webfm_json(array('status' => TRUE, 'data' => 'Upload success'));
-                  }
-                } else {
-                  webfm_json(array('status' => FALSE, 'data' => 'file_move to ' .$_SESSION['temp_upload']->dest. 'failed'));
-                }
-                break;
-
-              case WEBFM_REPLACE_RENAME:
-                // Retrieve file record for original file
-                // Rename (munge) original file
-                // Move new file to destination
-                // Update existing original record with data from new file
-                // Create new db record for original file
-                // Restore original file if error
-                $path = $_SESSION['temp_upload']->dest.'/'.$_SESSION['temp_upload']->filename;
-                if($_SESSION['temp_upload']->db_check == TRUE) {
-                  if(($record = webfm_get_file_record('', $path)) === FALSE) {
-                    webfm_json(array('status' => FALSE, 'data' => 'Replace-Delete webfm_get_file_record fail'));
-                    break;
-                  }
-                }
-                if($pos = strrpos($path, '.')) {
-                  $name = substr($path, 0, $pos);
-                  $ext = substr($path, $pos);
-                } else {
-                  $name = $basename;
-                }
-                $counter = 0;
-                do {
-                  $temp_path = $name .'_'. $counter++ . $ext;
-                } while (file_exists($temp_path));
-                rename($path, $temp_path);
-
-                if(file_move($_SESSION['temp_upload'], $_SESSION['temp_upload']->dest)) {
-                  // file was moved to its final destination
-                  if($_SESSION['temp_upload']->db_check == TRUE) {
-                    //Insert file into database if under webfm_root
-                    $time = @filemtime($_SESSION['temp_upload']->filepath);
-                    $row = db_query("UPDATE {webfm_file} SET fsize = %d, fcreatedate = %d, fversion = %d  WHERE fid = %d", $_SESSION['temp_upload']->filesize, $time, $record->fversion + 1, $record->fid);
-                    if($row === FALSE){
-                      webfm_json(array('status' => FALSE, 'data' => 'Replace-Delete update fail'));
-                      // Delete new file and restore name of original file
-                      file_delete($path);
-                      rename($temp_path, $path);
-                    } else {
-                      webfm_json(array('status' => TRUE, 'data' => 'Upload success'));
-
-                      $newfile = new stdClass();
-                      $newfile->filepath = $temp_path;
-                      $newfile->filesize = $record->fsize ? $record->fsize : @filesize($temp_path);
-                      $newfile->filemime = $record->fmime;
-                      $newfile->ftitle = $record->ftitle;
-                      $newfile->fdesc = $record->fdesc;
-                      $newfile->flang = $record->flang;
-                      $newfile->fpublisher = $record->fpublisher;
-                      $newfile->fformat = $record->fformat;
-                      $newfile->perm = $record->perm;
-                      $newfile->dl_cnt = $record->dl_cnt;
-                      webfm_dbinsert_file($newfile, $err, (array)$record);
-                    }
-                  } else {
-                    // Uploaded to non-db-controlled area
-                    webfm_json(array('status' => TRUE, 'data' => 'Upload success'));
-                  }
-                } else {
-                  webfm_json(array('status' => FALSE, 'data' => 'file_move fail'));
-                  rename($temp_path, $path);
-                }
-                break;
-
-              case WEBFM_REPLACE_DELETE:
-                // Retrieve db record for original file & rename file
-                // Move new file to destination
-                // Update existing original record with data from new file
-                // Restore original file if error, else delete
-                $path = $_SESSION['temp_upload']->dest.'/'.$_SESSION['temp_upload']->filename;
-                if($_SESSION['temp_upload']->db_check == TRUE) {
-                  if(($record = webfm_get_file_record('', $path)) === FALSE) {
-                    webfm_json(array('status' => FALSE, 'data' => 'Replace-Delete webfm_get_file_record fail'));
-                    break;
-                  }
-                }
-                //use temp for rollback on error
-                $temp_path = $path.'~';
-                rename($path, $temp_path);
-                if(file_move($_SESSION['temp_upload'], $_SESSION['temp_upload']->dest)) {
-                  // file was moved to its final destination
-                  if($_SESSION['temp_upload']->db_check == TRUE) {
-                    //Insert file into database if under webfm_root
-                    $time = @filemtime($_SESSION['temp_upload']->filepath);
-                    $row = db_query("UPDATE {webfm_file} SET fsize = %d, fcreatedate = %d, fversion = %d  WHERE fid = %d", $_SESSION['temp_upload']->filesize, $time, $record->fversion + 1, $record->fid);
-                    if($row === FALSE){
-                      webfm_json(array('status' => FALSE, 'data' => 'Replace-Delete update fail'));
-                      // Delete new file and restore name of original file
-                      file_delete($path);
-                      rename($temp_path, $path);
-                    } else {
-                      webfm_json(array('status' => TRUE, 'data' => 'Upload success'));
-                      file_delete($temp_path);
-                    }
-                  } else {
-                    // Uploaded to non-db-controlled area
-                    webfm_json(array('status' => TRUE, 'data' => 'Upload success'));
-                    file_delete($temp_path);
-                  }
-                } else {
-                  webfm_json(array('status' => FALSE, 'data' => 'file_move fail'));
-                  rename($temp_path, $path);
-                }
-                break;
-            }
+            $msg = '';
+            $ret = webfm_version_upload($op, &$msg);
+            webfm_json(array('status' => $ret, 'data' => $msg));
           } else {
             webfm_json(array('status' => FALSE, 'data' => 'invalid file name'));
           }
         } else {
           webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
         }
+        // clear uploaded file
         unset($_SESSION['temp_upload']);
         exit();
         break;
@@ -1558,6 +1435,158 @@ function webfm_ajax () {
     exit();
   }
   exit();
+}
+
+/**
+ * Version uploaded file that overwrites existing file
+ * NOTE: uploaded file is already stored in $_SESSION['temp_upload'] via iframe.
+ *       Feedback in ajax since drupal_set_message points back into main page (not refreshed).
+ */
+function webfm_version_upload($op, &$msg) {
+  $ret = TRUE;
+  switch($op) {
+    case WEBFM_CANCEL:
+      //Cancel button
+      $ret = TRUE;
+      $msg = t('Upload Cancelled');
+      break;
+
+    case WEBFM_RENAME_NEW:
+      $ret = webfm_upload_new(&$msg);
+      break;
+
+    case WEBFM_REPLACE_RENAME:
+      // Retrieve file record for original file
+      // Rename (munge) original file
+      // Move new file to destination
+      // Update existing original record with data from new file
+      // Create new db record for original file
+      // Restore original file if error
+      $path = $_SESSION['temp_upload']->dest.'/'.$_SESSION['temp_upload']->filename;
+      if($pos = strrpos($path, '.')) {
+        $name = substr($path, 0, $pos);
+        $ext = substr($path, $pos);
+      } else {
+        $name = $basename;
+      }
+      $counter = 0;
+      do {
+        $temp_path = $name .'_'. $counter++ . $ext;
+      } while (file_exists($temp_path));
+      rename($path, $temp_path);
+
+      if(file_move($_SESSION['temp_upload'], $_SESSION['temp_upload']->dest)) {
+        // file was moved to its final destination
+        if($_SESSION['temp_upload']->db_check == TRUE) {
+          if(($record = webfm_get_file_record('', $path)) === FALSE) {
+            $ret = FALSE;
+            $msg = t('Replace-Delete webfm_get_file_record fail');
+            break;
+          }
+          //Insert file into database if under webfm_root
+          $time = @filemtime($_SESSION['temp_upload']->filepath);
+          $row = db_query("UPDATE {webfm_file} SET fsize = %d, fcreatedate = %d, fversion = %d  WHERE fid = %d", $_SESSION['temp_upload']->filesize, $time, $record->fversion + 1, $record->fid);
+          if($row === FALSE){
+            $ret = FALSE;
+            $msg = t('Replace-Delete update fail');
+            // Delete new file and restore name of original file
+            file_delete($path);
+            rename($temp_path, $path);
+          } else {
+            $newfile = new stdClass();
+            $newfile->filepath = $temp_path;
+            $newfile->filesize = $record->fsize ? $record->fsize : @filesize($temp_path);
+            $newfile->filemime = $record->fmime;
+            $newfile->ftitle = $record->ftitle;
+            $newfile->fdesc = $record->fdesc;
+            $newfile->flang = $record->flang;
+            $newfile->fpublisher = $record->fpublisher;
+            $newfile->fformat = $record->fformat;
+            $newfile->perm = $record->perm;
+            $newfile->dl_cnt = $record->dl_cnt;
+            $ret = webfm_dbinsert_file($newfile, &$msg, (array)$record);
+            if($ret)
+              $msg = t('Upload success');
+          }
+        } else {
+          // No ajax returned since called by upload directly without version options
+          $ret = webfm_upload_new(&$msg);
+        }
+      } else {
+        $ret = FALSE;
+        $msg = t('file_move fail');
+        rename($temp_path, $path);
+      }
+      break;
+
+    case WEBFM_REPLACE_DELETE:
+      // Retrieve db record for original file & rename file
+      // Move new file to destination
+      // Update existing original record with data from new file
+      // Restore original file if error, else delete
+      $path = $_SESSION['temp_upload']->dest.'/'.$_SESSION['temp_upload']->filename;
+      //use temp for rollback on error
+      $temp_path = $path.'~';
+      rename($path, $temp_path);
+      if(file_move($_SESSION['temp_upload'], $_SESSION['temp_upload']->dest)) {
+        // file was moved to its final destination
+        if($_SESSION['temp_upload']->db_check == TRUE) {
+          if(($record = webfm_get_file_record('', $path)) === FALSE) {
+            $ret = FALSE;
+            $msg = t('Replace-Delete webfm_get_file_record fail');
+            break;
+          }
+          //Insert file into database if under webfm_root
+          $time = @filemtime($_SESSION['temp_upload']->filepath);
+          $row = db_query("UPDATE {webfm_file} SET fsize = %d, fcreatedate = %d, fversion = %d  WHERE fid = %d", $_SESSION['temp_upload']->filesize, $time, $record->fversion + 1, $record->fid);
+          if($row === FALSE){
+            $ret = FALSE;
+            $msg = t('Replace-Delete update fail');
+            // Delete new file and restore name of original file
+            file_delete($path);
+            rename($temp_path, $path);
+          } else {
+            $ret = TRUE;
+            $msg = t('Upload success');
+            file_delete($temp_path);
+          }
+        } else {
+          file_delete($temp_path);
+          $ret = TRUE;
+          $msg = t('Upload success');
+        }
+      } else {
+        $ret = FALSE;
+        $msg = t('file_move fail');
+        rename($temp_path, $path);
+      }
+      break;
+
+    default:
+      $ret = FALSE;
+      $msg = '';
+      break;
+  }
+  return $ret;
+}
+
+function webfm_upload_new(&$msg) {
+  // Insert new file into database with munged name & auto-incremented fid
+  if(file_move($_SESSION['temp_upload'], $_SESSION['temp_upload']->dest)) {
+    // file was moved to its final destination
+    //Insert file into database if under webfm_root
+    if(webfm_dbinsert_file($_SESSION['temp_upload'], &$msg)) {
+      // file was inserted into the database
+      $msg = t('Upload success');
+      return TRUE;
+    } else {
+      file_delete($_SESSION['temp_upload']->filepath);
+      return FALSE;
+    }
+  } else {
+    $msg = 'file_move to ' .$_SESSION['temp_upload']->dest. 'failed';
+    return FALSE;
+  }
 }
 
 /**
