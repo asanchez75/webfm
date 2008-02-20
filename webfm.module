@@ -30,30 +30,100 @@ define('WEBFM_DATE_FORMAT_MONTH', 2);
 function webfm_help($section) {
   switch ($section) {
     case 'admin/help#webfm':
-      $output = '<p>'.t('WebFM is a hierarchical file system manager.
-        WebFM does not use a flat file system (a single directory indexed by a
-        database).  WebFM allows users to arrange files on the server in the
-        same way they do on their local storage drives.  This ability to
-        heirarchically arrange files greatly enhances the managability of large
-        collections of data.').'</p>'.
-        '<p>'.t('Note that webfm uses <b>includes/file.inc</b> which manages the
-        file system path.  The <b>Root Directory</b> and <b>Ftp root directory
-        </b> paths are relative to the file system path set at %file-sys and
-        must be prefaced with a "/".', array('%file-sys' => url('admin/settings/file-system')))
-        .'</p>'.'<p>'.t('WebFM uses ajax and javascript extensively to provide
-        application intensive functionality such as file/dir move and ordering
-        of attachments via drag-and-drop.  The context menuing provided by the
-        right mouse button click provides context sensitive menus for user
-        selection.  Javascript must be enabled for webfm to function.').'</p>'.
-        '<p>'.t('WebFM presents left hand blocks to represent directory
-        trees and a right hand block to list the contents of the current
-        directory.  The upper left block represents the directory structure of
-        file data enumerated in the database and available to the site for
-        metadata/attachment to content.').'</p>'.
-        '<p>'.t('File uploads via the UI that overwrite existing files present
-        version options to allow the user to transfer the existing fid and
-        metadata to the newer file.  This allows content to be updated
-        such that attachments and metadata are preserved.').'</p>';
+      $output = t('
+      <p>WebFM is a hierarchical file system manager.  WebFM does not use a flat file system (a single directory indexed by a database).  WebFM allows users to arrange files on the server in the same way they do on their local storage drives.  This ability to heirarchically arrange files greatly enhances the managability of large collections of data.</p>
+      <p>WebFM uses Ajax to provide application intensive functionality such as drag-and-drop and context-sensitive menuing. JavaScript must be enabled for WebFM to function - functionality will not gracefully degrade for clients that have JavaScript disabled.</p>
+      <h2>Installation & Configuration</h2>
+      <ul>
+      <li>Download the official release from the <a href="http://drupal.org/project/webfm">project page</a>.</li>
+      <li>Unzip the archive and copy the \'webfm\' directory to your modules directory (ie:/sites/all/modules).  Alternatively copy the tarball to the module directory if you can unzip it on the server.</li>
+      <li>Enable the module on Drupal\'s admin/build/modules page.  An install file updates the database with the necessary table additions.</li>
+      <li>Configure the module at admin/settings/webfm.  <strong>Note:</strong> The configuration assumes that the \'File system path:\' is set in the usual way at %file-sys.  All WebFM directories are sub-directories of this \'File System\' path.  Set \'Download method:\' radio to \'Public\' since the module manages downloads.
+      <ul>
+      <li>Create the \'WebFM root directory\'.  If this directory doesn\'t already exist, the system will create it in the \'File System\' root.  Directory creation is not recursive so multi directory root paths must already exist inside the \'File System\' directory.   Set the directory permissions to 775 if the server is linux/bsd.</li>
+      <li>The icon path allows the user to substitute their own gifs.  File names are hardcoded in the javascript so the icons will have to have identical names.</li>
+      <li>The \'Maximum resolution for uploaded images\' input functions in the same fashion as the upload.module.</li>
+      <li>The \'Date Format\' radio buttons set the day/month order in the browser listing date field.</li>
+      <li>The \'Display metadata title\' checkbox sets the browser to display metadata titles rather than the actual filename if the metadata tile exists. Renaming files that use the metadata title must be done via the metadata editor.  Note that node attachments always display the metadata title if available.</li>
+      <li>\'Default File Permissions\' set the file level permissions for files inserted into the database.  The exception is file uploads that create a version overwrite whereby the new file inherits the permissions from the previous file.</li>
+      <li>Roles that are granted the \'access webfm\' permission will receive additional configuration fields for root path, extension white list, max upload file size and max total upload size.   Roles with the \'access webfm\' right but without a root directory cannot access the filesystem.</li>
+      <li>Roles granted the \'attach WebFM files\' permission will be able to see and download attached files.  \'Attachment List Properties\' sets the presentation of attached files.</li>
+      <li>The \'IE Drag-and-Drop Normalization\' is a sub-optimal solution for compensating for relative positioning in theme css.  This feature is only available to #1 user.</li>
+      <li>The \'Webfm javascript debug\' checkbox is only useful for users interested in looking under the covers or who want to develop the module.</li>
+      <li>The WebFM cron is a \'stored procedure\' used for database cleanup of file records that are deleted outside of the WebFM interface (ie: OS shell, ftp).  This feature is only available to #1 user.</li>
+      </ul>
+      </li>
+      <li>Set WebFM rights in admin/user/access per role.
+      <ul>
+      <li>\'administer webfm\' confers full rights to a role.  Admins can see and operate on all files, including files not in the database.  Only admins can create directories and access admin/settings/webfm.</li>
+      <li>\'access webfm\' allows a role to download/view files via the WebFM browser.  Only files referenced by the webfm_file table in the database are accessible.  Only owners of a file (and admins) can move a file or modify it\'s metadata.</li>
+      <li>\'view webfm attachments\' allows a role to see files attached to nodes via WebFM.</li>
+      <li>\'webfm upload\' allows a role with the \'access webfm\' right to upload files via the WebFM browser.  The user who uploads a file is the the owner of that file.</li>
+      </ul>
+      </li>
+      <li>Admins and File owners can set the following file level permissions from the context menu of each file:
+      <ul>
+      <li>Public download: Allows the file to be downloaded anonymously even if .htaccess exists.</li>
+      <li>Role View/Download: Allows users of the same role to view/download the file.</li>
+      <li>Role Attach: Allows users of the same role to attach the file to nodes.</li>
+      <li>Role Full Access: Allows users of the same role to have the same rights to the file as the owner with the exception of permission edits.</li>
+      </ul>
+      </li>
+      <li>Enable attachments in admin/settings/content-types/*type* for each content type that will accept attachments (default is disabled).</li>
+      <li>A .htaccess file (apache servers) can be placed in the WebFM root (or sub-path) to secure file access.  Webfm streams downloads and thus your browser doesn\'t require direct http access to the directories</li>
+      <li>Updating the menu cache by navigating to admin/build/menu may be necessary if upgrading from an earlier version of the module with different internal paths.</li>
+      <li>Translations of the module require revising the string array at the top of webfm.js.</li>
+      </ul>
+      <h2>Usage</h2>
+      <p>There are many ways to setup a file system hierarchy.  The rules of any given system must be applied carefully if security of data is important.</p>
+      <p>The basic rules for users in a role with \'access webfm\' rights:</p>
+      <ul>
+      <li>The role root directory defines the domain and all subdirectories are accessible to the user.</li>
+      <li>The user cannot navigate above the role root directory.</li>
+      <li>Only files in the webfm_file table are accessible. Files uploaded by the user are owned by the user and are automatically in the database. Only module admins can view/operate on files not in the database.</li>
+      <li>The user has full control over files that he/she owns that stay within an accessible role root domain. File permissions can be locked down so that only the owner/admins can see or operate on a file. File permissions can be opened up so that anyone within the role can view or operate on the file.</li>
+      <li>Users with \'access webfm\' rights cannot create/delete/move/rename directories.  Only module administrators (users with  \'administer webfm\' permission or #1 user) can control the directory structure.</li>
+      </ul>
+      <p>Roles with \'access webfm\' rights can be subsets of other roles with \'access webfm\' rights or they can be exclusive. Users can be members of multiple roles and will consequently have a separate left-hand tree for each unique root directory (roles can even share the same root directory).  It is difficult to foresee how diverse users of the module will choose to set up their systems but the following simple examples are typical arrangements.  Both examples presume that the drupal file-system directory is set to \'files\', the WebFM module is installed and the \'WebFM root directory\' is set to \'webfm\'.</p>
+      <h3> Example 1</h3>
+      <p>The site requires 1 class of privileged users (A) to administer the file system and 2 classes of WebFM users (B & C) with access to file resources.  Both roles will be able to upload files.  Some WebFM users are members of both B & C while others are members of only one.  Uploaded files are by default only accessible by the file owner and admins.</p>
+      <ul>
+      <li>A site administrator will create 3 the roles A, B and C.  Role A will have the \'administer webfm\' permission set in .../admin/user/access.  B & C will have the \'access webfm\' and the \'webfm upload\' permission set.</li>
+      <li>WebFM settings will now have a fieldset for roles B & C where the root directory for each role is set.  The root of B is set to \'B\' which automatically creates the \'files/webfm/B\' directory.  The root of C is set to \'C\' which creates the directory \'files/webfm/C\'.  A user who is a member of only one of B or C will see a single left-hand directory tree that contains their domain.  They will have no access to files within the other role domain.  Users who are members of both B & C will have two left-hand directory trees and have the ability to move files they own or control between the two domains.  Role A\'s root directory is the \'WebFM root directory\' and thus A users see only a single left-hand tree of the entire module file-sys.</li>
+      <li>In WebFM settings, the \'Default File Permissions\' are configured with all checkboxes unset.  This combination of default file permissions means that files that are uploaded will initially only be viewable by the B or C user doing the upload (owner) and by A users.  Individual file permissions are editable by the file owner or A user to permit other users to view/attach/modify the file.  One consequence of granting the permission \'Role Full Access\' is that a non-admin user with a single domain could lose contact with their own file if a dual domain non-admin user moves it to the other domain.</li>
+      </ul>
+      <h3> Example 2</h3>
+      <p>The site requires 1 class of privileged users (A) to administer the file system and 2 classes of users (B & C) with access to file resources.  C is determined to be a subset of B such that B can access it\'s own files as well as those of C.  C will not be able to upload files to the browser but will only be able to view/download or attach files to nodes.  B will be able to upload files.</p>
+      <ul>
+      <li>A site administrator will create 3 the roles A, B and C.  Role A will have the \'administer webfm\' permission set in .../admin/user/access.  B & C will have the \'access webfm\' permission set.  B will also have the \'webfm upload\' permission set.</li>
+      <li>WebFM settings will now have a fieldset for roles B & C where the root directory for each role is set.  First the root of B is set to \'B\' which automatically creates the \'files/webfm/B\' directory.  Next the root of C is set to \'B/C\' which creates the directory \'files/webfm/B/C\'.  Since C is a sub-dir of B, role B will have access to C but C will not be able to navigate above it\'s root to see B\'s files.  The left-hand directory tree will appear different for B & C.  B\'s tree will start at \'B\' and have a \'C\' sub-directory (and potentially other sub-directories as set up by A).  C\'s tree is a subset of B\'s tree.  Role A\'s root directory is the \'WebFM root directory\'.</li>
+      <li>In WebFM settings, the \'Default File Permissions\' are configured with \'Role View Access\' and \'Role Attach Access\' set.  This combination of file permissions means that files that a B user uploads/moves into the C realm will by default be viewable by C and be attachable to nodes that C creates.  A B file owner can manually modify the file permissions of each individual file to hide it or prevent it from being attached to content by a C user.  Likewise the file permissions can be opened so that a C user can edit file attributes or move the file into another sub-directory of C.</li>
+      </ul>
+      <p>In the above examples the site administrator may simply create the roles/access rules and then let an A user configure WebFM for B & C.</p>
+      <h2>Uninstall</h2>
+      <ol>
+      <li>Disable the module on the /admin/build/modules page</li>
+      <li>Click on the uninstall tab and select the module for removal. This will automatically drop  the webfm_file and webfm_attach tables as well as all configuration variables. <i><strong>NOTE:</strong></i> This action will permanently discard all attachment and metedata information and cannot be undone.  Execute the first step only if you wish to restore WebFM later without loss of data.</li>
+      </ol>
+      <h2>Onunload event handling in template</h2>
+      <p>To explicitly destroy the event closures to minimize browser memory leaks an unload event needs to fire.  Unfortunately the control of the body tag happens in the template.  Add this function to template.php:</p>
+      <pre>
+      function phptemplate_unload() {
+        if(module_exists(\'webfm\')) {
+          $path = $_SERVER[\'REQUEST_URI\'];
+          if((strstr($path, \'webfm\')) ||
+             (strstr($path, \'node\') && strstr($path, \'edit\')))
+            print \'  onunload="Webfm.unregisterAllEvents();"\';
+          }
+        }
+      }
+      </pre>
+      <p>Add the following inside the php tag of the body tag of page.tpl.php:
+      <pre>
+      print phptemplate_unload();
+      </pre></p>
+      ',
+      array('%file-sys' => url('admin/settings/file-system')));
       return $output;
 
     case 'admin/modules#description':
