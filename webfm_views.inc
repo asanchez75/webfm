@@ -28,7 +28,7 @@ function webfm_views_tables(){
                                     'field' => 'fid')),
                                  'fields' => array(
                                    'all_files' => array(
-                                     'name' => t('WebFM: All files by name'),
+                                     'name' => t('WebFM: All files by name/title.'),
                                      'notafield' => true,
                                      'handler' => 'webfm_views_handler_file_all_files',
                                       'option' => array(
@@ -37,7 +37,7 @@ function webfm_views_tables(){
                                           'link' => t('With links'),
                                           'nolink' => t('Without links'))),
                                       'sortable' => false,
-                                      'help' => t('Display ALL the files that have been attached a node via WebFM (with or without links to the files themselves).  All files are displayed in a single field per node.')),
+                                      'help' => t('Display ALL the files that have been attached to the node via WebFM. Metadata title is used where present when \'Display metadata title\' checked in settings.')),
                                     'fpath' => array(
                                       'name' => t('WebFM: File name'),
                                       'handler' => array (
@@ -150,20 +150,19 @@ function webfm_views_tables(){
 }
 
 function webfm_views_handler_file_all_files($fieldinfo, $fielddata, $value, $data){
-  //global $base_url;
   $links = array();
 
   $query = "SELECT wf.* FROM {webfm_file} wf INNER JOIN {webfm_attach} wa ON wf.fid = wa.fid WHERE wa.nid = %d ORDER BY %s";
   $result = db_query($query, $data->nid, 'wa.weight');
   while ($file = db_fetch_object($result)) {
-    $fname = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+    if(variable_get('webfm_display_title', '') && $file->ftitle) {
+      $fname = urldecode($file->ftitle);
+    } else {
+      $fname = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+    }
     if ($fielddata['options'] == 'nolink') {
       $links[] = check_plain($fname);
     } else {
-      // could add the icon here - really this should be all a theme thing where the user decides...
-      // but until then lets just provide the links with the file names
-      //$icon_path = $base_url.'/'.variable_get('webfm_icon_dir', 'modules/webfm/image/icon').'/f.gif';
-      //$links[] = l('<img src="'.$icon_path.'" alt="[file]" />&nbsp;', 'webfm_send/'.$file->fid.'/0', '', '' , '' , '', TRUE). l(check_plain($file->fname), 'webfm_send/'.$file->fid);
       $links[] = l(check_plain($fname), 'webfm_send/'.$file->fid);
     }
   }
