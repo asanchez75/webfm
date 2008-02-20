@@ -2365,12 +2365,10 @@ Webfm.metadata.prototype.submitMeta = function() {
   if(i == input_num) {
     this.output = "";
     for(var i = 0; i < input_num; i++) {
-      if(inputs[i].value)
-        this.output += encodeURIComponent(inputs[i].name) + ":" + encodeURIComponent(Webfm.trim(inputs[i].value)) + ",";
+      this.output += encodeURIComponent(inputs[i].name) + ":" + encodeURIComponent(Webfm.trim(inputs[i].value)) + ",";
     }
     for(i = 0; i < textareas.length; i++) {
-      if(textareas[i].value)
-        this.output += encodeURIComponent(textareas[i].name) + ":" + encodeURIComponent(Webfm.trim(textareas[i].value)) + ",";
+      this.output += encodeURIComponent(textareas[i].name) + ":" + encodeURIComponent(Webfm.trim(textareas[i].value)) + ",";
     }
     if(this.output.length) {
       Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
