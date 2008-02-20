@@ -831,7 +831,7 @@ function webfm_upload () {
             $json_data['html'] = webfm_reload_upload('webfm/upload', webfm_version_form($file->filename));
           } else {
             $msg = '';
-            if(webfm_version_upload(WEBFM_REPLACE_RENAME, &$msg)) {
+            if(webfm_version_upload(WEBFM_REPLACE_RENAME, $msg)) {
               // file was inserted into the database
               drupal_set_message(t('Upload Success'));
             } else {
@@ -1414,7 +1414,7 @@ function webfm_ajax () {
           $filename = trim(rawurldecode($_POST["param1"]));
           if(strcmp($_SESSION['temp_upload']->filename, $filename) === 0) {
             $msg = '';
-            $ret = webfm_version_upload($op, &$msg);
+            $ret = webfm_version_upload($op, $msg);
             webfm_json(array('status' => $ret, 'data' => $msg));
           } else {
             webfm_json(array('status' => FALSE, 'data' => 'invalid file name'));
@@ -1452,7 +1452,7 @@ function webfm_version_upload($op, &$msg) {
       break;
 
     case WEBFM_RENAME_NEW:
-      $ret = webfm_upload_new(&$msg);
+      $ret = webfm_upload_new($msg);
       break;
 
     case WEBFM_REPLACE_RENAME:
@@ -1504,13 +1504,13 @@ function webfm_version_upload($op, &$msg) {
             $newfile->fformat = $record->fformat;
             $newfile->perm = $record->perm;
             $newfile->dl_cnt = $record->dl_cnt;
-            $ret = webfm_dbinsert_file($newfile, &$msg, (array)$record);
+            $ret = webfm_dbinsert_file($newfile, $msg, (array)$record);
             if($ret)
               $msg = t('Upload success');
           }
         } else {
           // No ajax returned since called by upload directly without version options
-          $ret = webfm_upload_new(&$msg);
+          $ret = webfm_upload_new($msg);
         }
       } else {
         $ret = FALSE;
@@ -1575,7 +1575,7 @@ function webfm_upload_new(&$msg) {
   if(file_move($_SESSION['temp_upload'], $_SESSION['temp_upload']->dest)) {
     // file was moved to its final destination
     //Insert file into database if under webfm_root
-    if(webfm_dbinsert_file($_SESSION['temp_upload'], &$msg)) {
+    if(webfm_dbinsert_file($_SESSION['temp_upload'], $msg)) {
       // file was inserted into the database
       $msg = t('Upload success');
       return TRUE;
