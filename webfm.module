@@ -1259,8 +1259,13 @@ function webfm_ajax () {
                  $user->uid == $file->uid   ||
                  webfm_file_mod_access($file)) {
                 $meta['id'] = $file->fid;
+                if($webfm_perm == WEBFM_ADMIN) {
+                  // Only admins get uid
+                  $meta['u'] = $file->uid;
+                }
               }
-              $meta['u'] = $file->uid;
+              $query = 'SELECT name FROM {users} WHERE uid = %d';
+              $meta['un'] = db_result(db_query($query, $file->uid));
               $meta['n'] = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
               $meta['t'] = $file->ftitle;
               $meta['d'] = $file->fdesc;
@@ -2647,8 +2652,10 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
                                'd'=>array('field'=>'fdesc', 'size'=>1024),
                                'l'=>array('field'=>'flang', 'size'=>16),
                                'p'=>array('field'=>'fpublisher', 'size'=>255),
-                               'f'=>array('field'=>'fformat', 'size'=>255));
+                               'f'=>array('field'=>'fformat', 'size'=>255),
+                               'u'=>array('field'=>'uid', 'size'=>10));
   }
+  $err = "";
   if(($file = webfm_get_file_record($fid)) != false) {
     if($user == 1          ||
        $user == $file->uid ||
@@ -2662,19 +2669,43 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
         $separator = substr($field, 1,1);
         $value = substr($field, 2, min((strlen($field) - 2), $metadata_key_arr[$key]['size']));
         if(array_key_exists($key, $metadata_key_arr) && ($separator == ":")) {
-          $metadata[$metadata_key_arr[$key]['field']] = strval($value);
+          if($key == 'u') {
+            // Special handling for uid changes (admins only)
+            if($user == 1) {
+              $uid_val = strval($value);
+              if(is_numeric($uid_val) && (strlen($uid_val) << 11)) {
+                // Check that requested uid exists
+                if(db_num_rows(db_query("SELECT uid FROM {users} WHERE uid = %d", $uid_val)) > 0) {
+                  $metadata[$metadata_key_arr[$key]['field']] = $uid_val;
+                } else {
+                  $err = "user not found";
+                  return FALSE;
+                }
+              } else {
+                $err = "invalid data";
+                return FALSE;
+              }
+            } else {
+              $err = "permission denied";
+              return FALSE;
+            }
+          } else {
+            $metadata[$metadata_key_arr[$key]['field']] = strval($value);
+          }
         }
       }
       if(count($metadata)) {
         $ret = webfm_dbupdate_file($fid, '', $metadata);
         if($ret) {
-          $err = "";
+          $err = "metadata updated";
           return TRUE;
         } else {
           $err = "webfm_dbupdate_file fail";
         }
       } else {
-        $err = "no update required";
+        if(!strlen($err)) {
+          $err = "no update required";
+        }
         return TRUE;
       }
     } else {
