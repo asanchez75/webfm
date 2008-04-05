@@ -13,7 +13,7 @@ Webfm.js_msg["file"] = "file";
 Webfm.js_msg["dir"] = "directory";
 Webfm.js_msg["u_file"] = "File";
 Webfm.js_msg["u_dir"] = "Directory";
-Webfm.js_msg["tree"] = "Tree";
+Webfm.js_msg["tree"] = "";
 Webfm.js_msg["work"] = "Working...";
 Webfm.js_msg["refresh"] = "refresh";
 Webfm.js_msg["sort"] = "sort by this column";
@@ -64,6 +64,7 @@ Webfm.js_msg["perm"] = "File Permissions";
 Webfm.meta_msg = [];
 Webfm.meta_msg["fid"] = "fid";
 Webfm.meta_msg["uid"] ="uid";
+Webfm.meta_msg["uname"] ="file owner";
 Webfm.meta_msg["name"] = "name";
 Webfm.meta_msg["title"] = "title";
 Webfm.meta_msg["desc"] = "description";
@@ -371,7 +372,8 @@ Webfm.commonInterface = function(parent) {
   //Webfm.metaElement objects have description/edit/max_size properties
   Webfm.metadataHT = new Webfm.ht();
   Webfm.metadataHT.put('id',new Webfm.metaElement(Webfm.meta_msg["fid"],   false,0  ));
-  Webfm.metadataHT.put('u', new Webfm.metaElement(Webfm.meta_msg["uid"],   false,0  ));
+  Webfm.metadataHT.put('u', new Webfm.metaElement(Webfm.meta_msg["uid"],   true, 10 ));
+  Webfm.metadataHT.put('un',new Webfm.metaElement(Webfm.meta_msg["uname"], false,0  ));
   Webfm.metadataHT.put('n', new Webfm.metaElement(Webfm.meta_msg["name"],  false,0  ));
   Webfm.metadataHT.put('t', new Webfm.metaElement(Webfm.meta_msg["title"], true, 255));
   Webfm.metadataHT.put('d', new Webfm.metaElement(Webfm.meta_msg["desc"],  true, 256));
@@ -1366,7 +1368,7 @@ Webfm.tree.prototype.callback = function(string, xmlhttp, cp) {
     treeName.removeChild(treeName.firstChild);
     for(var j in cp.content.tree) {
       //textnode = last directory of root path
-      treeName.appendChild(Webfm.ctn(' ' + j.substring(j.lastIndexOf("/") + 1) + ' Tree'));
+      treeName.appendChild(Webfm.ctn(' ' + j.substring(j.lastIndexOf("/") + 1) + ' ' + Webfm.js_msg["tree"]));
       break;
     }
 
@@ -1576,6 +1578,8 @@ Webfm.selectFile = function(path, el, as_file) {
   //files inside webfm have 'fidxxx' as title
   var fid = null;
   var sent = false;
+  var pths = [];
+  pths = el.title.split('/');
   if(el.id.substring(0,3) == 'fid') {
     fid = el.id.substring(3);
     var fullpath = 'webfm_send/' + path;
@@ -1583,8 +1587,6 @@ Webfm.selectFile = function(path, el, as_file) {
       fullpath += '/1';
   } else {
     //replace / with ~ since server uses / as param delimiter
-    var pths = [];
-    pths = el.title.split('/');
     var pluspath = pths.join('~');
     var fullpath = 'webfm_send/' + encodeURIComponent(pluspath);
   }
@@ -1608,9 +1610,11 @@ Webfm.selectFile = function(path, el, as_file) {
         // FF needs unique name per iframe - Webfm.zindex guaranteed unique
         // since incremented with each new pane
         var iframeName = "dwnld" + Webfm.zindex;
-        var pane = new Webfm.pane(Webfm.viewCont, path, "view-file", null, 200, 200);
+        var pane = new Webfm.pane(Webfm.viewCont, pths[pths.length - 1], "view-file", null, 200, 200);
         // I hate using innerHTML but IE iframe requires this method:
         pane.content.innerHTML='<iframe src="" style="margin:0;padding:0;width:100%;height:100%" name="'+iframeName+'"></iframe>';
+        if(fid)
+          pane.headerMsg("fid:" + path);
         pane.show();
         window.frames[iframeName].location.replace(url);
         sent = true;
@@ -2231,7 +2235,7 @@ Webfm.metadata.prototype.createForm = function(data) {
   //clear any metadata info
   this.resetForm();
   //create new pane to house this metadata object
-  var pane = new Webfm.pane(this.container, Webfm.js_msg["metadata"], "meta-pane", this.obj, this.width, this.height);
+  this.pane = new Webfm.pane(this.container, Webfm.js_msg["metadata"], "meta-pane", this.obj, this.width, this.height);
   //create metadata fields
   this.fillFormData();
   //create controls if owner has rights to file
@@ -2239,7 +2243,7 @@ Webfm.metadata.prototype.createForm = function(data) {
     this.buildFormControls();
   } else {
     //put read-only indicator in pane header
-    pane.headerMsg("read-only");
+    this.pane.headerMsg("read-only");
   }
 }
 
@@ -2260,11 +2264,11 @@ Webfm.metadata.prototype.fillFormData = function() {
     this.fid = this.data["id"];
   }
   for(var i in this.data) {
+    var meta = Webfm.metadataHT.get(i);
     var elTr = Webfm.ce('tr');
 
     // label td
     var elTd = Webfm.ce('td');
-    var meta = Webfm.metadataHT.get(i);
     elTd.appendChild(Webfm.ctn(meta.desc + ': '));
     elTr.appendChild(elTd);
 
@@ -2387,6 +2391,7 @@ Webfm.metadata.prototype.submitMetacallback = function(string, xmlhttp, obj) {
   Webfm.progressObj.hide();
   if (xmlhttp.status == 200) {
     var result = Drupal.parseJson(string);
+//    Webfm.dbgObj.dbg('submitMetacallback: ', Webfm.dump(result));
     if (result.status) {
       //update data for reset button
       var params = [];
@@ -2396,8 +2401,8 @@ Webfm.metadata.prototype.submitMetacallback = function(string, xmlhttp, obj) {
         var val = params[i].substring(params[i].indexOf(":") + 1);
         obj.data[key] = val;
       }
-    } else
-      Webfm.alrtObj.msg(result.data);
+    }
+    obj.pane.headerMsg(result.data);
   } else {
     Webfm.alrtObj.msg(Webfm.js_msg["ajax-err"]);
   }
@@ -3058,6 +3063,8 @@ Webfm.pane.prototype.end = function (event) {
   Webfm.stopEvent(event);
 }
 Webfm.pane.prototype.headerMsg = function (string) {
+  while(this.msg.hasChildNodes())
+    this.msg.removeChild(this.msg.firstChild);
   this.msg.appendChild(Webfm.ctn(string));
 }
 Webfm.pane.prototype.fill = function (content) {
