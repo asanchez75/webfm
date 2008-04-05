@@ -3551,8 +3551,16 @@ Webfm.clearNodeById = function(elementId) {
 
 // Sort methods
 Webfm.sortByName = function(a, b) {
-  var x = a.n.toLowerCase();
-  var y = b.n.toLowerCase();
+  if(typeof a.ftitle != "undefined") {
+    var x = a.ftitle.toLowerCase();
+  } else {
+    var x = a.n.toLowerCase();
+  }
+  if(typeof b.ftitle != "undefined") {
+    var y = b.ftitle.toLowerCase();
+  } else {
+    var y = b.n.toLowerCase();
+  }
   return ((x < y) ? -1 : ((x > y) ? 1 : 0));
 }
 Webfm.sortBySize = function(a, b) {
