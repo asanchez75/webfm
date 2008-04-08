@@ -5,73 +5,15 @@
  * Implementation of hook_install().
  */
 function webfm_install(){
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      db_query("CREATE TABLE {webfm_file} (
-        fid int(10) NOT NULL auto_increment,
-        uid int(10) NOT NULL default '0',
-        fpath longtext NOT NULL,
-        fsize int(10) NOT NULL default '0',
-        fmime varchar(255) NOT NULL default '',
-        ftitle varchar(255) NOT NULL default '',
-        fdesc text NOT NULL,
-        fcreatedate int(11) NOT NULL default '0',
-        flang varchar(16) NOT NULL default '',
-        fpublisher varchar(255) NOT NULL default '',
-        fformat varchar(255) NOT NULL default '',
-        fversion int(10) NOT NULL default '0',
-        perm tinyint NOT NULL default '0',
-        dl_cnt int(10) NOT NULL default '0',
-        PRIMARY KEY (`fid`)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE {webfm_attach} (
-        nid int(10) NOT NULL default '0',
-        fid int(10) NOT NULL default '0',
-        weight int(10) NOT NULL default '0',
-        PRIMARY KEY (`nid`,`fid`)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      break;
-
-    case 'pgsql':
-      db_query("CREATE TABLE {webfm_file} (
-        fid SERIAL NOT NULL,
-        uid integer NOT NULL default 0,
-        fpath text NOT NULL,
-        fsize integer NOT NULL default 0,
-        fmime varchar(255) NOT NULL default '',
-        ftitle varchar(255) NOT NULL default '',
-        fdesc text NOT NULL default '',
-        fcreatedate numeric(11) NOT NULL default 0,
-        flang varchar(16) NOT NULL default '',
-        fpublisher varchar(255) NOT NULL default '',
-        fformat varchar(255) NOT NULL default '',
-        fversion integer NOT NULL default 0,
-        perm smallint NOT NULL default 0,
-        dl_cnt integer NOT NULL default 0,
-        PRIMARY KEY (fid)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE {webfm_attach} (
-        nid integer NOT NULL default 0,
-        fid integer NOT NULL default 0,
-        weight integer NOT NULL default '0',
-        PRIMARY KEY (nid,fid)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-	    break;
-
-    default:
-      drupal_set_message('webfm_install currently supports MySQL and Postgres database only', error);
-      break;
-  }
+  drupal_install_schema('webfm');
 }
 
 /**
  * Implementation of hook_uninstall().
  */
-function webfm_uninstall() {
-  db_query('DROP TABLE {webfm_file}');
-  db_query('DROP TABLE {webfm_attach}');
-  variable_del('webfm_root_dir');
+function webfm_uninstall(){
+  drupal_uninstall_schema('webfm');
+    variable_del('webfm_root_dir');
   variable_del('webfm_ftp_enable');
   variable_del('webfm_ftp_root_dir');
   variable_del('webfm_icon_dir');
@@ -105,38 +47,143 @@ function webfm_uninstall() {
   variable_del('webfm_attach_new_window');
 }
 
-function webfm_update_1() {
-  $ret = array();
+/**
+ * Implementation of hook_schema().
+ */
+function webfm_schema(){
+  $schema['webfm_file'] = array(
+    'fields' => array(
+      'fid' => array('type' => 'serial', 'size' => 'normal', 'unsigned' => FALSE, 'not null' => TRUE),
+      'uid' => array('type' => 'int', 'size' => 'normal', 'unsigned' => FALSE, 'not null' => TRUE, 'default' => 0),
+      'fpath' => array('type' => 'text', 'size' => 'medium', 'not null' => TRUE),
+      'fsize' => array('type' => 'int', 'size' => 'normal', 'unsigned' => FALSE, 'not null' => TRUE, 'default' => 0),
+      'fmime' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+      'ftitle' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+      'fdesc' => array('type' => 'text', 'size' => 'normal', 'not null' => TRUE),
+      'fcreatedate' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
+      'flang' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+      'fpublisher' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+      'fformat' => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+      'fversion' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
+      'perm' => array('type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0),
+      'dl_cnt' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('fid'),
+  );
 
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("ALTER TABLE {webfm_file} ADD perm tinyint NOT NULL DEFAULT 0");
-      $ret[] = update_sql("ALTER TABLE {webfm_file} ADD dl_cnt int NOT NULL DEFAULT 0");
-      $ret[] = update_sql("ALTER TABLE {webfm_attach} DROP list");
-      break;
-    case 'pgsql':
-      db_add_column($ret, 'webfm_file', 'perm', 'smallint', array('not null' => TRUE, 'default' => 0));
-      db_add_column($ret, 'webfm_file', 'dl_cnt', 'int', array('not null' => TRUE, 'default' => 0));
-      $ret[] = update_sql('ALTER TABLE {webfm_attach} DROP COLUMN list');
-      break;
-  }
-
-  return $ret;
+  $schema['webfm_attach'] = array(
+    'fields' => array(
+      'nid' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
+      'fid' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
+      'weight' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
+    ),
+    'primary key' => array('nid', 'fid'),
+  );
+  return $schema;
 }
 
-function webfm_update_2() {
-  $ret = array();
 
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("ALTER TABLE {webfm_file} DROP fname");
-      break;
-    case 'pgsql':
-      $ret[] = update_sql('ALTER TABLE {webfm_file} DROP COLUMN fname');
-      break;
-  }
+//  switch ($GLOBALS['db_type']) {
+//    case 'mysql':
+//    case 'mysqli':
+//      db_query("CREATE TABLE {webfm_file} (
+//        fid int(10) NOT NULL auto_increment,
+//        uid int(10) NOT NULL default '0',
+//        fpath longtext NOT NULL,
+//        fsize int(10) NOT NULL default '0',
+//        fmime varchar(255) NOT NULL default '',
+//        ftitle varchar(255) NOT NULL default '',
+//        fdesc text NOT NULL,
+//        fcreatedate int(11) NOT NULL default '0',
+//        flang varchar(16) NOT NULL default '',
+//        fpublisher varchar(255) NOT NULL default '',
+//        fformat varchar(255) NOT NULL default '',
+//        fversion int(10) NOT NULL default '0',
+//        perm tinyint NOT NULL default '0',
+//        dl_cnt int(10) NOT NULL default '0',
+//        PRIMARY KEY (`fid`)
+//        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+//      db_query("CREATE TABLE {webfm_attach} (
+//        nid int(10) NOT NULL default '0',
+//        fid int(10) NOT NULL default '0',
+//        weight int(10) NOT NULL default '0',
+//        PRIMARY KEY (`nid`,`fid`)
+//        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+//      break;
+//
+//    case 'pgsql':
+//      db_query("CREATE TABLE {webfm_file} (
+//        fid SERIAL NOT NULL,
+//        uid integer NOT NULL default 0,
+//        fpath text NOT NULL,
+//        fsize integer NOT NULL default 0,
+//        fmime varchar(255) NOT NULL default '',
+//        ftitle varchar(255) NOT NULL default '',
+//        fdesc text NOT NULL default '',
+//        fcreatedate numeric(11) NOT NULL default 0,
+//        flang varchar(16) NOT NULL default '',
+//        fpublisher varchar(255) NOT NULL default '',
+//        fformat varchar(255) NOT NULL default '',
+//        fversion integer NOT NULL default 0,
+//        perm smallint NOT NULL default 0,
+//        dl_cnt integer NOT NULL default 0,
+//        PRIMARY KEY (fid)
+//        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+//      db_query("CREATE TABLE {webfm_attach} (
+//        nid integer NOT NULL default 0,
+//        fid integer NOT NULL default 0,
+//        weight integer NOT NULL default '0',
+//        PRIMARY KEY (nid,fid)
+//        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+//	    break;
+//
+//    default:
+//      drupal_set_message('webfm_install currently supports MySQL and Postgres database only', error);
+//      break;
+//  }*/
 
-  return $ret;
-}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+//function webfm_uninstall() {
+//  db_query('DROP TABLE {webfm_file}');
+//  db_query('DROP TABLE {webfm_attach}');
+//
+//}
+
+//function webfm_update_1() {
+//  $ret = array();
+//
+//  switch ($GLOBALS['db_type']) {
+//    case 'mysql':
+//    case 'mysqli':
+//      $ret[] = update_sql("ALTER TABLE {webfm_file} ADD perm tinyint NOT NULL DEFAULT 0");
+//      $ret[] = update_sql("ALTER TABLE {webfm_file} ADD dl_cnt int NOT NULL DEFAULT 0");
+//      $ret[] = update_sql("ALTER TABLE {webfm_attach} DROP list");
+//      break;
+//    case 'pgsql':
+//      db_add_column($ret, 'webfm_file', 'perm', 'smallint', array('not null' => TRUE, 'default' => 0));
+//      db_add_column($ret, 'webfm_file', 'dl_cnt', 'int', array('not null' => TRUE, 'default' => 0));
+//      $ret[] = update_sql('ALTER TABLE {webfm_attach} DROP COLUMN list');
+//      break;
+//  }
+//
+//  return $ret;
+//}
+//
+//function webfm_update_2() {
+//  $ret = array();
+//
+//  switch ($GLOBALS['db_type']) {
+//    case 'mysql':
+//    case 'mysqli':
+//      $ret[] = update_sql("ALTER TABLE {webfm_file} DROP fname");
+//      break;
+//    case 'pgsql':
+//      $ret[] = update_sql('ALTER TABLE {webfm_file} DROP COLUMN fname');
+//      break;
+//  }
+//
+//  return $ret;
+//}

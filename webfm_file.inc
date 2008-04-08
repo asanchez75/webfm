@@ -1,5 +1,5 @@
 <?php
-/* $Id$ */
+// $Id$
 
 /**
  * webfm_mkdir -called from the ajax action - switch case 'mkdir':

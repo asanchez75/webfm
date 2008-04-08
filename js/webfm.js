@@ -1,4 +1,4 @@
-/* $Id$ */
+// $Id$
 
 /* namespace */
 function Webfm() {}
@@ -64,7 +64,6 @@ Webfm.js_msg["perm"] = "File Permissions";
 Webfm.meta_msg = [];
 Webfm.meta_msg["fid"] = "fid";
 Webfm.meta_msg["uid"] ="uid";
-Webfm.meta_msg["uname"] ="file owner";
 Webfm.meta_msg["name"] = "name";
 Webfm.meta_msg["title"] = "title";
 Webfm.meta_msg["desc"] = "description";
@@ -2391,7 +2390,6 @@ Webfm.metadata.prototype.submitMetacallback = function(string, xmlhttp, obj) {
   Webfm.progressObj.hide();
   if (xmlhttp.status == 200) {
     var result = Drupal.parseJson(string);
-//    Webfm.dbgObj.dbg('submitMetacallback: ', Webfm.dump(result));
     if (result.status) {
       //update data for reset button
       var params = [];
@@ -3777,3 +3775,109 @@ Webfm.isObject = function(thing) {
 
 // Unregister all global listener events
 window.onunload = Webfm.eventUnregisterWebfm;
+
+///////////////////////////////////////////////////////ADD IN LEGACY DRUPAL JS FUNCTIONS USED BY WEBFM////////////////////////////////////////////////
+/**
+ * Redirects a button's form submission to a hidden iframe and displays the result
+ * in a given wrapper. The iframe should contain a call to
+ * window.parent.iframeHandler() after submission.
+ */
+Drupal.redirectFormButton = function (uri, button, handler) {
+  // Trap the button
+  button.onmouseover = button.onfocus = function() {
+    button.onclick = function() {
+      // Create target iframe
+      Drupal.createIframe();
+
+      // Prepare variables for use in anonymous function.
+      var button = this;
+      var action = button.form.action;
+      var target = button.form.target;
+
+      // Redirect form submission to iframe
+      this.form.action = uri;
+      this.form.target = 'redirect-target';
+
+      handler.onsubmit();
+
+      // Set iframe handler for later
+      window.iframeHandler = function () {
+        var iframe = $('#redirect-target').get(0);
+        // Restore form submission
+        button.form.action = action;
+        button.form.target = target;
+
+        // Get response from iframe body
+        try {
+          response = (iframe.contentWindow || iframe.contentDocument || iframe).document.body.innerHTML;
+          // Firefox 1.0.x hack: Remove (corrupted) control characters
+          response = response.replace(/[\f\n\r\t]/g, ' ');
+          if (window.opera) {
+            // Opera-hack: it returns innerHTML sanitized.
+            response = response.replace(/&quot;/g, '"');
+          }
+        }
+        catch (e) {
+          response = null;
+        }
+
+        response = Drupal.parseJson(response);
+        // Check response code
+        if (response.status == 0) {
+          handler.onerror(response.data);
+          return;
+        }
+        handler.oncomplete(response.data);
+
+        return true;
+      }
+
+      return true;
+    }
+  }
+  button.onmouseout = button.onblur = function() {
+    button.onclick = null;
+  }
+};
+
+/**
+ * Create an invisible iframe for form submissions.
+ */
+Drupal.createIframe = function () {
+  if ($('#redirect-holder').size()) {
+    return;
+  }
+  // Note: some browsers require the literal name/id attributes on the tag,
+  // some want them set through JS. We do both.
+  window.iframeHandler = function () {};
+  var div = document.createElement('div');
+  div.id = 'redirect-holder';
+  $(div).html('<iframe name="redirect-target" id="redirect-target" class="redirect" onload="window.iframeHandler();"></iframe>');
+  var iframe = div.firstChild;
+  $(iframe)
+    .attr({
+      name: 'redirect-target',
+      id: 'redirect-target'
+    })
+    .css({
+      position: 'absolute',
+      height: '1px',
+      width: '1px',
+      visibility: 'hidden'
+    });
+  $('body').append(div);
+};
+
+/**
+ * Delete the invisible iframe
+ */
+Drupal.deleteIframe = function () {
+  $('#redirect-holder').remove();
+};
+
+/**
+ *  Returns the position of the mouse cursor based on the event object passed
+ */
+Drupal.mousePosition = function(e) {
+  return { x: e.clientX + document.documentElement.scrollLeft, y: e.clientY + document.documentElement.scrollTop };
+};
