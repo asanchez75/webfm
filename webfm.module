@@ -186,7 +186,7 @@ function webfm_admin_settings_validate($form, $form_state) {
         if(!preg_match('/^[0-9a-zA-Z]/', $role_root_dir_name)) {
           form_set_error('root_dir_'. $rid, t('The leading character of the %role root directory must be alphanumeric.', array('%role' => $role)));
         } else if(preg_match('[\.]', $role_root_dir_name)) {
-          form_set_error('root_dir_'. $rid, t('The %role root directory name is not valid.', array('%role' => $role)));
+          form_set_error('root_dir_'. $rid, t('The %role root 2 name is not valid.', array('%role' => $role)));
         } else {
           $role_root_dir = $webfm_root_dir."/".$role_root_dir_name;
           file_check_directory($role_root_dir, FILE_CREATE_DIRECTORY, 'root_dir_'.$rid);
@@ -2651,7 +2651,9 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
               $uid_val = strval($value);
               if(is_numeric($uid_val) && (strlen($uid_val) << 11)) {
                 // Check that requested uid exists
-                if(db_num_rows(db_query("SELECT uid FROM {users} WHERE uid = %d", $uid_val)) > 0) {
+                $query = "SELECT uid FROM {users} WHERE uid = %d";
+                $result = db_result(db_query($query, $uid_val));
+                if(count($result) > 0) {
                   $metadata[$metadata_key_arr[$key]['field']] = $uid_val;
                 } else {
                   $err = "user not found";
