@@ -1,8 +1,9 @@
 <?php
+// $Id$
 /**
  * Displays file attachments in table
  */
-function theme_webfm_attachments($files) {
+function theme_webfm_attachments($files, $type, $num) {
   global $base_url;
   $header = array(t('Attachment'));
   if($enable_date = variable_get('webfm_attach_date', '')) {
@@ -22,44 +23,17 @@ function theme_webfm_attachments($files) {
   	$filename = $file->ftitle ? $file->ftitle : $file->n;
   	if(variable_get('webfm_attach_new_window', '')) {
       $href = array(
-        'data' => l('<img src="'.$icon_path.'" alt="[file]" title="Download '.$filename .'"/> ',
-                    'webfm_send/'.$file->id.'/1',
-                    array(
-                      'attributes' => array(
-                        'title' => 'Download '.$filename,
-                        'target' => '_blank'),
-                      'html' => TRUE
-                    )
-                  )
-                  .
-                  l($filename,
-                    'webfm_send/'.$file->id,
-                    array(
-                      'attributes' => array(
-                         'title' => 'Open '.$filename,
-                         'target' => '_blank'
-                         ),
-                      )
-                    )
-                  . $description,
-        'class' => 'att-title',
+        'data' => l('<img src="'.$icon_path.'" alt="[file]" title="Download '.$filename .'"/> ', 'webfm_send/'.$file->id.'/1',
+        array('attributes' => array('title' => 'Download '.$filename,'target' => '_blank'), 'html' => TRUE))
+        .l($filename, 'webfm_send/'.$file->id, array('attributes' => array('title' => 'Open '.$filename, 'target' => '_blank')))
+        .$description, 'class' => 'att-title'
       );
     } else {
       $href = array(
-        'data' => l('<img src="'.$icon_path.'" alt="[file]" title="Download '.$filename .'"/> ',
-                    'webfm_send/'.$file->id.'/1',
-                    array(
-                      'attributes' => array('title' => 'Download '.$filename),
-                      'html' => TRUE
-                    )
-                  )
-                  .
-                  l($filename,
-                    'webfm_send/'.$file->id,
-                    array('attributes' => array('title' => 'Open '.$filename))
-                  )
-                  . $description,
-        'class' => 'att-title'
+        'data' => l('<img src="'.$icon_path.'" alt="[file]" title="Download '.$filename .'"/> ', 'webfm_send/'.$file->id.'/1',
+        array('attributes' => array('title' => 'Download '.$filename), 'html' => TRUE))
+        .l($filename, 'webfm_send/'.$file->id, array('attributes' => array('title' => 'Open '.$filename)))
+        .$description, 'class' => 'att-title'
       );
     }
 
@@ -75,6 +49,6 @@ function theme_webfm_attachments($files) {
     array_push($rows, $row);
   }
   if (count($rows)) {
-    return theme('table', $header, $rows, array('id' => 'webfm-attach-list'));
+    return theme('table', $header, $rows, array('id' => 'webfm-attach-list-'.$type.$num));
   }
 }

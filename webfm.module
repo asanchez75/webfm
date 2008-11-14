@@ -540,6 +540,92 @@ function webfm_cron() {
 }
 
 /**
+ * Implementation of hook_comment().
+ *
+ * Similar to webfm_nodeapi, but for comments instead of nodes.
+ * Note: Enabling webfm in the edit form is done in form_alter. Keeping the
+ * attachments while preview or a failing form_validate is done by form_alter
+ * and webfm_ajax.
+ * webfm_comment is only needed to save the attachments to the table and
+ * for viewing and previewing comments.
+ * We don't need to initialize js in 'validate' here because a failing form
+ * validation re-initializes the whole node, including js.
+ */
+function webfm_comment(&$comment, $op) {
+  if (is_object($comment)) {
+    $cid = $comment->cid;
+    $nid = $comment->nid;
+  }
+  else {
+    $cid = $comment['cid'];
+    $nid = $comment['nid'];
+  }
+
+  # We need the parent node for checking its permission to view attachments etc.
+  $node = node_load($nid);
+
+  switch ($op) {
+    case 'view':
+      if (variable_get("wfm_attach_$node->type", 1) == 1 &&
+         user_access('view webfm attachments') &&
+         variable_get('webfm_attach_body', '')) {
+       // If we preview a comment, $comment->preview is defined because the preview button
+       // for comments is added with $form['preview']. Thus we know that $_POST['attachlist']
+       // is ours. If we are previewing another comment and just "view" this one,
+       // the preview flag is not set and $_POST['attachlist'] belongs to someone else.
+       // This happens when previewing or editing a comment and the node and/or
+       // other comments might be shown, too.
+       // If we preview without 'acces webfm' permissions, we fetch from database,
+       // cf. nodeapi below.
+       if ($comment->preview && user_access('access webfm')) {
+         if ($_POST['attachlist']) {
+           $show_files = webfm_get_temp_attachments($_POST['attachlist']);
+         }
+       }
+       else {
+         // Normal view. Try to load attachments. There is no 'load' op for hook_comment.
+         if (!isset($comment->webfm_files)) {
+           $comment->webfm_files = webfm_get_attachments($cid, 'cid');
+         }
+         if (is_array($comment->webfm_files) && count($comment->webfm_files)) {
+           $show_files = $comment->webfm_files;
+         }
+       }
+       if ($show_files) {
+         $comment->comment .= theme('webfm_attachments', $show_files, 'c', $cid);
+         drupal_add_css(drupal_get_path('module', 'webfm').'/css/webfm.css');
+       }
+      }
+      break;
+
+    case 'insert':
+      if ($_POST['attachlist']) {
+        $files = explode(',', $_POST['attachlist']);
+        $i = 0;
+        foreach ($files as $fid) {
+          if ($fid)
+            // weight argument determined by position in csv
+            webfm_dbinsert_attach(0, $fid, $i++, $cid);
+        }
+      }
+      break;
+
+    case 'update':
+      // If the user cannot access webfm, $_POST['attachlist'] is always empty
+      // and therefore will delete existing attachments from the node.
+      if (user_access('access webfm')) {
+        $files = explode(',', $_POST['attachlist']);
+        webfm_dbupdate_attach(0, $files, $cid);
+      }
+      break;
+
+    case 'delete':
+      webfm_dbdelete_attachments($cid, 'cid');
+      break;
+  }
+}
+
+/**
  * Implementation of hook_nodeapi().
  */
 function webfm_nodeapi(&$node, $op, $teaser) {
@@ -585,7 +671,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
         }
         if($show_files) {
           $node->content['webfm_attachments'] = array(
-            '#value' => theme('webfm_attachments', $show_files),
+            '#value' => theme('webfm_attachments', $show_files, 'n', $node->nid),
             '#weight' => 10);
           drupal_add_css(drupal_get_path('module', 'webfm').'/css/webfm.css');
         }
@@ -655,12 +741,17 @@ function webfm_form_alter(&$form, &$form_state, $form_id) {
       );
   }
 
-  if (isset($form['type'])) {
-    $node = $form['#node'];
-    if ($access &&
-        $form['type']['#value'] .'_node_form' == $form_id &&
-        variable_get('webfm_attach_'.$node->type, 0)) {
-
+  if (isset($form['type']) || $form_id == 'comment_form') {
+    // For a comment form, the webfm permissions are inherited from the comments node.
+    if ($form_id == 'comment_form') {
+      $node = node_load($form['nid']['#value']);
+      $formcheck = TRUE;
+    }
+    else {
+      $node = $form['#node'];
+      $formcheck = ($form['type']['#value'] .'_node_form' == $form_id);
+    }
+    if ($access && $formcheck && variable_get('webfm_attach_'. $node->type, 0)) {
       $modulepath = drupal_get_path('module', 'webfm');
       drupal_add_js($modulepath.'/js/webfm.js');
       drupal_add_css($modulepath.'/css/webfm.css');
@@ -789,7 +880,7 @@ function webfm_attach_box() {
     $node = node_load(arg(1));
   }
   $files = webfm_get_attachments($node->nid);
-  return theme('webfm_attachments', $files);
+  return theme('webfm_attachments', $files, 'b', $node->nid);
 }
 
 /**
@@ -946,8 +1037,10 @@ function webfm_upload () {
           $json_data['file'] = $file->filename;
           if($file->in_db) {
             // Overwrite of an existing file that is in the database
-            // Only admins or file owners can overwrite
-            if(($webfm_file_row->uid == $user->uid) || user_access('administer webfm')) {
+            // Only admins, file owners or files marked as modifiable by role can be overwritten
+            if(($webfm_file_row->uid == $user->uid) ||
+                user_access('administer webfm')     ||
+                webfm_file_mod_access($webfm_file_row)) {
               $json_data['html'] = webfm_reload_upload('webfm/upload', webfm_version_form($file->filename));
             } else {
               drupal_set_message(t('Permission denied to overwrite existing file'), error);
@@ -1452,15 +1545,33 @@ function webfm_ajax () {
             exit();
             break;
           }
-          // Here we are in the edit form for the first time. Work as before.
+          // Here we are in the edit form for the first time.
+          // For comments, the URL is "comment/edit/$cid" instead of node/$nid/edit.
+          // Unify those. We must distinguish between new and existing nodes/comments,
+          // because for new nodes webfm passed a string instead of a nid which was
+          // interpreted as nid=0. But now with comments, we *have* entries with nid=0
+          // in the table, so avoid fetching those.
+          // For new nodes and comments we can't get attachments from the database.
           $node_str = trim(strtolower(rawurldecode($_POST["param0"])));
-          // the 'node' var passed via AJAX is the action attribute of id=node-form
-          if (($node_num = strstr($node_str, 'node/')) !== FALSE) {
-            $node_arr = explode("/", $node_num);
-            //'admin' is true (allow drag&drop) since only owners of a node can edit it
-            webfm_json(array('status' => TRUE, 'data' => webfm_get_attachments($node_arr[1]), 'admin' => 'attach'));
-          } else {
-            webfm_json(array('status' => FALSE, 'data' => t('illegal path')));
+          // We edit an existing node: Fetch from database.
+          if (strpos($node_str, '/edit')) {
+            $node_str = str_replace('/edit', '', $node_str);
+            $selector = 'nid';
+            // The 'node' var passed via AJAX is the action attribute of id=node-form.
+            if (($node_num = strstr($node_str, 'node/')) == FALSE) {
+              $node_num = strstr($node_str, 'comment/');
+              $selector = 'cid';
+            }
+            if ($node_num) {
+              $node_arr = explode("/", $node_num);
+              // 'admin' is true (allow drag&drop) since only owners of a node can edit it.
+              webfm_json(array('status' => TRUE, 'data' => webfm_get_attachments($node_arr[1], $selector), 'admin' => 'attach'));
+            }
+           else {
+              webfm_json(array('status' => FALSE, 'data' => 'illegal path'));
+              exit();
+              break;
+            }
           }
         } else {
           webfm_json(array('status' => FALSE, 'data' => t('insufficient params')));
@@ -2197,9 +2308,16 @@ function recurse_build_tree($dir, $full) {
   return isset($tree)?$tree:'';
 }
 
-function webfm_get_attachments($nid) {
+function webfm_get_attachments($nid, $selector = 'nid') {
+  // If anything but a existing nid/cid is passed, it is equivalent to 0. This
+  // happened in webfm_ajax in the past. Although we fixed it there, make sure
+  // that we never run into this, because now there are entries with nid/cid=0.
+  if ($nid == 0) {
+    return array();
+  }
+
   $files = array();
-  $file_result = db_query('SELECT * FROM {webfm_file} f INNER JOIN {webfm_attach} a ON f.fid = a.fid WHERE a.nid = %d ORDER BY a.weight', $nid);
+  $file_result = db_query("SELECT * FROM {webfm_file} f INNER JOIN {webfm_attach} a ON f.fid = a.fid WHERE a.%s = %d ORDER BY a.weight", $selector, $nid);
   while($file_record = db_fetch_object($file_result)) {
     $_file = new webfm_fdesc($file_record);
     if($_file->result == TRUE) {
@@ -2407,16 +2525,24 @@ function webfm_send_file($fid, $attach = false) {
   }
 
   // Files that have been attached are always considered public to whoever can
-  // access that node (nodeaccess security)
+  // access that node/comment (nodeaccess/commentaccess security).
   if($match == FALSE && $webfm_perm != WEBFM_ADMIN) {
     if($f->perm & WEBFM_FILE_ACCESS_PUBLIC_VIEW) {
       $match = TRUE;
     } else if($webfm_perm == WEBFM_USER || $webfm_perm == WEBFM_ATTACH_VIEW){
-      //Check if the file is attached to a node
-      $query = 'SELECT nid FROM {webfm_attach} WHERE fid = %d';
+      //Check if the file is attached to a node or comment.
+      $query = 'SELECT nid,cid FROM {webfm_attach} WHERE fid = %d';
       $result = db_query($query, $f->fid);
       if($result !== FALSE) {
         while ($dbfid = db_fetch_array($result)) {
+          if ($dbfid['cid'] != 0 ) {
+            // For a comment, a user must be able to view the parent node and have "access_comments".
+            if (!user_access('access comments')) {
+              continue;
+            }
+            $comment = _comment_load($dbfid['cid']);
+            $dbfid['nid'] = $comment->nid;
+          }
           $node = node_load($dbfid['nid']);
           if (node_access('view', $node)) {
             $match = TRUE;
@@ -2863,16 +2989,26 @@ function _webfm_dbdelete_file_fid($fid){
  *
  * @param int $nid
  * @param array $fids - could be a comma seperated string - we need to work that out - works both ways now
+ * @param int $cid - Optional, comment id.
  * @return TRUE if records were updated - NULL if no changes were required.
  */
-function webfm_dbupdate_attach($nid, $fids){
+function webfm_dbupdate_attach($nid, $fids, $cid = 0){
+  if ($cid == 0 ) {
+    $id = $nid;
+    $selector = 'nid';
+  }
+  else {
+    $id = $cid;
+    $selector = 'cid';
+  }
+
   $i = 0;
-  if(!webfm_check_attach_order($nid, $fids)){ //the new fids are different from the old ones
-    $query = "DELETE FROM {webfm_attach} WHERE nid = %d";
-    if($result = db_query($query, $nid)){
+  if (!webfm_check_attach_order($nid, $fids, $cid)) { //the new fids are different from the old ones
+    $query = "DELETE FROM {webfm_attach} WHERE %s = %d";
+    if ($result = db_query($query, $selector, $id)) {
       foreach($fids as $fid){
         if($fid)
-          webfm_dbinsert_attach($nid, $fid, $i++);
+          webfm_dbinsert_attach($nid, $fid, $i++, $cid);
         $flag = TRUE;
       }
       if($flag === TRUE) return TRUE;
@@ -2885,12 +3021,21 @@ function webfm_dbupdate_attach($nid, $fids){
  *
  * @param int $nid - node id
  * @param array $fids - array of file ids
+ * @param int $cid - Optional, comment id.
  * @return bool - TRUE if the attach order is the same - FALSE if it has changed
  */
-function webfm_check_attach_order($nid, $fids){
+function webfm_check_attach_order($nid, $fids, $cid = 0) {
+  if ($cid == 0 ) {
+    $id = $nid;
+    $selector = 'nid';
+  }
+  else {
+    $id = $cid;
+    $selector = 'cid';
+  }
   //check array against db result
-  $query = "SELECT fid FROM {webfm_attach} WHERE nid = %d ORDER BY weight";
-  $result = db_query($query, $nid);
+  $query = "SELECT fid FROM {webfm_attach} WHERE %s = %d ORDER BY weight";
+  $result = db_query($query, $selector, $id);
 
   $match = TRUE;
   $i = 0;
@@ -2913,23 +3058,35 @@ function webfm_check_attach_order($nid, $fids){
  * @param int $nid - node id
  * @param int $fid - file id from the webfm_file table
  * @param int $weight - weight value
- *
- * @return bool - TRUE if success - else FALSE
+ * @param int $cid - Optional, comment id. If given, $nid is set to 0 because
+ *   an attachment is stored either for a node OR a comment.
+  * @return bool - TRUE if success - else FALSE
  */
-function webfm_dbinsert_attach($nid, $fid, $weight){
-  $query = 'SELECT * FROM {webfm_attach} WHERE nid = %d AND fid = %d';
-  $result = db_query($query, $nid, $fid);
+function webfm_dbinsert_attach($nid, $fid, $weight, $cid = 0) {
+  if ($cid == 0 ) {
+    $selector = 'nid';
+    $type = 'node';
+    $id = $nid;
+  }
+  else {
+    $selector = 'cid';
+    $type = 'comment';
+    $id = $cid;
+    $nid = 0;
+  }
+  $query = "SELECT * FROM {webfm_attach} WHERE %s = %d AND fid = %d";
+  $result = db_query($query, $selector, $id, $fid);
   $exist = FALSE;
   while ($exist = db_fetch_object($result)){
-   drupal_set_message(t('File is already attached to this node.'));
+    drupal_set_message(t('File is already attached to this %t.', array('%t' => $type)));
    return FALSE;
   }
   if ($exist === FALSE) {
     //actually do the attachment if its not already attached....
-    $query = 'INSERT INTO {webfm_attach} (nid, fid, weight) VALUES (%d, %d, %d)';
-    $result = db_query($query, $nid, $fid, $weight);
+    $query = 'INSERT INTO {webfm_attach} (nid, fid, weight, cid) VALUES (%d, %d, %d, %d)';
+    $result = db_query($query, $nid, $fid, $weight, $cid);
     if($result === FALSE) {
-      drupal_set_message(t('Query Failed:  Could not attach files to node ') . $nid);
+      drupal_set_message(t('Query Failed:  Could not attach files to %t %n', array('%t' => $type, '%n' => $id)));
       return FALSE;
     } else {
       return TRUE;
@@ -2937,19 +3094,21 @@ function webfm_dbinsert_attach($nid, $fid, $weight){
   }
 }
 
- /**
- * webfm_dbdelete_attachments - deletes a nodes file associations.
+/**
+ * webfm_dbdelete_attachments - deletes nodes/comments file associations.
  *
- * @param int $id  - Node id.
+ * @param int $id  - Node or comment id.
+ * @param selector - Tell if we handle a node or a comment.
  * @return bool    - TRUE if success - else FALSE
  *
  */
-function webfm_dbdelete_attachments($nid){
-  $query = 'DELETE FROM {webfm_attach} WHERE nid = %d';
-  $result = db_query($query, $nid);
+function webfm_dbdelete_attachments($id, $selector = 'nid') {
+  $type = ($selector == 'nid') ? 'node' : 'comment';
+  $query = "DELETE FROM {webfm_attach} WHERE %s = %d";
+  $result = db_query($query, $selector, $id);
   if($result === FALSE) {
-    drupal_set_message(t('Failed to remove file attachments for deleted node %nid',
-                         array('%nid' => $nid)));
+    drupal_set_message(t('Failed to remove file attachments for deleted %type %id',
+                         array('%type' => $type, '%id' => $id)));
     return FALSE;
   }
   return TRUE;

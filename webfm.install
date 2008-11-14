@@ -1,5 +1,5 @@
 <?php
-/* $Id$ */
+// $Id$
 
 /**
  * Implementation of hook_install().
@@ -76,8 +76,23 @@ function webfm_schema(){
       'nid' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
       'fid' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
       'weight' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
+      'cid' => array('type' => 'int', 'size' => 'normal', 'not null' => TRUE, 'default' => 0),
     ),
-    'primary key' => array('nid', 'fid'),
+    'primary key' => array('nid', 'fid', 'cid' ),
   );
   return $schema;
+}
+
+/**
+ * Add column for comment id in webfm_attach table.
+ */
+function webfm_update_1() {
+  $ret = array();
+  // Add the new column to store a comment id.
+  db_add_field($ret, 'webfm_attach', 'cid', array('type' => 'int', 'not null' => TRUE, 'default' => '0'));
+
+  // Make it a primary key.
+  db_drop_primary_key($ret, 'webfm_attach');
+  db_add_primary_key($ret, 'webfm_attach', array('nid', 'cid', 'fid'));
+  return $ret;
 }

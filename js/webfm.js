@@ -2629,7 +2629,13 @@ Webfm.attach = function(parentId) {
 Webfm.attach.prototype.fetch = function() {
   var url = Webfm.ajaxUrl();
   // action attribute of node-edit form contains the node number
-  var node_url = Webfm.$('node-form').action;
+  var node_url;
+  if(Webfm.$('node-form')) {
+    node_url = Webfm.$('node-form').action;
+  }
+  if(Webfm.$('comment-form')) {
+    node_url = Webfm.$('comment-form').action;
+  }
   Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
   var postObj = { action:encodeURIComponent("attach"), param0:encodeURIComponent(node_url) };
   // If we are in a preview/validate, the fids are still stored in the form.
