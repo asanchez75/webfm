@@ -592,7 +592,7 @@ function webfm_comment(&$comment, $op) {
          }
        }
        if ($show_files) {
-         $comment->comment .= theme('webfm_attachments', $show_files, 'c', $cid);
+         $comment->comment .= theme('webfm_attachments', $show_files);
          drupal_add_css(drupal_get_path('module', 'webfm').'/css/webfm.css');
        }
       }
@@ -671,7 +671,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
         }
         if($show_files) {
           $node->content['webfm_attachments'] = array(
-            '#value' => theme('webfm_attachments', $show_files, 'n', $node->nid),
+            '#value' => theme('webfm_attachments', $show_files),
             '#weight' => 10);
           drupal_add_css(drupal_get_path('module', 'webfm').'/css/webfm.css');
         }
@@ -880,7 +880,7 @@ function webfm_attach_box() {
     $node = node_load(arg(1));
   }
   $files = webfm_get_attachments($node->nid);
-  return theme('webfm_attachments', $files, 'b', $node->nid);
+  return theme('webfm_attachments', $files);
 }
 
 /**
@@ -1899,7 +1899,7 @@ function webfm_main () {
   $debug_link = (drupal_to_js(variable_get('webfm_debug',''))) ? t('[<a href=# id="webfm-debug-link">debug</a>]') : '';
   if($user->uid == 1 || user_access('administer webfm')) {
     $settings_link = t('[<a href="@link">settings...</a>]',array('@link'=>url("admin/settings/webfm")));
-    $help_link = module_hook('help', 'page') ? t('[<a href="@link">more help...</a>]',array('@link'=>url("admin/help/webfm"))) : '';
+    $help_link = t('[<a href="@link">more help...</a>]',array('@link'=>url("admin/help/webfm")));
     $output = '<div class="more-help-link">'.$debug_link.$settings_link.$help_link.'</div>';
   } else {
     $output = '<div class="more-help-link">'.$debug_link.'</div>';
