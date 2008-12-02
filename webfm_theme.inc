@@ -3,7 +3,7 @@
 /**
  * Displays file attachments in table
  */
-function theme_webfm_attachments($files, $type, $num) {
+function theme_webfm_attachments($files) {
   global $base_url;
   $header = array(t('Attachment'));
   if($enable_date = variable_get('webfm_attach_date', '')) {
@@ -49,6 +49,6 @@ function theme_webfm_attachments($files, $type, $num) {
     array_push($rows, $row);
   }
   if (count($rows)) {
-    return theme('table', $header, $rows, array('id' => 'webfm-attach-list-'.$type.$num));
+    return theme('table', $header, $rows, array('class' => 'webfm-attach-list'));
   }
 }
