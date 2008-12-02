@@ -2022,8 +2022,10 @@ Webfm.insert_callback = function(string, xmlhttp, path) {
   }
 }
 
-Webfm.generateFileHref  = function(obj) {
-  var url = getBaseUrl();
+Webfm.generateFileHref  = function(obj, url) {
+  if(typeof url == 'undefined') {
+    url = getBaseUrl();
+  }
   var title = '';
   if(typeof obj.ftitle != "undefined" && obj.ftitle != null && obj.ftitle.length)
     title = obj.ftitle;
@@ -2044,7 +2046,7 @@ Webfm.menuPutLinkInClipboard = function(obj) {
 }
 
 Webfm.menuPasteHref = function(obj) {
-  var fileHref = Webfm.generateFileHref(obj);
+  var fileHref = Webfm.generateFileHref(obj, '');
   var myField = Webfm.lastarea;
 
   //IE support
@@ -2575,7 +2577,6 @@ Webfm.trim = function(str) {
 
 /*
  * Webfm.attach constructor
- * TODO: retain contents of attachments until submit
  * param is parentId from hook_form_alter
  */
 Webfm.attach = function(parentId) {
