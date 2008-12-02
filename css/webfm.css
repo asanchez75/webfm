@@ -69,10 +69,10 @@ img { border: 0; }
 
 #webfm-ieDD img { padding-right: 10px; }
 
-#webfm-attach-list img { margin-bottom: -4px; }
-#webfm-attach-list .att-time { white-space:nowrap; }
-#webfm-attach-list .att-size { white-space:nowrap; }
-#webfm-attach-list .att-fdesc { overflow:auto; }
+.webfm-attach-list img { margin-bottom: -4px; }
+.webfm-attach-list .att-time { white-space:nowrap; }
+.webfm-attach-list .att-size { white-space:nowrap; }
+.webfm-attach-list .att-fdesc { overflow:auto; }
 
 #webfm-progress { color: white; font-weight: bold; font-size: 10pt; visibility: hidden; }
 
