@@ -629,7 +629,8 @@ function webfm_comment(&$comment, $op) {
  * Implementation of hook_nodeapi().
  */
 function webfm_nodeapi(&$node, $op, $teaser) {
-  global $user;
+  global $user, $base_url, $base_path;
+
   switch ($op) {
     case 'load':
       if((variable_get("wfm_attach_$node->type", 1) == 1) &&
@@ -687,7 +688,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
       if(is_null($inline_js)) {
         $clean_url = variable_get('clean_url', 0);
         $clean = (($clean_url == 0) || ($clean_url == '0')) ? FALSE : TRUE;
-        $inline_js = webfm_inline_js($base_url, $clean, $user->uid);
+        $inline_js = webfm_inline_js($base_url, $base_path, $clean, $user->uid);
       }
       break;
 
@@ -724,8 +725,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
  * Implementation of hook_form_alter().
  */
 function webfm_form_alter(&$form, &$form_state, $form_id) {
-  global $base_url;
-  global $user;
+  global $base_url, $base_path, $user;
 
   if(($user->uid == 1) || user_access('administer webfm') || user_access('access webfm'))
     $access = TRUE;
@@ -758,7 +758,7 @@ function webfm_form_alter(&$form, &$form_state, $form_id) {
       if(is_null($inline_js)) {
         $clean_url = variable_get('clean_url', 0);
         $clean = (($clean_url == 0) || ($clean_url == '0')) ? FALSE : TRUE;
-        $inline_js = webfm_inline_js($base_url, $clean, $user->uid);
+        $inline_js = webfm_inline_js($base_url, $base_url, $clean, $user->uid);
       }
 
       // Attachments fieldset
@@ -1879,8 +1879,7 @@ function webfm_json($var = NULL) {
  * Main file manager function
  */
 function webfm_main () {
-  global $base_url;
-  global $user;
+  global $base_url, $base_path, $user;
 
   $modulepath = drupal_get_path('module', 'webfm');
   drupal_add_js($modulepath.'/js/webfm.js');
@@ -1893,7 +1892,7 @@ function webfm_main () {
     global $user;
     $clean_url = variable_get('clean_url', 0);
     $clean = (($clean_url == 0) || ($clean_url == '0')) ? FALSE : TRUE;
-    $inline_js = webfm_inline_js($base_url, $clean, $user->uid);
+    $inline_js = webfm_inline_js($base_url, $base_path, $clean, $user->uid);
   }
 
   $debug_link = (drupal_to_js(variable_get('webfm_debug',''))) ? t('[<a href=# id="webfm-debug-link">debug</a>]') : '';
@@ -1981,8 +1980,8 @@ function theme_webfm_upload_form($form) {
  * Inline javascript
  * Function to pass base_url, icon directory, debug and cleanurl flags
  */
-function webfm_inline_js($base_url, $clean_url, $uid) {
-  $js = '<script type="text/javascript">function getBaseUrl(){return '.drupal_to_js($base_url).';} function getWebfmIconDir(){return '.drupal_to_js($base_url."/".variable_get('webfm_icon_dir','')).';} function getWebfmCleanUrl(){return '.drupal_to_js($clean_url).'; }function getWebfmIETreeOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_tree_offset', '')).';}function getWebfmIEListOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_list_offset', '')).';} function getWebfmUid(){return '.drupal_to_js($uid).';} function getWebfmDateFormat(){return '.drupal_to_js(variable_get('webfm_date_format', WEBFM_DATE_FORMAT_DAY)).';} function getWebfmMetaName(){return '.drupal_to_js(variable_get('webfm_display_title', '')).';}</script>' ;
+function webfm_inline_js($base_url, $base_path, $clean_url, $uid) {
+  $js = '<script type="text/javascript">function getBaseUrl(){return '.drupal_to_js($base_url).';} function getBasePath(){return '.drupal_to_js($base_path).';} function getWebfmIconDir(){return '.drupal_to_js($base_url."/".variable_get('webfm_icon_dir','')).';} function getWebfmCleanUrl(){return '.drupal_to_js($clean_url).'; }function getWebfmIETreeOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_tree_offset', '')).';}function getWebfmIEListOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_list_offset', '')).';} function getWebfmUid(){return '.drupal_to_js($uid).';} function getWebfmDateFormat(){return '.drupal_to_js(variable_get('webfm_date_format', WEBFM_DATE_FORMAT_DAY)).';} function getWebfmMetaName(){return '.drupal_to_js(variable_get('webfm_display_title', '')).';}</script>' ;
   drupal_set_html_head($js);
   return $js;
 }

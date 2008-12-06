@@ -2046,7 +2046,7 @@ Webfm.menuPutLinkInClipboard = function(obj) {
 }
 
 Webfm.menuPasteHref = function(obj) {
-  var fileHref = Webfm.generateFileHref(obj, '');
+  var fileHref = Webfm.generateFileHref(obj, getBasePath().replace(/\/$/,''));
   var myField = Webfm.lastarea;
 
   //IE support
