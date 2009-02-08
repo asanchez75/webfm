@@ -23,9 +23,9 @@ function webfm_popup_help($path, $arg) {
           LinkBrowser= true;
           ImageBrowser= true;
           FlashBrowser= true;
-          LinkBrowserURL= getBasePath() + '/?q=webfm_popup&url=txtUrl';
-          ImageBrowserURL= getBasePath() + '/?q=webfm_popup&url=txtUrl';
-          FlashBrowserURL= getBasePath() + '/?q=webfm_popup&url=txtUrl';
+          LinkBrowserURL= getBasePath() + '?q=webfm_popup&url=txtUrl';
+          ImageBrowserURL= getBasePath() + '?q=webfm_popup&url=txtUrl';
+          FlashBrowserURL= getBasePath() + '?q=webfm_popup&url=txtUrl';
         </pre>
       </p>
       <p>
