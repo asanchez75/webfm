@@ -7,68 +7,6 @@
  */
 
 /**
- * Form API callback to validate the webfm settings form.
- */
-function webfm_admin_settings_validate($form, $form_state) {
-  $valid_webfm_root = FALSE;
-  $webfm_root_dir_name = $form_state['values']['webfm_root_dir'];
-  if(!empty($webfm_root_dir_name)) {
-    if(!preg_match('/^[0-9a-zA-Z]/', $webfm_root_dir_name)) {
-      form_set_error('webfm_root_dir'. $rid, t('The leading character of the webfm root directory name must be alphanumeric.'));
-    } else if(preg_match('[\.]', $webfm_root_dir_name)) {
-      form_set_error('webfm_root_dir'. $rid, t('The webfm root directory name is not valid.'));
-    } else {
-      $webfm_root_dir = file_directory_path()."/".$webfm_root_dir_name;
-      $valid_webfm_root = file_check_directory($webfm_root_dir, FILE_CREATE_DIRECTORY, 'webfm_root_dir');
-    }
-  }
-
-  if(($form_state['values']['webfm_max_resolution'] != '0')) {
-    if(!preg_match('/^[0-9]+[xX][0-9]+$/', $form_state['values']['webfm_max_resolution'])) {
-      form_set_error('webfm_max_resolution', t('The maximum allowed image size expressed as WIDTHxHEIGHT (e.g. 640x480). Set to 0 for no restriction.'));
-    }
-  }
-
-  $exceed_max_msg = t('Your PHP settings limit the maximum file size per upload to %size MB.', array('%size' => file_upload_max_size())).'<br/>';
-  $more_info = t("Depending on your sever environment, these settings may be changed in the system-wide php.ini file, a php.ini file in your Drupal root directory, in your Drupal site's settings.php file, or in the .htaccess file in your Drupal root directory.");
-  $max_upload_size = file_upload_max_size()/(1024*1024);
-  foreach($form_state['values']['roles'] as $rid => $role)  {
-    $uploadsize = $form_state['values']['webfm_uploadsize_'. $rid];
-    $usersize = $form_state['values']['webfm_usersize_'. $rid];
-    $role_root_dir_name = $form_state['values']['root_dir_'.$rid];
-
-    if(!empty($role_root_dir_name)) {
-      if($valid_webfm_root) {
-        if(!preg_match('/^[0-9a-zA-Z]/', $role_root_dir_name)) {
-          form_set_error('root_dir_'. $rid, t('The leading character of the %role root directory must be alphanumeric.', array('%role' => $role)));
-        } else if(preg_match('[\.]', $role_root_dir_name)) {
-          form_set_error('root_dir_'. $rid, t('The %role root directory name is not valid.', array('%role' => $role)));
-        } else {
-          $role_root_dir = $webfm_root_dir."/".$role_root_dir_name;
-          file_check_directory($role_root_dir, FILE_CREATE_DIRECTORY, 'root_dir_'.$rid);
-        }
-      } else {
-        form_set_error('root_dir_'. $rid, t('The WebFM root directory must be valid for the %role root directory name to be valid.', array('%role' => $role)));
-      }
-    }
-
-    if(!is_numeric($uploadsize) || ($uploadsize <= 0)) {
-      form_set_error('webfm_uploadsize_'. $rid, t('The %role file size limit must be a number and greater than zero.', array('%role' => $role)));
-    }
-    if(!is_numeric($usersize) || ($usersize <= 0)) {
-      form_set_error('webfm_usersize_'. $rid, t('The %role file size limit must be a number and greater than zero.', array('%role' => $role)));
-    }
-    if($uploadsize > $max_upload_size) {
-     form_set_error('webfm_uploadsize_'. $rid, $exceed_max_msg . $more_info);
-     $more_info = '';
-    }
-    if($uploadsize > $usersize) {
-     form_set_error('webfm_uploadsize_'. $rid, t('The %role maximum file size per upload is greater than the total file size allowed per user', array('%role' => $role)));
-    }
-  }
-}
-
-/**
  * Implementation of hook_settings().
  */
 function webfm_admin_settings() {
@@ -307,4 +245,66 @@ function webfm_admin_settings() {
 
   $form['#validate'] = array('webfm_admin_settings_validate');
   return system_settings_form($form);
+}
+
+/**
+ * Form API callback to validate the webfm settings form.
+ */
+function webfm_admin_settings_validate($form, $form_state) {
+  $valid_webfm_root = FALSE;
+  $webfm_root_dir_name = $form_state['values']['webfm_root_dir'];
+  if(!empty($webfm_root_dir_name)) {
+    if(!preg_match('/^[0-9a-zA-Z]/', $webfm_root_dir_name)) {
+      form_set_error('webfm_root_dir'. $rid, t('The leading character of the webfm root directory name must be alphanumeric.'));
+    } else if(preg_match('[\.]', $webfm_root_dir_name)) {
+      form_set_error('webfm_root_dir'. $rid, t('The webfm root directory name is not valid.'));
+    } else {
+      $webfm_root_dir = file_directory_path()."/".$webfm_root_dir_name;
+      $valid_webfm_root = file_check_directory($webfm_root_dir, FILE_CREATE_DIRECTORY, 'webfm_root_dir');
+    }
+  }
+
+  if(($form_state['values']['webfm_max_resolution'] != '0')) {
+    if(!preg_match('/^[0-9]+[xX][0-9]+$/', $form_state['values']['webfm_max_resolution'])) {
+      form_set_error('webfm_max_resolution', t('The maximum allowed image size expressed as WIDTHxHEIGHT (e.g. 640x480). Set to 0 for no restriction.'));
+    }
+  }
+
+  $exceed_max_msg = t('Your PHP settings limit the maximum file size per upload to %size MB.', array('%size' => file_upload_max_size())).'<br/>';
+  $more_info = t("Depending on your sever environment, these settings may be changed in the system-wide php.ini file, a php.ini file in your Drupal root directory, in your Drupal site's settings.php file, or in the .htaccess file in your Drupal root directory.");
+  $max_upload_size = file_upload_max_size()/(1024*1024);
+  foreach($form_state['values']['roles'] as $rid => $role)  {
+    $uploadsize = $form_state['values']['webfm_uploadsize_'. $rid];
+    $usersize = $form_state['values']['webfm_usersize_'. $rid];
+    $role_root_dir_name = $form_state['values']['root_dir_'.$rid];
+
+    if(!empty($role_root_dir_name)) {
+      if($valid_webfm_root) {
+        if(!preg_match('/^[0-9a-zA-Z]/', $role_root_dir_name)) {
+          form_set_error('root_dir_'. $rid, t('The leading character of the %role root directory must be alphanumeric.', array('%role' => $role)));
+        } else if(preg_match('[\.]', $role_root_dir_name)) {
+          form_set_error('root_dir_'. $rid, t('The %role root directory name is not valid.', array('%role' => $role)));
+        } else {
+          $role_root_dir = $webfm_root_dir."/".$role_root_dir_name;
+          file_check_directory($role_root_dir, FILE_CREATE_DIRECTORY, 'root_dir_'.$rid);
+        }
+      } else {
+        form_set_error('root_dir_'. $rid, t('The WebFM root directory must be valid for the %role root directory name to be valid.', array('%role' => $role)));
+      }
+    }
+
+    if(!is_numeric($uploadsize) || ($uploadsize <= 0)) {
+      form_set_error('webfm_uploadsize_'. $rid, t('The %role file size limit must be a number and greater than zero.', array('%role' => $role)));
+    }
+    if(!is_numeric($usersize) || ($usersize <= 0)) {
+      form_set_error('webfm_usersize_'. $rid, t('The %role file size limit must be a number and greater than zero.', array('%role' => $role)));
+    }
+    if($uploadsize > $max_upload_size) {
+     form_set_error('webfm_uploadsize_'. $rid, $exceed_max_msg . $more_info);
+     $more_info = '';
+    }
+    if($uploadsize > $usersize) {
+     form_set_error('webfm_uploadsize_'. $rid, t('The %role maximum file size per upload is greater than the total file size allowed per user', array('%role' => $role)));
+    }
+  }
 }
