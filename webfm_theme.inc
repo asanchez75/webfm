@@ -15,7 +15,7 @@ function theme_webfm_attachments($files) {
   $rows = array();
   foreach ($files as $file) {
     // 0 =inline : 1 = attach
-    $icon_path = $base_url.'/'.variable_get('webfm_icon_dir', '').'/'._webfm_get_icon($file->e);
+    $icon_path = $base_url.'/'.variable_get('webfm_icon_dir', drupal_get_path('module', 'webfm').'/image/icon').'/'._webfm_get_icon($file->e);
 	  $description = '';
     if(variable_get('webfm_attach_desc', '') && !empty($file->fdesc)) {
       $description = '<div class="att-fdesc">'.$file->fdesc.'</div>';
