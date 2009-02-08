@@ -206,6 +206,12 @@ function webfm_menu() {
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
+  $items['webfm_popup'] = array(
+    'title' => 'Web File Manager',
+    'page callback' => 'webfm_popup',
+    'access arguments' =>  array('access webfm'),
+    'type' => MENU_CALLBACK,
+  );
 
   return $items;
 }
@@ -464,7 +470,7 @@ function webfm_form_alter(&$form, &$form_state, $form_id) {
       if(is_null($inline_js)) {
         $clean_url = variable_get('clean_url', 0);
         $clean = (($clean_url == 0) || ($clean_url == '0')) ? FALSE : TRUE;
-        $inline_js = webfm_inline_js($base_url, $base_url, $clean, $user->uid);
+        $inline_js = webfm_inline_js($base_url, $base_path, $clean, $user->uid);
       }
 
       // Attachments fieldset
@@ -598,6 +604,10 @@ function webfm_theme() {
       'file' => 'webfm_theme.inc',
       //'template' => 'webfm-attachments',
       'arguments' => array('files'),
+    ),
+    'webfm_popup' => array(
+      'arguments' => array('content' => ''),
+      'template' => 'webfm-popup',
     ),
   );
 }
@@ -1687,7 +1697,8 @@ function theme_webfm_upload_form($form) {
  * Function to pass base_url, icon directory, debug and cleanurl flags
  */
 function webfm_inline_js($base_url, $base_path, $clean_url, $uid) {
-  $js = '<script type="text/javascript">function getBaseUrl(){return '.drupal_to_js($base_url).';} function getBasePath(){return '.drupal_to_js($base_path).';} function getWebfmIconDir(){return '.drupal_to_js($base_url."/".variable_get('webfm_icon_dir','')).';} function getWebfmCleanUrl(){return '.drupal_to_js($clean_url).'; }function getWebfmIETreeOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_tree_offset', '')).';}function getWebfmIEListOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_list_offset', '')).';} function getWebfmUid(){return '.drupal_to_js($uid).';} function getWebfmDateFormat(){return '.drupal_to_js(variable_get('webfm_date_format', WEBFM_DATE_FORMAT_DAY)).';} function getWebfmMetaName(){return '.drupal_to_js(variable_get('webfm_display_title', '')).';}</script>' ;
+  $js = '<script type="text/javascript">function getBaseUrl(){return '.drupal_to_js($base_url).';} function getBasePath(){return '.drupal_to_js($base_path).';} function getWebfmIconDir(){return '.drupal_to_js($base_url."/".variable_get('webfm_icon_dir', drupal_get_path('module', 'webfm').'/image/icon')).';} function getWebfmCleanUrl(){return '.drupal_to_js($clean_url).'; }function getWebfmIETreeOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_tree_offset', '')).';}function getWebfmIEListOffset(){return '.drupal_to_js(variable_get('webfm_ie_dd_list_offset', '')).';} function getWebfmUid(){return '.drupal_to_js($uid).';} function getWebfmDateFormat(){return '.drupal_to_js(variable_get('webfm_date_format', WEBFM_DATE_FORMAT_DAY)).';} function getWebfmMetaName(){return '.drupal_to_js(variable_get('webfm_display_title', '')).';}</script>' ;
+
   drupal_set_html_head($js);
   return $js;
 }
@@ -2183,9 +2194,10 @@ class webfm_searchFiles {
  * ...is a urlencoded path that must be converted and concatenated to base file dir
  *
  * @param object $fid - file id
- * @param bool $attach - 1 = attach / 0 = inline
+ * @param bool $download - true=download / false=stream
+ * @param bool $bypass_invoke true=do no invoke webfm_send hook  / false=invoke
  */
-function webfm_send_file($fid, $attach = false) {
+function webfm_send_file($fid, $download = false, $bypass_invoke = false) {
   global $user;
 
   $match = FALSE;
@@ -2205,8 +2217,7 @@ function webfm_send_file($fid, $attach = false) {
 
   if(is_numeric($fid)) {
     if(($f = webfm_get_file_record($fid)) === FALSE) {
-      print theme('page', "");
-      return;
+      return drupal_not_found();
     } else {
       if($f->uid == $user->uid)
         // Even if file has been moved to an inaccessible dir this works
@@ -2219,14 +2230,12 @@ function webfm_send_file($fid, $attach = false) {
     $str_arr = split('[~]', rawurldecode($fid));
     $f->fpath = file_directory_path()."/".implode('/', $str_arr);
     if(!(is_file($f->fpath))) {
-      print theme('page', "");
-      return;
+      return drupal_not_found();
     } else {
       $match = TRUE;
     }
   } else {
-    print theme('page', "");
-    return;
+    return drupal_not_found();
   }
 
   // Files that have been attached are always considered public to whoever can
@@ -2270,6 +2279,16 @@ function webfm_send_file($fid, $attach = false) {
     return;
   }
 
+  // Hook to allow alternative file streaming
+  // Bypass allows 2nd pass of file through this function after work done
+  // in module using this hook
+  if($bypass_invoke === FALSE) {
+    $ret = module_invoke_all('webfm_send', $f);
+    if(array_key_exists('sent', $ret)) {
+      return;
+    }
+  }
+
   $name=basename($f->fpath);
 
   //filenames in IE containing dots will screw up the
@@ -2282,7 +2301,7 @@ function webfm_send_file($fid, $attach = false) {
 
   //download headers:
   $header = array();
-  if($attach === '1') {
+  if($download === '1') {
     // prompt for download file or view
     $header[] = 'Pragma: no-cache';
     $header[] = 'Cache-Control: no-cache, must-revalidate';
@@ -2851,6 +2870,15 @@ function _webfm_dbdelete_attach_fid($fid){
     return FALSE;
   }
   return TRUE;
+}
+
+/**
+ * Show the popup window.
+ */
+function webfm_popup() {
+  $content = webfm_main();
+  print theme('webfm_popup', $content);
+  exit();
 }
 
 if(module_exists('views')){
