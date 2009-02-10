@@ -193,6 +193,7 @@ function webfm_mp3_js(){
       if(is_file($source)) {
         $file = webfm_get_file_record('', $source);
         if($file->perm & WEBFM_FILE_ACCESS_PUBLIC_VIEW ||
+           $file->perm & WEBFM_FILE_ACCESS_ROLE_VIEW ||
            $file->uid == $user->uid ||
            $webfm_perm == WEBFM_ADMIN) {
           $result = new stdClass();
@@ -249,7 +250,7 @@ function webfm_mp3_webfm_extend_js(){
  * Check for required flash components in 'mp3player' directory.
  */
 function webfm_mp3_check_flash_files() {
-  if(!file_exists(drupal_get_path('module', 'webfm_mp3').'/mp3player/audio-player.js') || !file_exists(drupal_get_path('module', 'mp3player').'/mp3player/player.swf')) {
+  if(!file_exists(drupal_get_path('module', 'webfm_mp3').'/mp3player/audio-player.js') || !file_exists(drupal_get_path('module', 'webfm_mp3').'/mp3player/player.swf')) {
     return FALSE;
   }
   return TRUE;
