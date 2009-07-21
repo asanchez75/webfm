@@ -2273,7 +2273,11 @@ function webfm_send_file($fid, $download = false, $bypass_invoke = false) {
           $node = node_load($dbfid['nid']);
           if (node_access('view', $node)) {
             $match = TRUE;
-            break;
+            // Modules might use their own method of node restriction, other than node_access.
+            drupal_alter('webfm_file_access', $match, $node, $f->$fid);
+            if ($match) {
+              break;
+            }
           }
         }
       }
