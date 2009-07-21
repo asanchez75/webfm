@@ -335,7 +335,7 @@ function webfm_comment(&$comment, $op) {
     case 'update':
       // If the user cannot access webfm, $_POST['attachlist'] is always empty
       // and therefore will delete existing attachments from the node.
-      if (user_access('access webfm')) {
+      if (user_access('access webfm') && array_key_exists('attachlist', $_POST)) {
         $files = explode(',', $_POST['attachlist']);
         webfm_dbupdate_attach(0, $files, $cid);
       }
