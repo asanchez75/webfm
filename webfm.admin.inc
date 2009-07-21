@@ -108,6 +108,10 @@ function webfm_admin_settings() {
   webfm_get_extensions_regex(WEBFM_FLUSH);
 
   foreach ($roles as $rid => $role) {
+    if(variable_get("root_dir_".$rid, '') == '') {
+      drupal_set_message(t('Role root directory not set for @role role', array('@role' => $role)), error);
+    }
+
     $form["settings_role_".$rid] =
       array('#type' => 'fieldset',
             '#title' => t('Settings for @role role', array('@role' => $role)),
