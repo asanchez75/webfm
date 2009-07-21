@@ -7,7 +7,7 @@ img { border: 0; }
 #dirlist table { width:99%; font-weight:normal; font-size: 8pt; margin:0 auto; cursor:default; background-color:#f0f0f0; border:2px solid #d0d0d0; }
 #dirlist td { border-bottom: 1px solid #d8d8d8; }
 #dirlist img { margin-left: 5px; }
-#dirlist table tr.selected { background-color: #e7e7e7; }
+#dirlist table tr.selected td { background-color: #e7e7e7; }
 #dirlist table tr { background-color: #f0f0f0; }
 #dirlist a:hover { color: red; text-decoration: none; }
 #dirlist .head { color: #2092d0; background-color: #e0e0e0; font-weight: bold; font-size: 9pt; }
@@ -32,7 +32,8 @@ img { border: 0; }
 #webfm-attach td { border-bottom: 1px solid #d8d8d8; }
 #webfm-attach img { margin-left: 5px; }
 
-#wfmatt-wrapper .upload-msg { padding-top:5px; color:red; }
+#wfmatt-wrapper .upload-msg-err { padding-top:5px; color:red; }
+#wfmatt-wrapper .upload-msg { padding-top:5px; color:green; }
 
 #webfm-dragCont { background:transparent none; list-style: none; }
 #webfm-dragCont ul { margin:0; padding:0; background:transparent none; }
