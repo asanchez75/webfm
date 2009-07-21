@@ -8,99 +8,99 @@ function Webfm() {}
 */
 //Translation possible by changing the array values (DO NOT ALTER KEYS!)
 Webfm.js_msg = [];
-Webfm.js_msg["mkdir"] = "Create New Dir";
-Webfm.js_msg["file"] = "file";
-Webfm.js_msg["dir"] = "directory";
-Webfm.js_msg["u_file"] = "File";
-Webfm.js_msg["u_dir"] = "Directory";
-Webfm.js_msg["tree"] = "";
-Webfm.js_msg["work"] = "Working... please wait";
-Webfm.js_msg["refresh"] = "refresh";
-Webfm.js_msg["sort"] = "sort by this column";
-Webfm.js_msg["new-dir"] = "Create New Folder";
-Webfm.js_msg["add-2-db"] = "Add files in this folder to database";
-Webfm.js_msg["r-add-2-db"] = "Recursive add files to database";
-Webfm.js_msg["column1"] = "Name";
-Webfm.js_msg["column2"] = "Modified";
-Webfm.js_msg["column3"] = "Size";
-Webfm.js_msg["column4"] = "Owner";
-Webfm.js_msg["attach-title"] = "Attached Files";
-Webfm.js_msg["meta-title"] = "File Meta Data";
-Webfm.js_msg["search-title"] = "File Search";
-Webfm.js_msg["debug-title"] = "WebFM Debug";
-Webfm.js_msg["cache-title"] = "Directory Cache";
-Webfm.js_msg["search-cur"] = "Search current directory (see listing breadcrumb trail)";
-Webfm.js_msg["no-match"] = "No match found";
-Webfm.js_msg["search"] = "Search";
-Webfm.js_msg["submit"] = "Submit";
-Webfm.js_msg["reset"] = "Reset";
-Webfm.js_msg["clear"] = "Clear";
-Webfm.js_msg["cancel"] = "Cancel";
-Webfm.js_msg["close"] = "Close";
-Webfm.js_msg["resize"] = "Resize";
-Webfm.js_msg["replace"] = "Replace and Version original copy of ";
-Webfm.js_msg["replace-del"] = "Replace and Delete original copy of ";
-Webfm.js_msg["no-replace"] = "Version new copy of ";
-Webfm.js_msg["cache"] = "Cache Content";
-Webfm.js_msg["curdir-undef"] = "current directory undefined";
-Webfm.js_msg["ajax-err"] = "server is unreachable";
-Webfm.js_msg["move-err"] = "move operation fail";
-Webfm.js_msg["len-err"] = "Too long";
-Webfm.js_msg["confirm-del0"] = "Do you want to delete the ";
-Webfm.js_msg["confirm-del1"] = " and all its contents";
-Webfm.js_msg["confirm-det"] = "Do you want to detach ";
-Webfm.js_msg["confirm-dbrem0"] = "Do you want to remove ";
-Webfm.js_msg["confirm-dbrem1"] = " from the database?\n     All metadata and attachments for this file will be lost";
-Webfm.js_msg["enum_local"] = "Do you want to add all files of this directory into the database?";
-Webfm.js_msg["enum_recur"] = "Do you want to add all files of this directory and sub-directories into the database?";
-Webfm.js_msg["file-dwld"] = "download file";
-Webfm.js_msg["no-file-dwld"] = "file not in database";
-Webfm.js_msg["inserted"] = " files inserted into db";
-Webfm.js_msg["not-inserted"] = " files failed to insert into db";
-Webfm.js_msg["metadata"] = "Metadata";
-Webfm.js_msg["fix_input"] = "correct input";
-Webfm.js_msg["perm"] = "File Permissions";
+Webfm.js_msg["mkdir"] = Drupal.t("Create New Dir");
+Webfm.js_msg["file"] = Drupal.t("file");
+Webfm.js_msg["dir"] = Drupal.t("directory");
+Webfm.js_msg["u_file"] = Drupal.t("File");
+Webfm.js_msg["u_dir"] = Drupal.t("Directory");
+Webfm.js_msg["tree"] = Drupal.t("");
+Webfm.js_msg["work"] = Drupal.t("Working... please wait");
+Webfm.js_msg["refresh"] = Drupal.t("refresh");
+Webfm.js_msg["sort"] = Drupal.t("sort by this column");
+Webfm.js_msg["new-dir"] = Drupal.t("Create New Folder");
+Webfm.js_msg["add-2-db"] = Drupal.t("Add files in this folder to database");
+Webfm.js_msg["r-add-2-db"] = Drupal.t("Recursive add files to database");
+Webfm.js_msg["column1"] = Drupal.t("Name");
+Webfm.js_msg["column2"] = Drupal.t("Modified");
+Webfm.js_msg["column3"] = Drupal.t("Size");
+Webfm.js_msg["column4"] = Drupal.t("Owner");
+Webfm.js_msg["attach-title"] = Drupal.t("Attached Files");
+Webfm.js_msg["meta-title"] = Drupal.t("File Meta Data");
+Webfm.js_msg["search-title"] = Drupal.t("File Search");
+Webfm.js_msg["debug-title"] = Drupal.t("WebFM Debug");
+Webfm.js_msg["cache-title"] = Drupal.t("Directory Cache");
+Webfm.js_msg["search-cur"] = Drupal.t("Search current directory (see listing breadcrumb trail)");
+Webfm.js_msg["no-match"] = Drupal.t("No match found");
+Webfm.js_msg["search"] = Drupal.t("Search");
+Webfm.js_msg["submit"] = Drupal.t("Submit");
+Webfm.js_msg["reset"] = Drupal.t("Reset");
+Webfm.js_msg["clear"] = Drupal.t("Clear");
+Webfm.js_msg["cancel"] = Drupal.t("Cancel");
+Webfm.js_msg["close"] = Drupal.t("Close");
+Webfm.js_msg["resize"] = Drupal.t("Resize");
+Webfm.js_msg["replace"] = Drupal.t("Replace and Version original copy of ");
+Webfm.js_msg["replace-del"] = Drupal.t("Replace and Delete original copy of ");
+Webfm.js_msg["no-replace"] = Drupal.t("Version new copy of ");
+Webfm.js_msg["cache"] = Drupal.t("Cache Content");
+Webfm.js_msg["curdir-undef"] = Drupal.t("current directory undefined");
+Webfm.js_msg["ajax-err"] = Drupal.t("server is unreachable");
+Webfm.js_msg["move-err"] = Drupal.t("move operation fail");
+Webfm.js_msg["len-err"] = Drupal.t("Too long");
+Webfm.js_msg["confirm-del0"] = Drupal.t("Do you want to delete the ");
+Webfm.js_msg["confirm-del1"] = Drupal.t(" and all its contents");
+Webfm.js_msg["confirm-det"] = Drupal.t("Do you want to detach ");
+Webfm.js_msg["confirm-dbrem0"] = Drupal.t("Do you want to remove ");
+Webfm.js_msg["confirm-dbrem1"] = Drupal.t(" from the database?\n     All metadata and attachments for this file will be lost");
+Webfm.js_msg["enum_local"] = Drupal.t("Do you want to add all files of this directory into the database?");
+Webfm.js_msg["enum_recur"] = Drupal.t("Do you want to add all files of this directory and sub-directories into the database?");
+Webfm.js_msg["file-dwld"] = Drupal.t("download file");
+Webfm.js_msg["no-file-dwld"] = Drupal.t("file not in database");
+Webfm.js_msg["inserted"] = Drupal.t(" files inserted into db");
+Webfm.js_msg["not-inserted"] = Drupal.t(" files failed to insert into db");
+Webfm.js_msg["metadata"] = Drupal.t("Metadata");
+Webfm.js_msg["fix_input"] = Drupal.t("correct input");
+Webfm.js_msg["perm"] = Drupal.t("File Permissions");
 
 Webfm.meta_msg = [];
-Webfm.meta_msg["fid"] = "fid";
-Webfm.meta_msg["uid"] ="uid";
-Webfm.meta_msg["uname"] ="file owner";
-Webfm.meta_msg["name"] = "name";
-Webfm.meta_msg["title"] = "title";
-Webfm.meta_msg["desc"] = "description";
-Webfm.meta_msg["lang"] = "language";
-Webfm.meta_msg["pub"] = "publisher";
-Webfm.meta_msg["format"] = "format";
-Webfm.meta_msg["ver"] = "version";
-Webfm.meta_msg["type"] = "image type";
-Webfm.meta_msg["width"] = "width";
-Webfm.meta_msg["height"] = "height";
-Webfm.meta_msg["dl_cnt"] = "downloads";
-Webfm.meta_msg["link"] = "link";
+Webfm.meta_msg["fid"] = Drupal.t("fid");
+Webfm.meta_msg["uid"] = Drupal.t("uid");
+Webfm.meta_msg["uname"] = Drupal.t("file owner");
+Webfm.meta_msg["name"] = Drupal.t("name");
+Webfm.meta_msg["title"] = Drupal.t("title");
+Webfm.meta_msg["desc"] = Drupal.t("description");
+Webfm.meta_msg["lang"] = Drupal.t("language");
+Webfm.meta_msg["pub"] = Drupal.t("publisher");
+Webfm.meta_msg["format"] = Drupal.t("format");
+Webfm.meta_msg["ver"] = Drupal.t("version");
+Webfm.meta_msg["type"] = Drupal.t("image type");
+Webfm.meta_msg["width"] = Drupal.t("width");
+Webfm.meta_msg["height"] = Drupal.t("height");
+Webfm.meta_msg["dl_cnt"] = Drupal.t("downloads");
+Webfm.meta_msg["link"] = Drupal.t("link");
 
 Webfm.perm_msg = [];
-Webfm.perm_msg["pub_view"] = "Public download";
-Webfm.perm_msg["rol_view"] = "Role View/Download";
-Webfm.perm_msg["rol_att"]  = "Role Attach";
-Webfm.perm_msg["rol_full"] = "Role Full Access";
+Webfm.perm_msg["pub_view"] = Drupal.t("Public download");
+Webfm.perm_msg["rol_view"] = Drupal.t("Role View/Download");
+Webfm.perm_msg["rol_att"] = Drupal.t("Role Attach");
+Webfm.perm_msg["rol_full"] = Drupal.t("Role Full Access");
 
 Webfm.menu_msg = [];
-Webfm.menu_msg["mkdir"] = "Create Subdirectory";
-Webfm.menu_msg["rmdir"] = "Delete Directory";
-Webfm.menu_msg["rm"] = "Delete File";
-Webfm.menu_msg["rendir"] = "Rename Directory";
-Webfm.menu_msg["search"] = "Search Directory";
-Webfm.menu_msg["ren"] = "Rename File";
-Webfm.menu_msg["meta"] = "File meta data";
-Webfm.menu_msg["att"] = "Attach to Node";
-Webfm.menu_msg["det"] = "Detach from Node";
-Webfm.menu_msg["dwnld"] = "Download as file";
-Webfm.menu_msg["view"] = "View file";
-Webfm.menu_msg["enum"] = "Add file to database";
-Webfm.menu_msg["denum"] = "Remove file from database";
-Webfm.menu_msg["perm"] = "File permissions";
-Webfm.menu_msg["clip"] = "Copy link to clipboard";
-Webfm.menu_msg["paste"] = "Paste link in editor window";
+Webfm.menu_msg["mkdir"] = Drupal.t("Create Subdirectory");
+Webfm.menu_msg["rmdir"] = Drupal.t("Delete Directory");
+Webfm.menu_msg["rm"] = Drupal.t("Delete File");
+Webfm.menu_msg["rendir"] = Drupal.t("Rename Directory");
+Webfm.menu_msg["search"] = Drupal.t("Search Directory");
+Webfm.menu_msg["ren"] = Drupal.t("Rename File");
+Webfm.menu_msg["meta"] = Drupal.t("File meta data");
+Webfm.menu_msg["att"] = Drupal.t("Attach to Node");
+Webfm.menu_msg["det"] = Drupal.t("Detach from Node");
+Webfm.menu_msg["dwnld"] = Drupal.t("Download as file");
+Webfm.menu_msg["view"] = Drupal.t("View file");
+Webfm.menu_msg["enum"] = Drupal.t("Add file to database");
+Webfm.menu_msg["denum"] = Drupal.t("Remove file from database");
+Webfm.menu_msg["perm"] = Drupal.t("File permissions");
+Webfm.menu_msg["clip"] = Drupal.t("Copy link to clipboard");
+Webfm.menu_msg["paste"] = Drupal.t("Paste link in editor window");
 //Do not translate any code below this line
 
 Webfm.current = null;
@@ -146,7 +146,7 @@ Webfm.scrollVal = null; // freeze scroll
 Webfm.eventListeners = [];
 
 //Name of node edit form hidden field where attached node list is populated by js
-Webfm.attachFormInput = "edit-attachlist"
+Webfm.attachFormInput = "edit-attachlist";
 
 Webfm.icons = {
    epdf:"pdf", ephp:"php", ephps:"php", ephp4:"php", ephp5:"php", eswf:"swf",
@@ -527,9 +527,9 @@ Webfm.jsUpload.prototype.oncomplete = function (data) {
   Webfm.progressObj.hide();
 
   Webfm.dirListObj.refresh();
-  if(typeof(Webfm.$('webfm-inline')) != 'undefined') {
+  if(typeof Webfm.$('webfm-inline') != 'undefined') {
     // attach file to node if inside node-edit
-    if(typeof(data['fid']) != 'undefined') {
+    if(typeof data['fid'] != 'undefined') {
       Webfm.menuAttach(null, data['fid']);
     }
   }
@@ -558,7 +558,7 @@ Webfm.jsUpload.prototype.submit = function () {
       break;
     }
   }
-  if(typeof(selection) != 'undefined') {
+  if(typeof selection != 'undefined') {
     var url = Webfm.ajaxUrl();
     Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
     var postObj = { action:encodeURIComponent("version"), param0:encodeURIComponent(selection), param1:encodeURIComponent(this.confirm.file)};
@@ -575,12 +575,17 @@ Webfm.jsUpload.prototype.callback = function(string, xmlhttp, cp) {
   if (xmlhttp.status == 200) {
     var result = Drupal.parseJson(string);
 
-    if(result.status)
+    if(result.status) {
       Webfm.dirListObj.refresh();
+    }
     cp.confirm.style.display = 'none';
     // Insert ajax feedback before upload form
     var elDiv = Webfm.ce('div');
+    if(result.status) {
     elDiv.className = 'upload-msg';
+    } else {
+      elDiv.className = 'upload-msg-err';
+    }
     elDiv.appendChild(Webfm.ctn(result.data['msg']));
     $(hide).before($(elDiv));
 
@@ -589,9 +594,9 @@ Webfm.jsUpload.prototype.callback = function(string, xmlhttp, cp) {
     $(hide).css({ display: 'block' });
     webfmUploadAutoAttach();
 
-    if(typeof(Webfm.$('webfm-inline')) != 'undefined') {
+    if(typeof Webfm.$('webfm-inline') != 'undefined') {
       // attach file to node if inside node-edit
-      if(typeof(result.data['fid']) != 'undefined') {
+      if(typeof result.data['fid'] != 'undefined') {
         Webfm.menuAttach(null, result.data['fid']);
       }
     }
@@ -1771,7 +1776,7 @@ Webfm.context.prototype.showContextMenu = function(event, obj) {
     for(var j = 0; j < obj.menu.length; j++) {
       var elLi = Webfm.ce('li');
       //Run prepare function and return true if menuElement to appear in menu
-      if(typeof(obj.menu[j].prepFunc) == 'function' && !obj.menu[j].prepFunc(obj)) {
+      if(typeof obj.menu[j].prepFunc == 'function' && !obj.menu[j].prepFunc(obj)) {
         continue;
       }
       elLi.appendChild(Webfm.ctn(obj.menu[j].desc));
@@ -2977,14 +2982,14 @@ Webfm.alert.prototype.lf = function() {
  * Display an array of strings alert
  */
 Webfm.alert.prototype.str_arr = function(arr) {
-  if(typeof(arr) == 'function')
+  if(typeof arr == 'function')
     return;
   else if(Webfm.isArray(arr)) {
     for(var i = 0; i < arr.length; i++) {
       this.str_arr(arr[i]);
     }
   }
-  if(typeof(arr) == 'string') {
+  if(typeof arr == 'string') {
     this.msg(arr);
   }
 }
@@ -3009,7 +3014,7 @@ Webfm.popup = function(Id) {
 }
 Webfm.popup.prototype.getScrollY = function () {
   var scrY = 0;
-  if(typeof(window.pageYOffset) == 'number') {
+  if(typeof window.pageYOffset == 'number') {
     scrY = window.pageYOffset;
   } else if(document.body && document.body.scrollTop) {
     scrY = document.body.scrollTop;
@@ -3195,7 +3200,7 @@ Webfm.pane.prototype.drag = function(event) {
 
   //Scroll page if near top or bottom edge.  Hardcoded values
   var scroll = this.popupCont.getScrollY();
-  if(typeof(window.innerHeight) == 'number') {
+  if(typeof window.innerHeight == 'number') {
     if(pos.y > (window.innerHeight + scroll - 35)) {
       window.scrollBy(0,20);
     } else if(pos.y  - scroll < (25)) {
@@ -3467,7 +3472,7 @@ Webfm.draggable.prototype.drag = function (event) {
 
   //Scroll page if near top or bottom edge.  Hardcoded values
   var scroll = this.dragCont.getScrollY();
-  if(typeof(window.innerHeight) == 'number') {
+  if(typeof window.innerHeight == 'number') {
     if(pos.y > (window.innerHeight + scroll - 35)) {
       window.scrollBy(0,20);
     } else if(pos.y  - scroll < (25)) {
@@ -3927,7 +3932,7 @@ Webfm.dump = function(content, txt_arr) {
 // neednl: true if need newline, false if not
 Webfm.dumpRecur = function(content,indent,neednl,txt_arr) {
   var out = "";
-  if (typeof(content) == 'function')
+  if (typeof content == 'function')
     return 'function';
   else if (Webfm.isArray(content)) {  // handle real arrays in brackets
     if (neednl) out += "\n"+Webfm.dumpSpaces(indent);
@@ -3955,7 +3960,7 @@ Webfm.dumpRecur = function(content,indent,neednl,txt_arr) {
     }
     out+="\n"+Webfm.dumpSpaces(indent);
     if(!txt_arr) out+="}";
-  } else if (typeof(content) == 'string') {
+  } else if (typeof content == 'string') {
     out+="'" + content + "'";
   } else {
     out+=content;
