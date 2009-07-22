@@ -23,14 +23,14 @@ function webfm_popup_help($path, $arg) {
           LinkBrowser= true;
           ImageBrowser= true;
           FlashBrowser= true;
-          LinkBrowserURL= getBasePath() + '?q=webfm_popup&url=txtUrl';
-          ImageBrowserURL= getBasePath() + '?q=webfm_popup&url=txtUrl';
-          FlashBrowserURL= getBasePath() + '?q=webfm_popup&url=txtUrl';
+          LinkBrowserURL= getBasePath() + '?q=webfm_popup&webfmid=txtUrl';
+          ImageBrowserURL= getBasePath() + '?q=webfm_popup&webfmid=txtUrl';
+          FlashBrowserURL= getBasePath() + '?q=webfm_popup&webfmid=txtUrl';
         </pre>
       </p>
       <p>
-        If you would like to use paths like webfm_send/1 instead of the url then
-        change 'url=txtUrl' to 'webfmid=txtUrl'.
+        If you would like to use physical file paths then (no file security or
+        location independence) change 'webfmid=txtUrl' to 'url=txtUrl'.
       </p>
       </li>
       <li>Click Save Configuration</li>
