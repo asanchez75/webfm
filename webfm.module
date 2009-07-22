@@ -2407,16 +2407,17 @@ function webfm_dbinsert_file($file, &$error, $metadata = array()){
   $result = db_query($query, $values);
 
   if($result === FALSE){
-    $error = $file->filepath.' could not be inserted into db';
-    drupal_set_message(t('Could not insert %file into the database', array('%file' => $file->filepath)), error);
+    $error = $file->filepath.t(' could not be inserted into db');
     return FALSE;
   } else {
     // return fid to calling routine
     $query = "SELECT fid FROM {webfm_file} WHERE fpath = '%s'";
     $result = db_query($query, $file->filepath);
     if(($result !== FALSE) && ($row = db_fetch_object($result))) {
+      _webfm_file_alias("insert", $metadata, $row->fid);
       return $row->fid;
     } else {
+      $error = $file->filepath.t(' could not be selected from db');
       return FALSE;
     }
   }
@@ -2460,7 +2461,30 @@ function webfm_dbupdate_file($fid, $path = FALSE, $metadata = array()){
     drupal_set_message(t('webfm_dbupdate_file() err: fid=%fid', array('%fid' => $fid)), error);
     return FALSE;
   }
+  _webfm_file_alias('update', $metadata, $fid);
   return TRUE;
+}
+
+/**
+ * Call the Pathauto-Module to create or update a filepath alias
+ *
+ * @param $op insert|update Wether to update or insert an alias
+ * @param $metadata File Metadata
+ * @param $fid File ID
+ * @return NULL
+ */
+function _webfm_file_alias($op, $metadata, $fid) {
+  if(!module_exists('pathauto')) return NULL;
+  switch($op) {
+    case "insert":
+    case "update":
+      $webfmfile = $metadata;
+      $webfmfile['fid'] = $fid;
+      $pathauto_path = drupal_get_path('module', 'pathauto');
+      require_once("$pathauto_path/pathauto.inc");
+      $alias = pathauto_create_alias('webfm', $op, pathauto_get_placeholders('webfm', $webfmfile), 'webfm_send/'. $webfmfile['fid'], 'webfm');
+      break;
+  }
 }
 
 /*
@@ -2895,3 +2919,109 @@ function webfm_popup() {
 if(module_exists('views')){
   require_once("./".$modulepath."/webfm_views.inc");
 }
+
+/**
+ * Implementation hook_token_list()
+ *
+ * @link http://api.drupal-contrib.org/api/function/token_token_list/token
+ *
+ * @param $type
+ * @return Keyed Array of substitution tokens.
+ */
+function webfm_token_list($type = 'all') {
+  if($type == 'webfm' || $type == 'all') {
+    $tokens['webfm']['filename']             = t("Filename");
+    $tokens['webfm']['webfmid']              = t("File Id");
+    $tokens['webfm']['webfmfolder-path-raw'] = t("Full folder Path as seen in webfm");
+
+    return $tokens;
+  }
+}
+
+/**
+ * Implementation hook_token_values
+ *
+ * @link http://api.drupal-contrib.org/api/function/token_token_values/token
+ *
+ * @param $type
+ * @param $object
+ * @param $options
+ * @return Array with token values
+ */
+function webfm_token_values($type, $object = NULL) {
+  $values = array();
+
+  switch ($type) {
+    case 'webfm':
+      if(!empty($object)) {
+        $webfmfile = (object)$object;
+
+        $values['webfmid'] = $webfmfile->fid;
+        $values['filename'] = strrev(substr(strrev($webfmfile->fpath), 0, strpos(strrev($webfmfile->fpath), '/')));
+        if(variable_get('webfm_root_dir', NULL)) {
+          $reldir = trim(str_replace(file_directory_path(), "", dirname($webfmfile->fpath)), '/\\'); //find root path down to webfm-root
+          $webfmfile->frelativedir = trim(str_replace(variable_get('webfm_root_dir', NULL), "", $reldir), '/\\'); //delete drupal-root-file-path and trim trailing slash
+        } else {
+          $webfmfile->frelativedir = '';
+        }
+        $values['webfmfolder-path-raw'] = $webfmfile->frelativedir;
+      }
+      break;
+  }
+  return $values;
+}
+
+/**
+ * hook_pathauto
+ * @link http://api.drupal-contrib.org/api/function/node_pathauto/pathauto
+ *
+ * @param $op
+ * @return object
+ */
+function webfm_pathauto($op) {
+  switch ($op) {
+    case 'settings':
+      $settings = array();
+      $settings['module'] = 'webfm';
+      $settings['token_type'] = 'webfm';
+      $settings['groupheader'] = t('Web File Manager path settings');
+      $settings['patterndescr'] = t('Pattern for webfm files paths');
+      $settings['patterndefault'] = t('webfm_send/[webfmid]');
+      $patterns = token_get_list('webfm');
+      foreach ($patterns['webfm'] as $pattern => $description) {
+        $settings['placeholders']['['. $pattern .']'] = $description;
+      }
+
+      $settings['bulkname'] = t('Bulk generate aliases for webfm files that are not aliased');
+      $settings['bulkdescr'] = t('Generate aliases for all existing webfm files which do not already have aliases.');
+
+      return (object) $settings;
+  }
+}
+
+/**
+ * Implementation hook_pathauto_bulkupdate
+ * @link http://api.drupal-contrib.org/api/function/node_pathauto_bulkupdate/pathauto
+ *
+ * @return NULL
+ */
+function webfm_pathauto_bulkupdate() {
+  $query = "SELECT fid FROM {webfm_file} LEFT JOIN {url_alias} ON CONCAT('webfm_send/', CAST(fid AS CHAR)) = src WHERE uid > 0 AND src IS NULL";
+  $result = db_query_range($query, 0, variable_get('pathauto_max_bulk_update', 50));
+
+  $count = 0;
+  $placeholders = array();
+  while ($fids = db_fetch_object($result)) {
+    $webfmfile = webfm_get_file_record($fids->fid);
+    $placeholders = pathauto_get_placeholders('webfm', $webfmfile);
+    $src = 'webfm_send/'. $webfmfile->fid;
+    if ($alias = pathauto_create_alias('webfm', 'bulkupdate', $placeholders, $src, 'webfm')) {
+      $count++;
+    }
+  }
+
+  drupal_set_message(format_plural($count,
+    'Bulk generation of webfm file path completed, one alias generated.',
+    'Bulk generation of webfm file paths completed, @count aliases generated.'));
+}
+
