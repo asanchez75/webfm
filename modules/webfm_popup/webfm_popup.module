@@ -29,8 +29,8 @@ function webfm_popup_help($path, $arg) {
         </pre>
       </p>
       <p>
-        If you would like to use physical file paths then (no file security or
-        location independence) change 'webfmid=txtUrl' to 'url=txtUrl'.
+        If you would like to use physical file paths (no file security or
+        location independence) then change 'webfmid=txtUrl' to 'url=txtUrl'.
       </p>
       </li>
       <li>Click Save Configuration</li>
@@ -47,5 +47,38 @@ function webfm_popup_webfm_extend_js(){
     $modulepath = drupal_get_path('module', 'webfm_popup');
     drupal_add_js($modulepath.'/webfm_popup.js');
     drupal_add_js(array('webfm_popup' => array('fileDirectory' => file_directory_path())), 'setting');
+  }
+}
+
+/**
+* Implementation of hook_wysiwyg_plugin().
+*/
+function webfm_popup_wysiwyg_plugin($editor) {
+  static $integrated;
+  switch ($editor) {
+    case 'tinymce':
+      if (!isset($integrated)) {
+        $integrated = TRUE;
+        $settings = array(
+          'webfm_popup' => array(
+            'url' => url('webfm'),
+            'appname' => t('editor'),
+            'wysiwyg_module' => true,
+          ),
+        );
+        drupal_add_js($settings, 'setting');
+        drupal_add_js(drupal_get_path('module', 'webfm_popup') .'/webfm_popup.js');
+      }
+      return array(
+        'webfm_popup' => array(
+          'extensions' => array('webfm_popup' => t('webfm_popup')),
+          'url' => 'http://drupal.org/project/webfm',
+          'options' => array(
+            'file_browser_callback' => 'webfmImageBrowser',
+            'inline_styles' => TRUE,
+          ),
+          'load' => FALSE,
+        ),
+      );
   }
 }
