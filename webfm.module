@@ -623,9 +623,12 @@ function webfm_attach_box() {
  */
 function webfm_theme() {
   return array(
+    'webfm_browser' => array(
+      'arguments' => array('links' => NULL, 'upload' => NULL),
+      'template' => 'webfm-browser',
+    ),
     'webfm_attachments' => array(
       'file' => 'webfm_theme.inc',
-      //'template' => 'webfm-attachments',
       'arguments' => array('files'),
     ),
     'webfm_popup' => array(
@@ -1632,16 +1635,15 @@ function webfm_main () {
     $inline_js = webfm_inline_js($base_url, $base_path, $clean, $user->uid);
   }
 
-  $output = '<div class="more-help-link">'.webfm_link_output().'</div>';
-  $output .= '<noscript><p class="err">JavaScript must be enabled in order to use webfm!</p></noscript>'."\n";
-  $output .= '<div id="webfm">'."\n";
-  if($user->uid == 1                  ||
-     user_access('administer webfm')  ||
+  $links = webfm_link_output();
+  $upload = '';
+  if($user->uid == 1                 ||
+     user_access('administer webfm') ||
      user_access('webfm upload')) {
-    $output .= drupal_get_form('webfm_upload_fieldset');
+    $upload = drupal_get_form('webfm_upload_fieldset');
   }
-  $output .= '</div>'."\n";
-  return $output;
+
+  return theme('webfm_browser', $links, $upload);
 }
 
 function webfm_upload_fieldset() {
