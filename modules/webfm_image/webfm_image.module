@@ -82,8 +82,9 @@ function webfm_image_js(){
          webfm_file_view_access($file)) {
         $dir = dirname($file->fpath);
         $fname = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+        $name = $fname;
         $ext = '';
-        // Get file fine name and extension for rename with suffix
+        // Get file name and extension for rename with suffix
         if(strpos($fname, ".") !== FALSE) {
           $pieces = explode('.', $fname);
           $name = $pieces[0];
