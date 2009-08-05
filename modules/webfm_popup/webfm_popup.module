@@ -46,7 +46,11 @@ function webfm_popup_webfm_extend_js(){
   if (arg(0) == 'webfm_popup') {
     $modulepath = drupal_get_path('module', 'webfm_popup');
     drupal_add_js($modulepath.'/webfm_popup.js');
-    drupal_add_js(array('webfm_popup' => array('fileDirectory' => file_directory_path())), 'setting');
+    if(($user->uid == 1) || user_access('administer webfm')) {
+      drupal_add_js(array('webfm_popup' => array('fileDirectory' => file_directory_path())), 'setting');
+    } else {
+      drupal_add_js(array('webfm_popup' => array('fileDirectory' => file_directory_path().webfm_get_root_path())), 'setting');
+    }
   }
 }
 
