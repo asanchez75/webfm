@@ -82,11 +82,23 @@ function webfm_image_js(){
          webfm_file_view_access($file)) {
         $dir = dirname($file->fpath);
         $fname = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+        $ext = '';
+        // Get file fine name and extension for rename with suffix
+        if(strpos($fname, ".") !== FALSE) {
+          $pieces = explode('.', $fname);
+          $name = $pieces[0];
+          $ext = $pieces[count($pieces) - 1];
+        }
 
         //extract operation from action variable
         $variable = str_replace('resize to ', '', $action);
-        $prefix = str_replace(' ', '_', $variable); //pepare the variable to be used as a file prefix
-        $path = $dir .'/'. $prefix. '_'. $fname; //prepare a path+filename for the file we are going to create
+        $suffix = str_replace(' ', '_', $variable);
+        $newfilename = $name.'_'.$suffix.'.'.$ext;
+        $path = $dir.'/'.$newfilename;
+        if(is_file($path)) {
+          webfm_json(array('status' => FALSE, 'data' => $newfilename.' already exists'));
+          exit();
+        }
         $sizes = _webfm_image_get_sizes();
 
         foreach($sizes as $key => $value) {
@@ -127,10 +139,10 @@ function webfm_image_js(){
             webfm_json(array('status' => FALSE, 'data' => $err_arr));
           }
         } else {
-          webfm_json(array('status' => FALSE, 'data' => 'resize failed to ' . $path));
+          webfm_json(array('status' => FALSE, 'data' => 'resize failed for '.$fname));
         }
       } else {
-        webfm_json(array('status' => FALSE, 'data' => 'insufficient params'));
+        webfm_json(array('status' => FALSE, 'data' => 'permission denied'));
       }
     } else {
       webfm_json(array('status' => FALSE, 'data' => 'file '.$filepath.' not found'));
