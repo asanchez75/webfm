@@ -61,6 +61,13 @@ function webfm_admin_settings() {
                                <br />If metadata title is used, renaming is available inside the metadata editor.')
          );
 
+  $form['webfm_display_owner'] =
+    array('#type' => 'checkbox',
+          '#title' => t('Display file owner column in browser'),
+          '#default_value' => variable_get('webfm_display_owner', ''),
+          '#description' => t('Check this box to display the file owner column in the browser.')
+         );
+
   $form['file_perm'] =
     array('#type' => 'fieldset',
           '#title' => t('Default File Permissions'),
@@ -109,7 +116,7 @@ function webfm_admin_settings() {
 
   foreach ($roles as $rid => $role) {
     if(variable_get("root_dir_".$rid, '') == '') {
-      drupal_set_message(t('Role root directory not set for @role role', array('@role' => $role)), error);
+      drupal_set_message(t('Role root directory not set for @role role', array('@role' => $role)), 'error');
     }
 
     $form["settings_role_".$rid] =
@@ -158,6 +165,41 @@ function webfm_admin_settings() {
             '#description' => t('The maximum size of all files a user can have on the site (in megabytes).')
             );
   }
+
+  if (module_exists('og')) {
+    // Per group settings
+    $groups = og_all_groups_options();
+    $form['groups'] = array('#type' => 'value', '#value' => $groups);
+    $form['webfm_og_auto'] = array(
+      '#type' => 'checkbox',
+      '#default_value' => variable_get('webfm_og_auto', 0),
+      '#title' => t('Create new group folders'),
+      '#description' => t('Automatically create a new group folder when a group is created.'),
+    );
+    foreach ($groups as $gid => $group) {
+      if (variable_get("root_dir_group_".$gid, '') == '') {
+        drupal_set_message(t('Group root directory not set for @group group', array('@group' => $group)), 'error');
+      }
+      $form["settings_group_". $gid] =
+        array('#type' => 'fieldset',
+              '#title' => t('Settings for @group group', array('@group' => $group)),
+              '#collapsible' => TRUE,
+              '#collapsed' => TRUE
+             );
+      $form["settings_group_". $gid]["root_dir_group_". $gid] =
+        array('#type' => 'textfield',
+              '#title' => t('Group Root directory'),
+              '#default_value' => variable_get("root_dir_group_". $gid, ''),
+              '#maxlength' => '100',
+              '#size' => '70',
+              '#description' => t('Root directory for this group.
+                                   <br />This path is relative to "WebFM Root directory" set above.
+                                   <br />If this directory path is compound then the path must already exist for this
+                                   <br />setting to validate.'),
+             );
+    }
+  }
+
 
   $form['attach'] =
     array('#type' => 'fieldset',
@@ -309,6 +351,26 @@ function webfm_admin_settings_validate($form, $form_state) {
     }
     if($uploadsize > $usersize) {
      form_set_error('webfm_uploadsize_'. $rid, t('The %role maximum file size per upload is greater than the total file size allowed per user', array('%role' => $role)));
+    }
+  }
+
+  if (module_exists('og')) {
+    foreach ($form_state['values']['groups'] as $gid => $group)  {
+      $group_root_dir_name = $form_state['values']['root_dir_group_'. $gid];
+      if (!empty($group_root_dir_name)) {
+        if ($valid_webfm_root) {
+          if (!preg_match('/^[0-9a-zA-Z]/', $group_root_dir_name)) {
+            form_set_error('root_dir_group_'. $gid, t('The leading character of the %group root directory must be alphanumeric.', array('%group' => $group)));
+          } else if(preg_match('[\.]', $group_root_dir_name)) {
+            form_set_error('root_dir_group_'. $gid, t('The %group root directory name is not valid.', array('%group' => $group)));
+          } else {
+            $group_root_dir = $webfm_root_dir ."/". $group_root_dir_name;
+            file_check_directory($group_root_dir, FILE_CREATE_DIRECTORY, 'root_dir_group_'.$gid);
+          }
+        } else {
+          form_set_error('root_dir_group_'. $gid, t('The WebFM root directory must be valid for the %group root directory name to be valid.', array('%group' => $group)));
+        }
+      }
     }
   }
 }
