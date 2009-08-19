@@ -23,6 +23,7 @@ function webfm_uninstall(){
   variable_del('webfm_attach_size');
   variable_del('webfm_debug');
   variable_del('webfm_display_title');
+  variable_del('webfm_display_owner');
   variable_del('webfm_cron');
   variable_del('webfm_max_resolution');
   variable_del('webfm_ie_dd_list_offset');
@@ -34,6 +35,14 @@ function webfm_uninstall(){
    variable_del('webfm_uploadsize_'.$rid);
    variable_del('webfm_usersize_'.$rid);
   }
+
+  if (module_exists('og')) {
+    $groups = og_all_groups_options();
+    foreach ($groups as $gid => $group) {
+      variable_del('root_dir_group_'.$gid);
+    }
+  }
+
   $types = node_get_types();
   foreach ($types as $type) {
     if ($type->type)
