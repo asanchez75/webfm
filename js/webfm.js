@@ -442,7 +442,7 @@ Webfm.commonInterface = function(parent) {
 
   //Container for tree(s)
   var elTreeDiv = Webfm.ce('div');
-  elTreeDiv.setAttribute('id', 'tree'); //css id
+  elTreeDiv.setAttribute('id', 'webfm-tree'); //css id
   layout_cont.appendChild(elTreeDiv);
   Webfm.dirTreeObj = new Webfm.treeBuilder(elTreeDiv, Webfm.menuHT.get('root'), Webfm.menuHT.get('dir'));
 
@@ -450,7 +450,7 @@ Webfm.commonInterface = function(parent) {
   Webfm.progressObj = new Webfm.progress(layout_cont, 'webfm-progress');
 
   //Directory Listing
-  Webfm.dirListObj = new Webfm.list(layout_cont, 'dirlist', 'file', 'narrow', true, Webfm.menuHT.get('dir'), Webfm.menuHT.get('file'));
+  Webfm.dirListObj = new Webfm.list(layout_cont, 'webfm-dirlist', 'file', 'narrow', true, Webfm.menuHT.get('dir'), Webfm.menuHT.get('file'));
 
   //insert trees, listing, search, metadata, progress and alert divs before upload fset built in php
   parent.insertBefore(layout_cont, parent.firstChild);
@@ -662,7 +662,7 @@ Webfm.list = function(parent, id, type, class_name, dd_enable, dir_menu, file_me
 
   // Breadcrumb trail
   var elTd = Webfm.ce('td');
-  elTd.colSpan = 4;
+  elTd.colSpan = getWebfmOwnerColumn() ? 4 : 3
   elTd.setAttribute('id','webfm-bcrumb-td');
   elTd.setAttribute('class','navi');
   // Build breadcrumb trail inside span
@@ -729,19 +729,21 @@ Webfm.list = function(parent, id, type, class_name, dd_enable, dir_menu, file_me
   elTr.appendChild(elTd);
 
   // owner column
-  var elTd = Webfm.ce('td');
-  elTd.className = 'head';
-  var elA = Webfm.ce('a');
-  elA.setAttribute('href', '#');
-  var listener = Webfm.eventListenerAdd(Webfm.eventListeners, elA, "click", function(e) { wl.sc_o^=1;wl.loadList("o");wl.sortIcon(e,wl.sc_o);Webfm.stopEvent(e); });
+  if(getWebfmOwnerColumn()) {
+    var elTd = Webfm.ce('td');
+    elTd.className = 'head';
+    var elA = Webfm.ce('a');
+    elA.setAttribute('href', '#');
+    var listener = Webfm.eventListenerAdd(Webfm.eventListeners, elA, "click", function(e) { wl.sc_o^=1;wl.loadList("o");wl.sortIcon(e,wl.sc_o);Webfm.stopEvent(e); });
 
-  var elImg = Webfm.ce('img');
-  elImg.setAttribute('alt', Webfm.js_msg["sort"]);
-  elImg.setAttribute('src', this.iconDir + '/down.gif');
-  elA.appendChild(elImg);
-  elA.appendChild(Webfm.ctn(Webfm.js_msg["column4"]));
-  elTd.appendChild(elA);
-  elTr.appendChild(elTd);
+    var elImg = Webfm.ce('img');
+    elImg.setAttribute('alt', Webfm.js_msg["sort"]);
+    elImg.setAttribute('src', this.iconDir + '/down.gif');
+    elA.appendChild(elImg);
+    elA.appendChild(Webfm.ctn(Webfm.js_msg["column4"]));
+    elTd.appendChild(elA);
+    elTr.appendChild(elTd);
+  }
 
   elTableBody.appendChild(elTr);
 
@@ -865,10 +867,11 @@ Webfm.list.prototype.callback = function(string, xmlhttp, cp) {
 //build admin icons for create dir and file db insertion
 //maintain 4 column table
 Webfm.list.prototype.adminCtl = function(admin) {
+  col_span = getWebfmOwnerColumn() ? 4 : 3
   if(admin) {
-    if(Webfm.$('webfm-bcrumb-td').colSpan == 4) {
+    if(Webfm.$('webfm-bcrumb-td').colSpan == col_span) {
       var wl = this;
-      Webfm.$('webfm-bcrumb-td').colSpan = 3;
+      Webfm.$('webfm-bcrumb-td').colSpan = col_span - 1;
       // Create New Directory and allow db insertions
       var elTd = Webfm.ce('td');
       var elSpan = Webfm.ce('span');
@@ -911,10 +914,10 @@ Webfm.list.prototype.adminCtl = function(admin) {
 
       Webfm.$('webfm-top-tr').appendChild(elTd);
     } else {
-      Webfm.$('webfm-bcrumb-td').colSpan = 3;
+      Webfm.$('webfm-bcrumb-td').colSpan = col_span - 1;
     }
   } else {
-    Webfm.$('webfm-bcrumb-td').colSpan = 4;
+    Webfm.$('webfm-bcrumb-td').colSpan = col_span;
   }
 }
 
@@ -1032,7 +1035,7 @@ Webfm.dirrow = function(parent, dir, index, dd_enable, menu, eventListenerArr) {
   this.draggable = dd_enable;
   this.iconDir = getWebfmIconDir();
   //id used for drop container
-  var _id = 'dirlist' + index;
+  var _id = 'webfm-dirlist' + index;
   var elTr = Webfm.ce('tr');
   this.element = elTr;
   this.element.className = 'dirrow';
@@ -1078,13 +1081,16 @@ Webfm.dirrow = function(parent, dir, index, dd_enable, menu, eventListenerArr) {
   }
   elTr.appendChild(elTd);
 
-  var elTd = Webfm.ce('td');
-  elTd.className = 'txt';
-  if(dir.o) {
-    var owner = Webfm.ce(dir.o);
-    elTd.appendChild(Webfm.ctn(owner));
+  // Add td if owner column enabled
+  if(getWebfmOwnerColumn()) {
+    var elTd = Webfm.ce('td');
+    elTd.className = 'txt';
+    if(dir.o) {
+      var owner = Webfm.ce(dir.o);
+      elTd.appendChild(Webfm.ctn(owner));
+    }
+    elTr.appendChild(elTd);
   }
-  elTr.appendChild(elTd);
 
   //mouse event listeners
   if(dd_enable) {
@@ -1242,10 +1248,12 @@ Webfm.filerow = function(parent, fileObj, idtype, index, dd_enable, file_menu, e
   elTr.appendChild(elTd);
 
   //owner field to row
-  var elTd = Webfm.ce('td');
-  elTd.className = 'txt';
-  elTd.appendChild(Webfm.ctn(fileObj.un));
-  elTr.appendChild(elTd);
+  if(getWebfmOwnerColumn()) {
+    var elTd = Webfm.ce('td');
+    elTd.className = 'txt';
+    elTd.appendChild(Webfm.ctn(fileObj.un));
+    elTr.appendChild(elTd);
+  }
 
   //mouse event listeners
   if(dd_enable)
@@ -1694,7 +1702,7 @@ Webfm.selectFile = function(path, el, as_file) {
   var sent = false;
   var pths = [];
   pths = el.title.split('/');
-  if(el.id.substring(0,3) == 'fid') {
+  if(el.id.substring(0,3) == 'fid' || el.id.substring(0,3) == 'sid') {
     fid = el.id.substring(3);
     var fullpath = 'webfm_send/' + path;
     if(as_file)
@@ -1723,7 +1731,7 @@ Webfm.selectFile = function(path, el, as_file) {
         // FF needs unique name per iframe - Webfm.zindex guaranteed unique
         // since incremented with each new pane
         var iframeName = "dwnld" + Webfm.zindex;
-        var pane = new Webfm.pane(Webfm.viewCont, pths[pths.length - 1], "view-file", null, 200, 200);
+        var pane = new Webfm.pane(Webfm.viewCont, pths[pths.length - 1], "webfm-viewFile", null, 200, 200);
         // I hate using innerHTML but IE iframe requires this method:
         pane.content.innerHTML='<iframe src="" style="margin:0;padding:0;width:100%;height:100%" name="'+iframeName+'"></iframe>';
         if(fid)
@@ -1781,7 +1789,7 @@ Webfm.context.prototype.showContextMenu = function(event, obj) {
       }
       elLi.appendChild(Webfm.ctn(obj.menu[j].desc));
       //menu selection is title of event
-      elLi.id = 'cxtMenu' + j;
+      elLi.id = 'webfm-cxtMenu' + j;
       var listener = Webfm.eventListenerAdd(Webfm.eventListeners, elLi, "mousedown", function(e) { cp.selectMenu(e, obj); cp.hideContextMenu(e); Webfm.stopEvent(e); });
       var listener = Webfm.eventListenerAdd(Webfm.eventListeners, elLi, "mouseover", function(e) { cp.hover(e, true); });
       var listener = Webfm.eventListenerAdd(Webfm.eventListeners, elLi, "mouseout", function(e) { cp.hover(e, false); });
@@ -1813,7 +1821,7 @@ Webfm.context.prototype.hover = function(event, state) {
 // Call Webfm.menuElement execute function
 Webfm.context.prototype.selectMenu = function(event, obj) {
   event = event || window.event;
-  obj.menu[(event.target||event.srcElement).id.substring(7)].execFunc(obj);
+  obj.menu[(event.target||event.srcElement).id.substring(13)].execFunc(obj);
   return false;
 }
 
@@ -2241,7 +2249,7 @@ Webfm.perm.prototype.createForm = function(data) {
   //clear any permissions info
   this.resetForm();
   //create new pane to house this perm object
-  this.pane = new Webfm.pane(this.container, Webfm.js_msg["perm"], "perm-pane", this.obj, this.width, this.height);
+  this.pane = new Webfm.pane(this.container, Webfm.js_msg["perm"], "webfm-permPane", this.obj, this.width, this.height);
   //create permissions checkboxes
   this.fillFormData();
   //create controls if owner has rights to file
@@ -2402,7 +2410,7 @@ Webfm.metadata.prototype.createForm = function(data) {
   //clear any metadata info
   this.resetForm();
   //create new pane to house this metadata object
-  this.pane = new Webfm.pane(this.container, Webfm.js_msg["metadata"], "meta-pane", this.obj, this.width, this.height);
+  this.pane = new Webfm.pane(this.container, Webfm.js_msg["metadata"], "webfm-metaPane", this.obj, this.width, this.height);
   //create metadata fields
   this.fillFormData();
   //create controls if owner has rights to file
@@ -2731,7 +2739,7 @@ Webfm.search.prototype.createForm = function(source) {
   this.resetForm();
   cp.resetResults();
   //create new pane to house this metadata object
-  var pane = new Webfm.pane(this.container, Webfm.js_msg["search-title"], "search-pane", this.obj, this.width, this.height);
+  var pane = new Webfm.pane(this.container, Webfm.js_msg["search-title"], "webfm-searchPane", this.obj, this.width, this.height);
   //put search path in header
   pane.headerMsg(source);
   //create search fields
@@ -2784,9 +2792,9 @@ Webfm.search.prototype.callback = function(string, xmlhttp, cp) {
         var elA = Webfm.ce('a');
         elA.setAttribute('href', '#');
         if(result.files[i].id) {
-          //first three letters of id must be 'fid' for selectFile
+          //first three letters of id must be 'sid' for selectFile
           //tooltip indicates if file is downloadable
-          elA.setAttribute('id', 'fidsrch' + result.files[i].id);
+          elA.setAttribute('id', 'sid' + result.files[i].id);
           elA.setAttribute('title', Webfm.js_msg["file-dwld"]);
           var listener = Webfm.eventListenerAdd(cp.eventListeners, elA, "click", function(e) { cp.selectFile(e); Webfm.stopEvent(e); });
         } else {
@@ -2820,7 +2828,7 @@ Webfm.search.prototype.selectDir = function(event) {
 }
 Webfm.search.prototype.selectFile = function(event) {
   var el = event.target||window.event.srcElement;
-  Webfm.selectFile(el.id.substring(7), el, true);
+  Webfm.selectFile(el.id.substring(3), el, true);
 }
 
 /*
@@ -2887,7 +2895,7 @@ Webfm.debug.prototype.show = function() {
     this.obj = elDiv;
 
     //create new pane to house this metadata object
-    var pane = new Webfm.pane(this.container, Webfm.js_msg["debug-title"], "debug-pane", this.obj, this.width, this.height);
+    var pane = new Webfm.pane(this.container, Webfm.js_msg["debug-title"], "webfm-debugPane", this.obj, this.width, this.height);
 
     var cp = this;
     var elControls = Webfm.ce('div');
@@ -2915,7 +2923,7 @@ Webfm.debug.prototype.showCache = function() {
   if(this.enable) {
     //create new pane to house this metadata object
     var dump = Webfm.ctn(Webfm.dump(Webfm.dirListObj.cache.dump()));
-    var pane = new Webfm.pane(this.cacheCont, Webfm.js_msg["cache-title"], "cache-pane", dump, this.width, this.height);
+    var pane = new Webfm.pane(this.cacheCont, Webfm.js_msg["cache-title"], "webfm-cachePane", dump, this.width, this.height);
     pane.show();
   }
 }
@@ -3107,7 +3115,7 @@ Webfm.pane = function(popupCont, title, paneId, content, paneWidth, contentHeigh
   var pane = Webfm.ce('div');
   this.pane = pane;
   pane.id = paneId;
-  pane.className = "pane";
+  pane.className = "webfm-pane";
 	pane.style.width = this.popupCont.width + "px";
   this.popupCont.obj.appendChild(this.pane);
 
@@ -3115,21 +3123,21 @@ Webfm.pane = function(popupCont, title, paneId, content, paneWidth, contentHeigh
   var header = Webfm.ce('div');
   this.header = header;
   header.id = pane.id + '-header';
-  header.className = "pane-header";
+  header.className = "webfm-pane-header";
   var elTitle = Webfm.ce('div');
   elTitle.appendChild(Webfm.ctn(title));
-  elTitle.className = "pane-title";
+  elTitle.className = "webfm-pane-title";
   header.appendChild(elTitle);
   var elMsg = Webfm.ce('div');
   this.msg = elMsg;
-  elMsg.className = "pane-msg";
+  elMsg.className = "webfm-pane-msg";
   header.appendChild(elMsg);
   var cp = this;
   var listener = Webfm.eventListenerAdd(Webfm.eventListeners, header, "mousedown", function(e) { cp.dragStart(e, 1); });
   var elA = Webfm.ce('a');
   elA.setAttribute('href', '#');
   elA.setAttribute('title', Webfm.js_msg["close"]);
-  elA.className = "pane-close";
+  elA.className = "webfm-pane-close";
   var elImg = Webfm.ce('img');
   elImg.setAttribute('src', iconDir+ '/x.gif');
   elImg.setAttribute('alt', Webfm.js_msg["close"]);
@@ -3142,18 +3150,18 @@ Webfm.pane = function(popupCont, title, paneId, content, paneWidth, contentHeigh
   var contentContainer = Webfm.ce('div');
   this.content = contentContainer;
   contentContainer.id = pane.id + '-content';
-  contentContainer.className = "pane-content";
+  contentContainer.className = "webfm-pane-content";
   contentContainer.style.height = this.popupCont.content_height + "px";
   pane.appendChild(contentContainer);
 
   // pane footer
   var footer = Webfm.ce('div');
   this.footer = footer;
-  footer.className = "pane-footer";
+  footer.className = "webfm-pane-footer";
   var elResize = Webfm.ce('a');
   elResize.setAttribute('href', '#');
   elResize.setAttribute('title', Webfm.js_msg["resize"]);
-  elResize.className = "pane-resize";
+  elResize.className = "webfm-pane-resize";
   var elImg = Webfm.ce('img');
   elImg.setAttribute('src', iconDir+ '/resize.gif');
   elImg.setAttribute('alt', Webfm.js_msg["resize"]);
@@ -3397,10 +3405,10 @@ Webfm.draggable.prototype.drag = function (event) {
       }
 
       var dirTreeCont = '';
-      dirTreeCont = Webfm.$("tree")
+      dirTreeCont = Webfm.$("webfm-tree")
       if(dirTreeCont) {
           //reuse var for container list
-          dirTreeCont = Webfm.$("tree").getElementsByTagName('li');
+          dirTreeCont = Webfm.$("webfm-tree").getElementsByTagName('li');
         if (dirTreeCont.length) {
           // Build tree drop container array
           for(var i = 0; i < dirTreeCont.length; i++) {
