@@ -101,7 +101,7 @@ function webfm_rename($source, $dest, $uid, &$err_arr) {
         @rename($dest_temp, $dest);
       } else {
         $err_arr[] = t('webfm_rename_db_dir_recur error - db may be corrupted');
-        drupal_set_message(t('webfm_rename_db_dir_recur error - db may be corrupted'), error);
+        drupal_set_message(t('webfm_rename_db_dir_recur error - db may be corrupted'), 'error');
         return FALSE;
       }
       return TRUE;
