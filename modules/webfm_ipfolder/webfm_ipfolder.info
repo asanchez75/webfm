@@ -1,6 +1,6 @@
 ; $Id$
 name = WebFM IP Folder
-description = Blocking/Allowing of users based up their IP.
+description = Blocking/Allowing of users based upon their IP.
 package = WebFM
 dependencies[] = webfm
 core = 6.x
