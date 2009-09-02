@@ -8,7 +8,6 @@
  */
 
 $modulepath = drupal_get_path('module', 'webfm');
-require_once "./".$modulepath."/webfm_file.inc";
 
 define('WEBFM_FLUSH', -1);
 
@@ -3019,8 +3018,18 @@ function webfm_popup() {
   exit();
 }
 
+/**
+ * Views Module
+ */
 if(module_exists('views')){
-  require_once("./".$modulepath."/webfm_views.inc");
+  require_once('./'.$modulepath.'/views/webfm_views.inc');
+}
+
+function webfm_views_api() {
+  return array(
+      'api' => 2,
+      'path' => $modulepath.'/views',
+    );
 }
 
 /**
