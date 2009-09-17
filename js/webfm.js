@@ -150,7 +150,7 @@ Webfm.attachFormInput = "edit-attachlist";
 
 Webfm.icons = {
    epdf:"pdf", ephp:"php", ephps:"php", ephp4:"php", ephp5:"php", eswf:"swf",
-   esfa:"swf", exls:"xls", edoc:"doc", ertf:"doc", ezip:"zip", erar:"zip",
+   esfa:"swf", exls:"xls", eods:"xls", edoc:"doc", ertf:"doc", eodt:"doc", eodd:"doc", ezip:"zip", erar:"zip",
    egz:"zip", e7z:"zip", etxt:"doc", echm:"hlp", ehlp:"hlp", enfo:"nfo",
    expi:"xpi", ec:"c", eh:"h", emp3:"mp3", ewav:"mp3", esnd:"mp3", einc:"cod",
    esql:"sql", edbf:"sql", ediz:"nfo", eion:"nfo", emod:"mp3", es3m:"mp3",
