@@ -8,6 +8,7 @@
  */
 
 $modulepath = drupal_get_path('module', 'webfm');
+require_once "./" . $modulepath . "/webfm_file.inc";
 
 define('WEBFM_FLUSH', -1);
 
