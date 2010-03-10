@@ -13,6 +13,15 @@ function webfm_popupGetMenusAjax() {
 
 // Send the selected file to the rich text editor.
 webfm_popup.sendtocaller = function(obj) {
+  //CKEditor support
+  if (get_url_param('CKEditor').length > 0) {
+    var fid = $('#'+obj.row_id).find('td').eq(1).find('a').attr('title');
+    window.opener.CKEDITOR.tools.callFunction( get_url_param('CKEditorFuncNum'), Drupal.settings.basePath + 'webfm_send/' + fid);
+    window.opener.focus();
+    window.close();
+    return;
+  }
+
   // the window this popup was called from
   var doc = $(window.opener.document);
 
