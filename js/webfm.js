@@ -3731,13 +3731,13 @@ Webfm.HTTPPost = function(uri, callbackFunction, callbackParameter, object) {
   if (bAsync) {
     xmlHttp.onreadystatechange = function() {
       if (xmlHttp.readyState == 4) {
-        callbackFunction(xmlHttp.responseText, xmlHttp, callbackParameter);
+        callbackFunction(Webfm.trim(xmlHttp.responseText), xmlHttp, callbackParameter);
       }
     }
     return xmlHttp;
   }
   else {
-    return xmlHttp.responseText;
+    return Webfm.trim(xmlHttp.responseText);
   }
 }
 
