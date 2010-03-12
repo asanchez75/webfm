@@ -425,7 +425,6 @@ function webfm_nodeapi(&$node, $op, $teaser) {
       // If the user cannot access webfm, $_POST['attachlist'] is always empty
       // and therefore will delete existing attachments from the node.
       if(user_access('access webfm') && array_key_exists('attachlist', $_POST)) {
-
         $files = explode(',', $_POST['attachlist']);
         webfm_dbupdate_attach($node->nid, $files);
       }
@@ -1707,12 +1706,16 @@ function webfm_upload_form($upload_url) {
 }
 
 function webfm_version_form($filename) {
+  $filearg = array( '%filename' => $filename, );
   $form['select'] = array(
     '#prefix' => '<div id="replace-options">',
     '#suffix' => '</div>',
     '#type' => 'radios',
     '#title' => t('Select File Versioning Option'),
-    '#options' => array('Replace and rename original copy of '.$filename,'Replace and delete original copy of '.$filename,'Rename new copy of '.$filename,'Cancel'),
+    '#options' => array(t('Replace and rename original copy of %filename', $filearg),
+                        t('Replace and delete original copy of %filename', $filearg),
+                        t('Rename new copy of %filename', $filearg),
+                        t('Cancel')),
     '#required' => TRUE,
   );
 
