@@ -3024,16 +3024,13 @@ function webfm_popup() {
 }
 
 /**
- * Views Module
+ * Implement Views Module
+ * Implement hook_views_api
  */
-if(module_exists('views')){
-  require_once('./'.$modulepath.'/views/webfm_views.inc');
-}
-
 function webfm_views_api() {
   return array(
       'api' => 2,
-      'path' => $modulepath.'/views',
+      'path' => drupal_get_path('module', 'webfm').'/views',
     );
 }
 
