@@ -14,7 +14,7 @@ function webfm_popupGetMenusAjax() {
 // Send the selected file to the rich text editor.
 webfm_popup.sendtocaller = function(obj) {
   //CKEditor support
-  if (get_url_param('CKEditor').length > 0) {
+  if(get_url_param('CKEditor').length > 0) {
     var fid = $('#'+obj.row_id).find('td').eq(1).find('a').attr('title');
     window.opener.CKEDITOR.tools.callFunction( get_url_param('CKEditorFuncNum'), Drupal.settings.basePath + 'webfm_send/' + fid);
     window.opener.focus();
@@ -22,22 +22,29 @@ webfm_popup.sendtocaller = function(obj) {
     return;
   }
 
+  if(get_url_param('wysiwyg').length > 0) {
+    var doc = $(window.opener.Drupal.settings.wysiwygDialogWindow.document);
+    var fid = $('#'+obj.row_id).find('td').eq(1).find('a').attr('title');
+    var url_id = '#'+get_url_param('url');
+    doc.find(url_id).val(Drupal.settings.basePath + 'webfm_send/' + fid);
+    doc.find(url_id).change();
+    window.opener.focus();
+    window.close();
+    return;
+  }
+
   // the window this popup was called from
   var doc = $(window.opener.document);
-
   // put the file url in the input with the id specified in the url
   var fpath = obj.filepath;
   var url_id = '#'+get_url_param('url');
   doc.find(url_id).val(Drupal.settings.basePath + Drupal.settings.webfm_popup.fileDirectory + fpath);
   doc.find(url_id).change();
-
   // put the webfm file-id in the input with the id specified in the url
   var fid = $('#'+obj.row_id).find('td').eq(1).find('a').attr('title');
-//  console.log(fid);
   var webfm_id = '#'+get_url_param('webfmid');
   doc.find(webfm_id).val(Drupal.settings.basePath + 'webfm_send/' + fid);
   doc.find(webfm_id).change();
-
   window.opener.focus();
   window.close();
 }
@@ -52,4 +59,12 @@ function get_url_param(name) {
 	var results = regex.exec( window.location.href );
 	if( results == null ) return "";
 	else return results[1];
+}
+
+// Integration for WebFM and wiyisyg module
+// This function opens the webfm_popup
+function webfmImageBrowser(field_name, url, type, win) {
+  Drupal.settings.wysiwygDialogWindow = win;
+  window.open(getBasePath() + 'webfm_popup?url=' + field_name + '&wysiwyg=yes', 'ImageBrowser',
+    'width=750,height=500,toolbar=0,resizable=1,location=0,status=0,menubar=0');
 }
