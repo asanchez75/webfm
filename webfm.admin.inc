@@ -200,10 +200,9 @@ function webfm_admin_settings() {
     }
   }
 
-
   $form['attach'] =
     array('#type' => 'fieldset',
-          '#title' => t('WebFM attachments'),
+          '#title' => t('WebFM Attachments'),
           '#collapsible' => TRUE,
           '#collapsed' => TRUE
           );
@@ -241,6 +240,7 @@ function webfm_admin_settings() {
           '#default_value' => variable_get('webfm_attach_size', ''),
           '#description' => t('Check this box to add a file size column to the attachment table.')
           );
+
   if($user->uid == 1) {
     //only user #1 gets this access
     $form['ie'] =
@@ -265,28 +265,43 @@ function webfm_admin_settings() {
             '#size' => '10',
             );
 
-  $form['debug'] =
+  $form['cron'] =
     array('#type' => 'fieldset',
-          '#title' => t('WebFM debug'),
+          '#title' => t('Cron'),
           '#collapsible' => TRUE,
           '#collapsed' => TRUE
           );
-  $form['debug']['webfm_debug'] =
-    array('#type' => 'checkbox',
-          '#title' => t('WebFM javascript debug'),
-          '#default_value' => variable_get('webfm_debug', ''),
-          '#description' => t('Check this box for javascript debug messaging.')
-          );
-    $form['debug']['webfm_cron'] =
+    $form['cron']['webfm_cron'] =
       array('#type' => 'checkbox',
-            '#title' => t('WebFM cron'),
+            '#title' => t('Delete Orphaned File Records'),
             '#default_value' => variable_get('webfm_cron', ''),
-            '#description' => t('Check this box to enable cleanup of orphaned file records in the database.
+            '#description' => t('Check this box to cleanup orphaned file records in the database.
                                  <br />NOTE: Use with caution - behaviour is to delete all file records without a
                                  <br />valid file path.  Manually renaming a WebFM directory (ie: via OS shell)
                                  <br />and then running cron will delete all webfm_file table entries for that
                                  <br />directory and it\'s sub-directories.')
             );
+    $form['cron']['webfm_cron_insert'] =
+      array('#type' => 'checkbox',
+            '#title' => t('Insert Files Into Database'),
+            '#default_value' => variable_get('webfm_cron_insert', ''),
+            '#description' => t('Check this box to automate file insertion into the database.
+                                <br />This feature allows files loaded via ftp or ssh to a WebFM directory to be
+                                <br />automatically inserted into the database when the cron task is executed.')
+            );
+
+  $form['debug'] =
+    array('#type' => 'fieldset',
+          '#title' => t('Debug'),
+          '#collapsible' => TRUE,
+          '#collapsed' => TRUE
+          );
+  $form['debug']['webfm_debug'] =
+    array('#type' => 'checkbox',
+          '#title' => t('Javascript Debug'),
+          '#default_value' => variable_get('webfm_debug', ''),
+          '#description' => t('Check this box for javascript debug messaging.')
+          );
   }
 
   $form['#validate'] = array('webfm_admin_settings_validate');

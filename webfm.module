@@ -241,6 +241,15 @@ function webfm_cron() {
       }
     }
   }
+  if(variable_get("webfm_cron_insert", '')) {
+    $err_arr[] = array();
+    $root_dir = file_directory_path().webfm_get_root_path();
+    $result = webfm_insert_dir($root_dir, TRUE, $err_arr);
+    if($result->errcnt)
+      watchdog('cron', 'WebFM file insertion errors.', $err_arr, WATCHDOG_ERROR);
+    if($result->cnt)
+      watchdog('cron', 'WebFM inserted %num files.', array('%num'=>$result->cnt), WATCHDOG_NOTICE);
+  }
 }
 
 /**
@@ -369,8 +378,8 @@ function webfm_nodeapi(&$node, $op, $teaser) {
             $show_files = $node->webfm_files;
           }
         }
-	      // We must check for view permissions in a preview, but wfm_attach_$node->type
-	      // is true if we already have attachments here.
+        // We must check for view permissions in a preview, but wfm_attach_$node->type
+        // is true if we already have attachments here.
         elseif(isset($_POST['attachlist']) && user_access('view webfm attachments')) {
           $show_files = webfm_get_temp_attachments($_POST['attachlist']);
         }

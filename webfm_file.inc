@@ -217,18 +217,13 @@ function webfm_move($source, $dest, $uid, &$err_arr) {
  *
  * @return bool - TRUE if query executed successfully, otherwise FALSE
  */
-function webfm_insert_file($path, &$err_arr){
+function webfm_insert_file($path, &$err){
   if(!webfm_get_fid($path)) {
     $file = new stdClass();
     $file->filepath = $path;
-    if(webfm_enum_validate($file, $err_arr)) {
-      if(($ret = webfm_dbinsert_file($file, $err)) === FALSE) {
-        $err_arr[] = $err;
-      }
-      return $ret;
+    if(webfm_enum_validate($file, $err)) {
+      return ($ret = webfm_dbinsert_file($file, $err));
     }
-  } else {
-    $err_arr[] = $path .t(' already in db');
   }
   return FALSE;
 }
@@ -253,9 +248,11 @@ function webfm_insert_dir($path, $recur, &$err_arr){
         $file_path = $path.'/'.$file;
         if(is_file($file_path)) {
           // file
-          if(webfm_insert_file($file_path, $err_arr)) {
+          if(webfm_insert_file($file_path, $err)) {
             $result->cnt++;
-          } else {
+          } else if($err) {
+            // If file already in db then return webfm_insert_file returns false without error
+            $err_arr[] = $err;
             $result->errcnt++;
           }
         } else if($recur && is_dir($file_path)) {
@@ -271,4 +268,3 @@ function webfm_insert_dir($path, $recur, &$err_arr){
   }
   return $result;
 }
-?>

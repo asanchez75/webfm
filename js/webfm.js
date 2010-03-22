@@ -2027,8 +2027,6 @@ Webfm.insert_callback = function(string, xmlhttp, path) {
       }
     } else if(result.data.err) {
         Webfm.alrtObj.str_arr(result.data.err);
-    } else {
-      Webfm.alrtObj.msg(result.data);
     }
   } else {
     Webfm.alrtObj.msg(Webfm.js_msg["ajax-err"]);
