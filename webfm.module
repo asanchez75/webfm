@@ -499,6 +499,7 @@ function webfm_form_alter(&$form, &$form_state, $form_id) {
 
       // Attachments fieldset
       $form['webfm-attach']['#theme'] = 'webfm_upload_form';
+      $form['webfm-attach']['#weight'] = module_exists('content') ? content_extra_field_weight($node->type, 'webfm_attachments') : 10;
       $form['webfm-attach']['attach'] = array(
         '#type' => 'fieldset',
         '#title' => t('WebFM Attachments'),
