@@ -449,7 +449,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
  * Implementation of hook_content_extra_fields().
  */
 function webfm_content_extra_fields($type) {
-  $extras['webfm_attachments'] = array(
+  $extras['webfm-attach'] = array(
     'label' => t('Webfm Attachments'),
     'description' => t('Displays the attachments as table'),
     'weight' => 10,
