@@ -70,7 +70,7 @@ function webfm_ipfolder_update_6200()
       break;
  }
  
-	return $ret
+	return $ret;
  }
  
  
