@@ -39,8 +39,8 @@ function webfm_ipfolder_schema()
 		'fields' => array(
 			'id'		=> array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
 		  'folder'	=> array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-			'ip1'		=> array('type' => 'bigint', 'unsigned' => FALSE, 'not null' => TRUE),
-			'ip2'		=> array('type' => 'bigint', 'unsigned' => FALSE, 'not null' => TRUE),
+			'ip1'		=> array('type' => 'int',size => 'big', 'unsigned' => FALSE, 'not null' => TRUE),
+			'ip2'		=> array('type' => 'int',size => 'big', 'unsigned' => FALSE, 'not null' => TRUE),
 			),
 		'primary key' => array('id'),
 	);
