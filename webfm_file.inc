@@ -63,7 +63,7 @@ function webfm_rename($source, $dest, $uid, &$err_arr) {
        ($file_o && webfm_file_mod_access($file_o))) {
       //check validity of new file name
       $file = new stdClass();
-      $file->filename = basename($dest);
+      $file->filename = _webfm_basename($dest);
       $file->filepath = $source;
       $file->filesize = 0; //avoid fail for size - we're interested in extensions
       if(webfm_enum_validate($file, $err_arr) === FALSE) {
@@ -75,11 +75,11 @@ function webfm_rename($source, $dest, $uid, &$err_arr) {
       if(@rename($source, $dest_temp)) {
         if(!@rename($dest_temp, $dest)) {
           @rename($dest_temp, $source);
-          $err_arr[] = t('rename ').basename($source).t(' fail');
+          $err_arr[] = t('rename ')._webfm_basename($source).t(' fail');
           return FALSE;
         }
       } else {
-        $err_arr[] = basename($source).t(' read-only');
+        $err_arr[] = _webfm_basename($source).t(' read-only');
         return FALSE;
       }
     } else {
@@ -267,4 +267,24 @@ function webfm_insert_dir($path, $recur, &$err_arr){
     $err_arr[] = t('Cannot open dir ').$path;
   }
   return $result;
+}
+
+/**
+ * Get file's basename (locale independent)
+ * 
+ *
+ * @param string Filename
+ *
+ * @return string Basename
+ */
+function _webfm_basename($filename) {
+  //Originally by Aleksander Machniak 
+  //http://pear.php.net/bugs/bug.php?id=14529&edit=12&patch=mime.patch&revision=1222363721
+  //basename() is not unicode safe and locale dependent
+  if (stristr(PHP_OS, 'win') || stristr(PHP_OS, 'netware')) {
+    return preg_replace('/^.*[\\\\\\/]/', '', $filename);
+  }
+  else {
+   return preg_replace('/^.*[\/]/', '', $filename);
+  }
 }

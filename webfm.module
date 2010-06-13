@@ -2219,7 +2219,7 @@ class webfm_fdesc {
             if(is_dir($readdir))
               continue;
 
-            if(is_file($readdir) && ($readdir == basename($file->fpath))) {
+            if(is_file($readdir) && ($readdir == _webfm_basename($file->fpath))) {
               $this->id = $file->fid;
               $this->n = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
               $this->p = $dir;
@@ -2433,7 +2433,7 @@ function webfm_send_file($fid, $download = false, $bypass_invoke = false) {
     }
   }
 
-  $name=basename($f->fpath);
+  $name=_webfm_basename($f->fpath);
 
   //filenames in IE containing dots will screw up the
   //filename unless we add this
