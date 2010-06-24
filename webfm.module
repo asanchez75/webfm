@@ -279,7 +279,7 @@ function webfm_comment(&$comment, $op) {
 
   switch ($op) {
     case 'view':
-      if (variable_get("wfm_attach_$node->type", 1) == 1 &&
+      if (variable_get("webfm_attach_$node->type", 1) == 1 &&
          user_access('view webfm attachments') &&
          variable_get('webfm_attach_body', '')) {
        // If we preview a comment, $comment->preview is defined because the preview button
@@ -346,7 +346,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
 
   switch ($op) {
     case 'load':
-      if((variable_get("wfm_attach_$node->type", 1) == 1) &&
+      if((variable_get("webfm_attach_$node->type", 1) == 1) &&
           user_access('view webfm attachments')) {
         $output['webfm_files'] = webfm_get_attachments($node->nid);
         return $output;
@@ -369,7 +369,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
         // we preview e.g. a comment where this node is shown, too, but then
         // the attachlist is not ours. So we check for webfm_files *before*
         // checking for $_POST to get around this.
-        if (!user_access('access webfm') && (variable_get("wfm_attach_$node->type", 1) == 1)
+        if (!user_access('access webfm') && (variable_get("webfm_attach_$node->type", 1) == 1)
             && user_access('view webfm attachments')) {
           $node->webfm_files =  webfm_get_attachments($node->nid);
         }
@@ -378,7 +378,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
             $show_files = $node->webfm_files;
           }
         }
-        // We must check for view permissions in a preview, but wfm_attach_$node->type
+        // We must check for view permissions in a preview, but webfm_attach__$node->type
         // is true if we already have attachments here.
         elseif(isset($_POST['attachlist']) && user_access('view webfm attachments')) {
           $show_files = webfm_get_temp_attachments($_POST['attachlist']);
@@ -2327,13 +2327,14 @@ class webfm_searchFiles {
   }
 }
 
+
 /**
  * webfm_send_file - streams a file privately for download
  *
  * If $fid arg is numeric then file path is referenced via db, otherwise the arg
  * ...is a urlencoded path that must be converted and concatenated to base file dir
  *
- * @param object $fid - file id
+ * @param int $fid - file id
  * @param bool $download - true=download / false=stream
  * @param bool $bypass_invoke true=do no invoke webfm_send hook  / false=invoke
  */
