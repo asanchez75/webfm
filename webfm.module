@@ -3076,7 +3076,7 @@ function webfm_token_list($type = 'all') {
 /**
  * Implementation hook_token_values
  *
- * @link http://api.drupal-contrib.org/api/function/token_token_values/token
+ * @link http://drupalcontrib.org/api/function/token_token_values/6
  *
  * @param $type
  * @param $object
@@ -3092,7 +3092,7 @@ function webfm_token_values($type, $object = NULL) {
         $webfmfile = (object)$object;
 
         $values['webfmid'] = $webfmfile->fid;
-        $values['filename'] = strrev(substr(strrev($webfmfile->fpath), 0, strpos(strrev($webfmfile->fpath), '/')));
+        $values['filename'] = _webfm_basename($webfmfile->fpath);
         if(variable_get('webfm_root_dir', NULL)) {
           $reldir = trim(str_replace(file_directory_path(), "", dirname($webfmfile->fpath)), '/\\'); //find root path down to webfm-root
           $webfmfile->frelativedir = trim(str_replace(variable_get('webfm_root_dir', NULL), "", $reldir), '/\\'); //delete drupal-root-file-path and trim trailing slash
