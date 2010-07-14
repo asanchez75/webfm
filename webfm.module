@@ -419,8 +419,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
         }
       }
       if (module_exists('og') && variable_get('webfm_og_auto', 0) == 1) {
-        $groups = og_all_groups_options();
-        if ($groups[$node->nid]) {
+        if (og_is_group_type($node->type)) {
           // make the node title into a suitable directory name
           $group_directory = webfm_get_group_directory($node);
           $group_root_dir = file_directory_path().webfm_get_root_path().'/'.$group_directory;
