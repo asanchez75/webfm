@@ -2781,9 +2781,9 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
       foreach($fields as $field) {
         // Parse webfm_file_key/metadata pairs
         trim($field);
-        $key = substr($field, 0, 1);
+        $key = rawurldecode(substr($field, 0, 1));
         $separator = substr($field, 1,1);
-        $value = substr($field, 2, min((strlen($field) - 2), $metadata_key_arr[$key]['size']));
+        $value = rawurldecode(substr($field, 2, min((strlen($field) - 2), $metadata_key_arr[$key]['size'])));
         if(array_key_exists($key, $metadata_key_arr) && ($separator == ":")) {
           if($key == 'u') {
             // Special handling for uid changes (admins only)
