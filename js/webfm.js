@@ -2057,7 +2057,7 @@ Webfm.menuPutLinkInClipboard = function(obj) {
 }
 
 Webfm.menuPasteHref = function(obj) {
-  var fileHref = Webfm.generateFileHref(obj, getBasePath().replace(/\/$/,''));
+  var fileHref = Webfm.generateFileHref(obj, Drupal.settings.basePath.replace(/\/$/,''));
   var myField = Webfm.lastarea;
 
   //IE support

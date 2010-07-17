@@ -8,45 +8,47 @@ if (Drupal.jsEnabled) {
 
 // Add the send to rich text editor link to the right click menu of files.
 function webfm_popupGetMenusAjax() {
-  Webfm.menuHT.put('file', new Webfm.menuElement("Send to rich text editor", webfm_popup.sendtocaller, ""));
+  Webfm.menuHT.put('file', new Webfm.menuElement(Drupal.t("Send to rich text editor"), webfm_popup.sendtocaller, ""));
 }
 
-// Send the selected file to the rich text editor.
+
+//This Function allows sending the image to one of the many wysiwyg editors
 webfm_popup.sendtocaller = function(obj) {
-  //CKEditor support
-  if(get_url_param('CKEditor').length > 0) {
-    var fid = $('#'+obj.row_id).find('td').eq(1).find('a').attr('title');
-    window.opener.CKEDITOR.tools.callFunction( get_url_param('CKEditorFuncNum'), Drupal.settings.basePath + 'webfm_send/' + fid);
-    window.opener.focus();
-    window.close();
-    return;
-  }
+	var fid = $('#'+obj.row_id).find('td').eq(1).find('a').attr('title');
+	//gettng the actual url (path alias) for the file.
+	//need to remove the quotes created by responseText
+	var result_url = $.ajax({
+							type: "GET",
+							url: Drupal.settings.basePath,
+							data: { q: '/webfm_popup/get_path_alias/webfm_send/'+fid },
+							async: false 
+							}).responseText.replace(/["]/g,'');
 
-  if(get_url_param('wysiwyg').length > 0) {
-    var doc = $(window.opener.Drupal.settings.wysiwygDialogWindow.document);
-    var fid = $('#'+obj.row_id).find('td').eq(1).find('a').attr('title');
-    var url_id = '#'+get_url_param('url');
-    doc.find(url_id).val(Drupal.settings.basePath + 'webfm_send/' + fid);
-    doc.find(url_id).change();
-    window.opener.focus();
-    window.close();
-    return;
+	
+  switch(get_url_param('caller')) {
+    case 'ckeditor':
+       window.opener.CKEDITOR.tools.callFunction( get_url_param('CKEditorFuncNum'), result_url);
+    break;
+    case 'tinymce':
+      var doc = $(window.opener.Drupal.settings.wysiwygDialogWindow.document);
+      var url_id = '#'+get_url_param('url');
+      doc.find(url_id).val(result_url);
+    break;
+    case 'fckeditor':
+      // the window this popup was called from
+      var doc = $(window.opener.document);
+      // put the file url in the input with the id specified in the url
+      var fpath = obj.filepath;
+      var url_id = '#'+get_url_param('url');
+      doc.find(url_id).val(Drupal.settings.basePath + Drupal.settings.webfm_popup.fileDirectory + fpath);
+      // put the webfm file-id in the input with the id specified in the url
+      var webfm_id = '#'+get_url_param('webfmid');
+      doc.find(webfm_id).val(result_url);
+    break;
   }
-
-  // the window this popup was called from
-  var doc = $(window.opener.document);
-  // put the file url in the input with the id specified in the url
-  var fpath = obj.filepath;
-  var url_id = '#'+get_url_param('url');
-  doc.find(url_id).val(Drupal.settings.basePath + Drupal.settings.webfm_popup.fileDirectory + fpath);
-  doc.find(url_id).change();
-  // put the webfm file-id in the input with the id specified in the url
-  var fid = $('#'+obj.row_id).find('td').eq(1).find('a').attr('title');
-  var webfm_id = '#'+get_url_param('webfmid');
-  doc.find(webfm_id).val(Drupal.settings.basePath + 'webfm_send/' + fid);
-  doc.find(webfm_id).change();
   window.opener.focus();
-  window.close();
+ window.close();
+  return;
 }
 
 // read GET parameter from the url
@@ -61,10 +63,11 @@ function get_url_param(name) {
 	else return results[1];
 }
 
-// Integration for WebFM and wiyisyg module
+// Connect wysiwyg module and TinyMCE
+// as described in http://wiki.moxiecode.com/index.php/TinyMCE:Custom_filebrowser
 // This function opens the webfm_popup
-function webfmImageBrowser(field_name, url, type, win) {
+function webfm_popupTinyMCEConnector(field_name, url, type, win) {
   Drupal.settings.wysiwygDialogWindow = win;
-  window.open(getBasePath() + 'webfm_popup?url=' + field_name + '&wysiwyg=yes', 'ImageBrowser',
-    'width=750,height=500,toolbar=0,resizable=1,location=0,status=0,menubar=0');
+  window.open(Drupal.settings.basePath + '/?q=webfm_popup&url=' + field_name + '&caller=tinymce', 'ImageBrowser',
+    'width=750,height=500,toolbar=0,resizable=1,location=0,status=0,menubar=0,scrollbars=1');
 }
