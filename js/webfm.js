@@ -4094,5 +4094,12 @@ Drupal.deleteIframe = function () {
  *  Returns the position of the mouse cursor based on the event object passed
  */
 Drupal.mousePosition = function(e) {
-  return { x: e.clientX + document.documentElement.scrollLeft, y: e.clientY + document.documentElement.scrollTop };
+	if (Webfm.browser.isIE)
+	{
+		return { x: e.clientX + document.documentElement.scrollLeft, y: e.clientY + document.documentElement.scrollTop };
+	}
+	else
+	{
+		return { x: e.pageX, y: e.pageY };
+		}
 };
