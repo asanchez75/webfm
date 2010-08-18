@@ -2212,13 +2212,12 @@ class webfm_fdesc {
     $dir = dirname($file->fpath);
     //assume the object $file record path has a directory before the file name
     if (is_dir($dir)) {
-      if(chdir($dir)) {
-        if($handle = opendir('.')) {
-          while(($readdir = readdir($handle)) !== false) {
-            if(is_dir($readdir))
+        if ($handle = opendir($dir)) {
+          while (($readdir = readdir($handle)) !== false) {
+            if (is_dir($dir.DIRECTORY_SEPARATOR.$readdir)) {
               continue;
-
-            if(is_file($readdir) && ($readdir == _webfm_basename($file->fpath))) {
+            }
+            if (is_file($dir.DIRECTORY_SEPARATOR.$readdir) && ($readdir == _webfm_basename($file->fpath))) {
               $this->id = $file->fid;
               $this->n = strrev(substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
               $this->p = $dir;
@@ -2226,10 +2225,11 @@ class webfm_fdesc {
               $this->s = $file->fsize;
 
               $this->uid = $file->uid;
-              if($file->uid > 0) {
+              if ($file->uid > 0) {
                 $_query = 'SELECT name FROM {users} WHERE uid = %d';
                 $this->un = db_result(db_query($_query, $file->uid));
-              } else {
+              }
+              else {
                 $this->un = t('anonymous');
               }
               // urldecode required for fields where user input is urlencoded
@@ -2240,7 +2240,7 @@ class webfm_fdesc {
               $this->fpublisher = urldecode($file->fpublisher);
               $this->fformat = urldecode($file->fformat);
               $this->fversion = $file->fversion;
-              $this->m = (filemtime($readdir)) ? @filemtime($readdir) : "";
+              $this->m = (@filemtime($dir.DIRECTORY_SEPARATOR.$readdir)) ? @filemtime($dir.DIRECTORY_SEPARATOR.$readdir) : "";
 
               $this->result = TRUE;
               break;
@@ -2248,9 +2248,6 @@ class webfm_fdesc {
           }
           closedir($handle);
         }
-        // Restore current working directory
-        chdir($cwd);
-      }
     }
   }
 }
