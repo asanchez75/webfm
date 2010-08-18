@@ -1320,7 +1320,7 @@ function webfm_ajax () {
       //Get attached items
       case "attach":
         global $node;
-        if(isset($_POST["param0"])) {
+        if (isset($_POST["param0"])) {
           // If $_POST["param1"] is set, we are in a preview or validation failure
           // and have fids stored in the edit-attachments form, those that we fetched
           // from the database before and those which are not yet attached (during
@@ -1352,14 +1352,19 @@ function webfm_ajax () {
               $node_arr = explode("/", $node_num);
               // 'admin' is true (allow drag&drop) since only owners of a node can edit it.
               webfm_json(array('status' => TRUE, 'data' => webfm_get_attachments($node_arr[1], $selector), 'admin' => 'attach'));
-            } else {
+            }
+            else {
               webfm_json(array('status' => FALSE, 'data' => 'illegal path'));
               exit();
               break;
             }
           }
-        } else {
-          webfm_json(array('status' => FALSE, 'data' => t('insufficient params')));
+          else {  // Return empty array for new nodes.
+            webfm_json(array('status' => TRUE, 'data' => array(), 'admin' => 'attach'));
+          }
+        }
+        else {
+          webfm_json(array('status' => FALSE, 'data' => t('insufficient parameters')));
         }
         exit();
         break;
