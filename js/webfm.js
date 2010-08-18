@@ -2343,10 +2343,11 @@ Webfm.perm.prototype.submitPerm = function() {
   inputs = this.tbody.getElementsByTagName('input');
 
   var output = 0;
-  for(var i in inputs) {
+  for (i = 0; i < inputs.length; i++) {
     // Build permission val from checkbox name
-    if(inputs[i].checked)
+    if (inputs[i].checked) {
       output += parseInt(inputs[i].name);
+    }
   }
 
   Webfm.progressObj.show(Webfm.js_msg["work"],  "blue");
