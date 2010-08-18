@@ -3,7 +3,12 @@
 function webfm_popup() {}
 
 if (Drupal.jsEnabled) {
-  $(window).load(webfm_popupGetMenusAjax);
+	$(window).load(function() {
+		if (typeof(Webfm) != 'undefined' && Webfm.menuHT !== null ) {
+			webfm_popupGetMenusAjax();
+		}
+		}
+	);
 }
 
 // Add the send to rich text editor link to the right click menu of files.
