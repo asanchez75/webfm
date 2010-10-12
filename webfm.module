@@ -198,12 +198,6 @@ function webfm_menu() {
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
-  $items['webfm_popup'] = array(
-    'title' => 'Web File Manager',
-    'page callback' => 'webfm_popup',
-    'access arguments' =>  array('access webfm'),
-    'type' => MENU_CALLBACK,
-  );
 
   return $items;
 }
@@ -661,10 +655,6 @@ function webfm_theme() {
     'webfm_attachments' => array(
       'file' => 'webfm_theme.inc',
       'arguments' => array('files'),
-    ),
-    'webfm_popup' => array(
-      'arguments' => array('content' => ''),
-      'template' => 'webfm-popup',
     ),
   );
 }
@@ -3034,15 +3024,6 @@ function _webfm_dbdelete_attach_fid($fid){
     return FALSE;
   }
   return TRUE;
-}
-
-/**
- * Show the popup window.
- */
-function webfm_popup() {
-  $content = webfm_main();
-  print theme('webfm_popup', $content);
-  exit();
 }
 
 /**

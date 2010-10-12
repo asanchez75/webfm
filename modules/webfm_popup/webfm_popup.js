@@ -73,6 +73,6 @@ function get_url_param(name) {
 // This function opens the webfm_popup
 function webfm_popupTinyMCEConnector(field_name, url, type, win) {
   Drupal.settings.wysiwygDialogWindow = win;
-  window.open(Drupal.settings.basePath + '/?q=webfm_popup&url=' + field_name + '&caller=tinymce', 'ImageBrowser',
+  window.open(Drupal.settings.basePath + '?q=webfm_popup&url=' + field_name + '&caller=tinymce', 'ImageBrowser',
     'width=750,height=500,toolbar=0,resizable=1,location=0,status=0,menubar=0,scrollbars=1');
 }

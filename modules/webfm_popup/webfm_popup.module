@@ -51,6 +51,14 @@ function webfm_popup_help($path, $arg) {
 function webfm_popup_menu() {
   $items = array();
   
+  $items['webfm_popup'] = array(
+    'title' => 'Web File Manager',
+    'page callback' => 'webfm_popup',
+    'access arguments' =>  array('access webfm'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  
   //for path aliasing inside rich text editors
   $items['webfm_popup/get_path_alias'] = array(
     'page callback' => 'webfm_popup_get_path_alias',
@@ -59,6 +67,27 @@ function webfm_popup_menu() {
   );
 
   return $items;
+}
+
+/**
+ * Implementation of hook_theme
+ */
+function webfm_popup_theme() {
+  return array(
+    'webfm_popup' => array(
+      'arguments' => array('content' => ''),
+      'template' => 'webfm-popup',
+    ),
+  );
+}
+
+/**
+ * Show the popup window.
+ */
+function webfm_popup() {
+  $content = webfm_main();
+  print theme('webfm_popup', $content);
+  exit();
 }
 
 /**
