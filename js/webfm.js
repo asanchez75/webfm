@@ -3684,18 +3684,17 @@ Webfm.popup.prototype.getObjectOffset = function (event, element, comp) {
 	
 	return {x: mousePos.x - objPos.x, y: mousePos.y - objPos.y};
 };
+
 Webfm.popup.prototype.objPosition = function (element, comp) {
 	var curleft, curtop;
 	curleft = 0;
 	curtop = 0;
 	
 	if (element.offsetParent) {
-		curleft = element.offsetLeft;
-		curtop = element.offsetTop;
-		while (element == element.offsetParent) {
+		do {
 			curleft += element.offsetLeft;
 			curtop += element.offsetTop;
-		}
+		} while (element = element.offsetParent);
 	}
 	
 	// IE must compensate for relative positioning in css
@@ -3708,6 +3707,7 @@ Webfm.popup.prototype.objPosition = function (element, comp) {
 	
 	return { x: curleft, y: curtop };
 };
+
 Webfm.popup.prototype.destroy = function () {
 	//cleanup event closures for this popup
 	Webfm.eventUnregister(this.eventListenerArr);
@@ -4204,8 +4204,8 @@ Webfm.draggable.prototype.drag = function (event) {
 	}
 
 	pos = Drupal.mousePosition(event);
-	x = pos.x - this.offset.x;
-	y = pos.y - this.offset.y;
+	x = pos.x; //- this.offset.x;
+	y = pos.y; // - this.offset.y;
 	scroll = this.dragCont.getScrollY();//Scroll page if near top or bottom edge.  Hardcoded values
 	
 	if (typeof window.innerHeight == 'number') {
