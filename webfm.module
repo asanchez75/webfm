@@ -126,7 +126,7 @@ function webfm_link($type, $node = NULL, $teaser = FALSE) {
   $links = array();
 
   // Display a link with the number of attachments
-  if ($teaser && $type == 'node' && isset($node->webfm_files) && user_access('view webfm attachments')) {
+  if ($teaser && variable_get('webfm_attach_body', false) && $type == 'node' && isset($node->webfm_files) && user_access('view webfm attachments')) {
     if($num_files = count($node->webfm_files)) {
     $links['webfm_attachments'] = array(
       'title' => format_plural($num_files, '1 attachment', '@count attachments'),
@@ -275,7 +275,7 @@ function webfm_comment(&$comment, $op) {
     case 'view':
       if (variable_get("webfm_attach_$node->type", 1) == 1 &&
          user_access('view webfm attachments') &&
-         variable_get('webfm_attach_body', '')) {
+         variable_get('webfm_attach_body', false)) {
        // If we preview a comment, $comment->preview is defined because the preview button
        // for comments is added with $form['preview']. Thus we know that $_POST['attachlist']
        // is ours. If we are previewing another comment and just "view" this one,
@@ -349,7 +349,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
 
     case 'view':
       // Add the attachments list to node body if configured to appear in body.
-      if(variable_get('webfm_attach_body', '')) {
+      if(variable_get('webfm_attach_body', false)) {
         // We could be viewing or previewing this node.
         // Loading a node defines $node->webfm_files, possibly as empty list,
         // but loading an edit form unsets $node->webfm_files again. Thus, if
