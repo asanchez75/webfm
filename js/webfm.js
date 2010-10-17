@@ -607,9 +607,9 @@ Webfm.jsUpload.prototype.oncomplete = function (data) {
 	Webfm.progressObj.hide();
 	Webfm.dirListObj.refresh();
 
-	if (typeof Webfm.$('webfm-inline') != 'undefined') {
+	if (typeof (Webfm.$('webfm-inline')) !== 'undefined' && Webfm.$('webfm-inline') !== null) {
 		// attach file to node if inside node-edit
-		if (typeof data.fid != 'undefined') {
+		if (typeof data.fid !== 'undefined' && data.fid !== null) {
 			Webfm.menuAttach(null, data.fid);
 		}
 	}
@@ -686,9 +686,9 @@ Webfm.jsUpload.prototype.callback = function (string, xmlhttp, cp) {
 		$(hide).css({ display: 'block' });
 		webfmUploadAutoAttach();
 
-		if (typeof Webfm.$('webfm-inline') != 'undefined') {
+		if (typeof (Webfm.$('webfm-inline')) != 'undefined' && Webfm.$('webfm-inline') !== null) {
 			// attach file to node if inside node-edit
-			if (typeof result.data.fid != 'undefined') {
+			if (typeof result.data.fid !== 'undefined' && result.data.fid !== null) {
 				Webfm.menuAttach(null, result.data.fid);
 			}
 		}
@@ -920,7 +920,7 @@ Webfm.list.prototype.sortIcon = function (event, up_down) {
 };
 
 Webfm.list.prototype.refresh = function (path, rename_dir) {
-	if (path === null) {
+	if (path === null || typeof (path) === 'undefined') {
 		path = Webfm.current;
 	}
 	this.cache.remove(path);
@@ -4886,7 +4886,7 @@ Drupal.redirectFormButton = function (uri, button, handler) {
 				button.form.target = target;
 
 				// Get response from iframe body
-				try {
+				try {				
 					response = (iframe.contentWindow || iframe.contentDocument || iframe).document.body.innerHTML;
 					// Firefox 1.0.x hack: Remove (corrupted) control characters
 					response = response.replace(/[\f\n\r\t]/g, ' ');
@@ -4898,7 +4898,6 @@ Drupal.redirectFormButton = function (uri, button, handler) {
 				catch (e) {
 					response = null;
 				}
-
 				response = Drupal.parseJson(response);
 				// Check response code
 				if (response.status === 0) {
@@ -4908,6 +4907,7 @@ Drupal.redirectFormButton = function (uri, button, handler) {
 				handler.oncomplete(response.data);
 
 				return true;
+					
 			};
 
 			return true;
