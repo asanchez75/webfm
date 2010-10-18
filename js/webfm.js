@@ -105,7 +105,6 @@ Webfm.menu_msg.view = Drupal.t("View file");
 Webfm.menu_msg.enum_menu = Drupal.t("Add file to database");
 Webfm.menu_msg.denum = Drupal.t("Remove file from database");
 Webfm.menu_msg.perm = Drupal.t("File permissions");
-Webfm.menu_msg.clip = Drupal.t("Copy link to clipboard");
 Webfm.menu_msg.paste = Drupal.t("Paste link in editor window");
 //Do not translate any code below this line
 
@@ -481,7 +480,6 @@ Webfm.commonInterface = function (parent) {
 		Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg.denum, Webfm.menuDbRem, Webfm.menuAdminFidVal));
 		Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg.perm, Webfm.menuGetPerm, Webfm.menuFilePerm));
 		Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg.paste, Webfm.menuPasteHref, ''));
-		Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg.clip, Webfm.menuPutLinkInClipboard, ''));
 	}
 	catch (err) {
 		alert("Menu Create err\n" + err);
@@ -2529,10 +2527,6 @@ Webfm.generateFileHref  = function (obj, url) {
 	}
 
 	return string;
-};
-
-Webfm.menuPutLinkInClipboard = function (obj) {
-	Webfm.copyToClipboard(Webfm.generateFileHref(obj));
 };
 
 Webfm.menuPasteHref = function (obj) {
@@ -4703,56 +4697,6 @@ Webfm.rclick = function (event) {
 		}
 	}
 	return rightclick;
-};
-
-Webfm.copyToClipboard = function (s)
-{
-	var str, len, copytext, clip, clipid, trans;
-	
-	if (window.clipboardData && clipboardData.setData) {
-		clipboardData.setData("Text", s);
-	}
-	else if (Webfm.browser.isOP) {
-		alert("Clipboard function not supported in Opera. Copy link address from context menu.");
-	}
-	else if (window.netscape) {
-		// You have to sign the code to enable this or allow the action in about:config by changing
-		// user_pref("signed.applets.codebase_principal_support", true);
-		try {
-			netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-		}
-		catch (e) {
-			alert("This feature requires 'signed.applets.codebase_principal_support=true' at about:config");
-			return false;
-		}
-
-		clip = Components.classes['@mozilla.org/widget/clipboard;1'].createInstance(Components.interfaces.nsIClipboard);
-		if (!clip) {
-			return;
-		}
-
-		// create a transferable
-		trans = Components.classes['@mozilla.org/widget/transferable;1'].createInstance(Components.interfaces.nsITransferable);
-		if (!trans) {
-			return;
-		}
-
-		// specify the data we wish to handle. Plaintext in this case.
-		trans.addDataFlavor('text/unicode');
-
-		// To get the data from the transferable we need two new objects
-		str = {};
-		len = {};
-		str = Components.classes["@mozilla.org/supports-string;1"].createInstance(Components.interfaces.nsISupportsString);
-		copytext = s;
-		str.data = copytext;
-		trans.setTransferData("text/unicode", str, copytext.length * 2);
-		clipid = Components.interfaces.nsIClipboard;
-		if (!clip) {
-			return false;
-		}
-		clip.setData(trans, null, clipid.kGlobalClipboard);
-	}
 };
 
 //Dump debug function
