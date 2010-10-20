@@ -85,8 +85,9 @@ function webfm_views_data(){
     'sort' => array('handler' => 'views_handler_sort'),
     'relationship' => array(
       'handler' => 'views_handler_relationship',
-      'base' => 'user',
-      'field' => 'uid',
+      'base' => 'users',
+      'base field' => 'uid',
+      'relationship field' => 'uid',
       'label' => t('user'),
     ),
   );
