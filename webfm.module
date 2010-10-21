@@ -1726,6 +1726,7 @@ function webfm_version_form($filename) {
     '#suffix' => '</div>',
     '#type' => 'radios',
     '#title' => t('Select File Versioning Option'),
+    '#description' => t('A file with the same name has already been uploaded. Please select one of the options in order to proceed.'),
     '#options' => array(t('Replace and rename original copy of %filename', $filearg),
                         t('Replace and delete original copy of %filename', $filearg),
                         t('Rename new copy of %filename', $filearg),

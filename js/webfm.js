@@ -66,6 +66,7 @@ Webfm.js_msg.notinserted = Drupal.t(" files failed to insert into db");
 Webfm.js_msg.metadata = Drupal.t("Metadata");
 Webfm.js_msg.fix_input = Drupal.t("correct input");
 Webfm.js_msg.perm = Drupal.t("File Permissions");
+Webfm.js_msg.noattachments = Drupal.t("No files attached.");
 
 Webfm.meta_msg = [];
 Webfm.meta_msg.fid = Drupal.t("fid");
@@ -2397,6 +2398,9 @@ Webfm.menuDetach = function (obj) {
 			}
 		}
 		Webfm.$(Webfm.attachFormInput).value = new_attach_arr.join(',');
+		if (!new_attach_arr.length) {
+			Webfm.attach.noAttachments(true);
+		}
 	}
 };
 
@@ -3196,6 +3200,16 @@ Webfm.attach = function (parentId) {
 	Webfm.$(parentId).appendChild(elTable);
 };
 
+//Turn on/off no attachments display as needed.
+Webfm.attach.noAttachments = function (show) {
+	if (show) {
+		$('#webfm-attach').append( '<div id="webfm-no-attachments">' + Webfm.js_msg.noattachments + '</div>');
+	}
+	else {
+		$('#webfm-no-attachments').remove();
+	}
+};
+
 Webfm.attach.prototype.fetch = function () {
 	var url, node_url, postObj, fids;
 	
@@ -3247,6 +3261,9 @@ Webfm.attach.prototype.callback = function (string, xmlhttp, obj) {
 						elInput.setAttribute('value', (elInput.getAttribute('value') ? elInput.getAttribute('value') + ',' : '') + result.data[i].id);
 					}
 				}
+			}
+			else {
+				Webfm.attach.noAttachments(true);
 			}
 		}
 		else {
@@ -4014,7 +4031,6 @@ Webfm.draggable.prototype.dragStart = function (event) {
 	var cp;
 	
 	Webfm.dragging = true;
-
 	// Destroy all contents in popup container.
 	this.dragCont.destroy();
 
