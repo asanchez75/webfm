@@ -1,11 +1,17 @@
 <?php
 // $Id$
+
+/**
+ * @file
+ * The Webfm views handler that provides the Metadata.
+ */
+
 class webfm_views_handler_file_meta extends views_handler_field {
 
   function render($values) {
-   $value = $values->{$this->field_alias};
-    if($this->options['mode'] == 'link') {
-      return l(check_plain(rawurldecode($value)), 'webfm_send/'.$values->fid);
+    $value = $values->{$this->field_alias};
+    if ($this->options['mode'] == 'link') {
+      return l(rawurldecode($value), 'webfm_send/'. $values->fid);
     }
     return check_plain(rawurldecode($value));
   }
@@ -29,7 +35,7 @@ class webfm_views_handler_file_meta extends views_handler_field {
       '#options' => array(
          'link' => t('With links'),
          'nolink' => t('Without links')
-      )
+    )
     );
   }
 }

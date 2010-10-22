@@ -1,5 +1,11 @@
 <?php
 // $Id$
+
+/**
+ * @file
+ * The Webfm views handler that provides the filepaths.
+ */
+
 class webfm_views_handler_file_name extends views_handler_field {
 
   function query() {
@@ -10,13 +16,14 @@ class webfm_views_handler_file_name extends views_handler_field {
   }
 
   function render($values) {
-    if(variable_get('webfm_display_title', '') && $values->webfm_file_ftitle) {
+    if (variable_get('webfm_display_title', '') && $values->webfm_file_ftitle) {
       $fname = urldecode($values->webfm_file_ftitle);
-    } else {
-      $fname = strrev(substr(strrev($values->webfm_file_fpath), 0, strpos(strrev($values->webfm_file_fpath), '/')));
     }
-    if($this->options['mode'] == 'link') {
-      return l(check_plain($fname), 'webfm_send/'.$values->fid);
+    else {
+      $fname = strrev(drupal_substr(strrev($values->webfm_file_fpath), 0, strpos(strrev($values->webfm_file_fpath), '/')));
+    }
+    if ($this->options['mode'] == 'link') {
+      return l($fname, 'webfm_send/'. $values->fid);
     }
     return check_plain($fname);
   }
@@ -40,7 +47,7 @@ class webfm_views_handler_file_name extends views_handler_field {
       '#options' => array(
          'link' => t('With links'),
          'nolink' => t('Without links')
-      )
+    )
     );
   }
 }
