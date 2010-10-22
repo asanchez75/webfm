@@ -633,14 +633,14 @@ function theme_webfm_attach_attached_form($form) {
  */
 function webfm_attach_box() {
   if ($node = menu_get_object()) {
-      $files = webfm_get_attachments($node->nid);
-      return theme('webfm_attachments', $files);
+    $files = webfm_get_attachments($node->nid);
+    return theme('webfm_attachments', $files);
   }
 }
 
 /**
  * Implementation of hook_theme().
- * 
+ *
  * @return array
  */
 function webfm_theme() {
@@ -2594,6 +2594,7 @@ function webfm_send_file($fid, $download = FALSE, $bypass_invoke = FALSE) {
 function webfm_dbinsert_file($file, &$error, $metadata = array()) {
   //we need our user
   global $user;
+
   if (!isset($file->filepath)) {
     $error = t('No file path supplied');
     return FALSE;
@@ -2679,17 +2680,20 @@ function webfm_dbupdate_file($fid, $path = FALSE, $metadata = array()) {
     $metadata['fpath'] = $path;
   }
 
-  $query = "UPDATE {webfm_file} SET ";
-
+  $pieces = array();
   //create a string of field value items in printf format
   foreach ($metadata as $key => $value) {
     if (is_numeric($value)) {
-      $query .= $key . "= %d ";
+      $pieces[] = $key . " = %d ";
     }
     else {
-      $query .= $key . " = '%s' ";
+      $pieces[] .= $key . " = '%s' ";
     }
   }
+  $pieces = implode(', ', $pieces);
+
+  $query = "UPDATE {webfm_file} SET ". $pieces;
+  $query .= " WHERE fid = %d";
 
   $values = array_values($metadata);
   $values[] = $fid; //tack on the fid at the end for the last param for the update query - i.e. WHERE fid = %d
@@ -2914,17 +2918,17 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
                   $metadata[$metadata_key_arr[$key]['field']] = $result;
                 }
                 else {
-                  $err = t('user not found');
+                  $err = t('User not found.');
                   return FALSE;
                 }
               }
               else {
-                $err = t('invalid data');
+                $err = t('Invalid data');
                 return FALSE;
               }
             }
             else {
-              $err = t('permission denied');
+              $err = t('Permission denied');
               return FALSE;
             }
           }
@@ -2936,26 +2940,26 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
       if (count($metadata)) {
         $ret = webfm_dbupdate_file($fid, '', $metadata);
         if ($ret) {
-          $err = t('metadata updated');
+          $err = t('Update successful.');
           return TRUE;
         }
         else {
-          $err = t('metadata update fail');
+          $err = t('Update failed.');
         }
       }
       else {
         if (!drupal_strlen($err)) {
-          $err = t('no update required');
+          $err = t('Update not necessary.');
         }
         return TRUE;
       }
     }
     else {
-      $err = t('permission denied');
+      $err = t('Permission denied.');
     }
   }
   else {
-    $err = t('file not found');
+    $err = t('File not found.');
   }
   return FALSE;
 }
@@ -3004,19 +3008,19 @@ function _webfm_dbdelete_file_fid($fid) {
  * @return TRUE if records were updated - NULL if no changes were required.
  */
 function webfm_dbupdate_attach($nid, $fids, $cid = 0 ) {
-  if ($cid == 0 ) {
-    $id = $nid;
-    $selector = 'nid';
-  }
-  else {
-    $id = $cid;
-    $selector = 'cid';
-  }
-
   $i = 0;
   if (!webfm_check_attach_order($nid, $fids, $cid)) { //the new fids are different from the old ones
-    $query = "DELETE FROM {webfm_attach} WHERE '%s' = %d";
-    if ($result = db_query($query, $selector, $id)) {
+    $query = 'DELETE FROM {webfm_attach} WHERE ';
+    if ($cid == 0 ) {
+      $id = $nid;
+      $query .= 'nid = %d';
+    }
+    else {
+      $id = $cid;
+      $query .= 'cid = %d';
+    }
+    
+    if ($result = db_query($query, $id)) {
       foreach ($fids as $fid) {
         if ($fid)
         webfm_dbinsert_attach($nid, $fid, $i++, $cid);
@@ -3074,22 +3078,26 @@ function webfm_check_attach_order($nid, $fids, $cid = 0) {
  * @return bool - TRUE if success - else FALSE
  */
 function webfm_dbinsert_attach($nid, $fid, $weight, $cid = 0) {
+
+  $query = 'SELECT * FROM {webfm_attach} WHERE ';
   if ($cid == 0 ) {
-    $selector = 'nid';
+    $query .= 'nid = %d';
     $type = 'node';
     $id = $nid;
   }
   else {
-    $selector = 'cid';
+    $query .= 'cid = %d';
     $type = 'comment';
     $id = $cid;
     $nid = 0;
   }
-  $query = "SELECT * FROM {webfm_attach} WHERE '%s' = %d AND fid = %d";
-  $result = db_query($query, $selector, $id, $fid);
+
+  $query .= ' AND fid = %d';
+  $result = db_query($query, $id, $fid);
+
   $exist = FALSE;
   while ($exist = db_fetch_object($result)) {
-    drupal_set_message(t('File is already attached to this %t.', array('%t' => $type)));
+    drupal_set_message(t('File is already attached to this %t.', array('%t' => $type)),'warning');
     return FALSE;
   }
   if ($exist === FALSE) {
@@ -3097,7 +3105,7 @@ function webfm_dbinsert_attach($nid, $fid, $weight, $cid = 0) {
     $query = 'INSERT INTO {webfm_attach} (nid, fid, weight, cid) VALUES (%d, %d, %d, %d)';
     $result = db_query($query, $nid, $fid, $weight, $cid);
     if ($result === FALSE) {
-      drupal_set_message(t('Query Failed:  Could not attach files to %t %n', array('%t' => $type, '%n' => $id)));
+      drupal_set_message(t('Query Failed:  Could not attach files to %t %n', array('%t' => $type, '%n' => $id)),'error');
       return FALSE;
     }
     else {
@@ -3252,7 +3260,7 @@ function webfm_pathauto($op) {
 
 /**
  * Implementation hook_pathauto_bulkupdate().
- * 
+ *
  * @link http://api.drupal-contrib.org/api/function/node_pathauto_bulkupdate/pathauto
  *
  * @return NULL
