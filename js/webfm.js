@@ -2373,6 +2373,7 @@ Webfm.menuAttach = function (obj, ma_fid) {
 		Webfm.progressObj.show(Webfm.js_msg.work,  "blue");
 		postObj = { action: encodeURIComponent("attachfile"), param0: encodeURIComponent(fid) };
 		Webfm.HTTPPost(url, Webfm.ctxMenuAttachCallback, '', postObj);
+		Webfm.attach.noAttachments(false);
 	}
 };
 
