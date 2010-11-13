@@ -2840,8 +2840,9 @@ function webfm_enum_validate($file, &$err_msg) {
 function webfm_upload_validate($file, &$err_arr) {
   global $user;
 
-  if ($user->uid == 1)
-  return TRUE;
+  if ($user->uid == 1) {
+    return TRUE;
+  }
 
   foreach ($user->roles as $rid => $name) {
     $regex = webfm_get_extensions_regex($rid);
@@ -2852,13 +2853,23 @@ function webfm_upload_validate($file, &$err_arr) {
       $error['extension']++;
     }
 
-    if ($uploadsize && $file->filesize > $uploadsize) {
+    if (!empty($uploadsize) && $file->filesize > $uploadsize) {
       $error['uploadsize']++;
     }
 
-    if ($usersize && $total_usersize + $file->filesize > $usersize) {
-      $error['usersize']++;
+    if (!empty($usersize)) {
+      $total_usersize = $file->filesize;
+      $result = db_query("SELECT fsize FROM {webfm_file} WHERE uid = %d", $user->uid);
+      if ($result) {
+        while ($data = db_fetch_object($result)) {
+          $total_usersize += $data->fsize;
+        }
+      }
+      if ( $total_usersize > $usersize) {
+        $error['usersize']++;
+      }
     }
+
   }
 
   $user_roles = count($user->roles);

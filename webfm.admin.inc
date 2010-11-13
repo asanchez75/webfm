@@ -154,7 +154,9 @@ function webfm_admin_settings() {
             '#size' => 5,
             '#maxlength' => 5,
             '#description' => t('The maximum size of a file a user can upload (in megabytes).
-                                 <br />Cannot exceed %size limit set in php.ini.', array('%size' => format_size(file_upload_max_size())))
+                                 <br />Cannot exceed %size limit set in php.ini.
+                                 <br />Empty or zero means this value is not enforced.
+                                 <br />Only the highest value of all of the users roles will be enforced.', array('%size' => format_size(file_upload_max_size())))
             );
             $form["settings_role_". $rid]["webfm_usersize_". $rid] =
             array('#type' => 'textfield',
@@ -162,7 +164,9 @@ function webfm_admin_settings() {
             '#default_value' => variable_get("webfm_usersize_". $rid, 200),
             '#size' => 5,
             '#maxlength' => 5,
-            '#description' => t('The maximum size of all files a user can have on the site (in megabytes).')
+            '#description' => t('The maximum size of all files a user can have on the site (in megabytes).
+                                 <br />Empty or zero means this value is not enforced.
+                                 <br />Only the highest value of all of the users roles will be enforced.')
             );
           }
 
