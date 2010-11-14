@@ -2436,14 +2436,27 @@ function webfm_file_download($filepath) {
     return NULL;
   }
 
-  if (_webfm_check_access($filepath)) {
-    $filename=_webfm_basename($filepath);
+  $file = webfm_get_file_record(NULL, $filepath);
+  
+  if (_webfm_check_access(NULL, $file)) {
+    $filename = _webfm_basename($filepath);
     //filenames in IE containing dots will screw up the
     //filename unless we add this
     if (strstr($_SERVER['HTTP_USER_AGENT'], "MSIE")) {
       $filename = preg_replace('/\./', '%2e', $filename, substr_count($filename, '.') - 1);
     }
-
+    
+    //count download
+    //TODO
+    // Counting downloads should be an options.
+    // If optoin is introduced also change $f = webfm_get_file_record(NULL, $filepath);
+    if (!empty($file->fid)) {
+      $cnt = array();
+      $cnt['dl_cnt'] = (int)$file->dl_cnt + 1;
+      webfm_dbupdate_file($file->fid, '', $cnt);
+    }
+    
+    //prepare headers  
     $header = array();
     if (_webfm_attach_new_window()) {
       $header[] = 'Pragma: public'; // required
@@ -2451,25 +2464,11 @@ function webfm_file_download($filepath) {
       $header[] = 'Cache-Control: must-revalidate, post-check=0, pre-check=0';
       $header[] = 'Content-Transfer-Encoding: binary';
       $header[] = 'Content-Disposition: inline; filename="'. $filename .'";' ;
-
-      // consider an app run inside the browser as a 'download'
-      //TODO
-      if (!empty($f->fid) && (strpos($type, "application") === 0)) {
-        $cnt = array();
-        $cnt['dl_cnt'] = (int)$f->dl_cnt + 1;
-        webfm_dbupdate_file($f->fid, '', $cnt);
-      }
     }
     else {
       $header[] = 'Pragma: no-cache';
       $header[] = 'Cache-Control: no-cache, must-revalidate';
       $header[] = 'Content-Disposition: attachment; filename="'. $filename .'";' ;
-      //TODO
-      if (!empty($f->fid)) {
-        $cnt = array();
-        $cnt['dl_cnt'] = (int)$f->dl_cnt + 1;
-        webfm_dbupdate_file($f->fid, '', $cnt);
-      }
     }
 
     $header[] = 'Content-Type: '. file_get_mimetype($filename);
@@ -2514,17 +2513,20 @@ function _webfm_attach_new_window($status = NULL) {
  * Does different checks introduced by webfms access rules.
  *
  * @param $filepath string Full path of file in question.
+ * @param $f object webfm file record object
  *
  * @return boolean
  */
-function _webfm_check_access($filepath) {
+function _webfm_check_access($filepath = NULL, $f = NULL) {
   //got root? go ahead
   if (user_access('administer webfm')) {
     return TRUE;
   }
 
   //at first: get the file object
-  $f = webfm_get_file_record(NULL, $filepath);
+  if(!is_null($filepath) and is_null($f)) {
+    $f = webfm_get_file_record(NULL, $filepath);
+  }
   if (!is_object($f)) {
     return FALSE;
   }
