@@ -177,6 +177,55 @@ function webfm_menu() {
     'access arguments' => array('administer webfm'),
     'type' => MENU_NORMAL_ITEM,
   );
+  
+  $items['admin/settings/webfm/webfm'] = array(
+    'title' => 'Settings',
+    'description' => 'Configure root directories, default file permissions for uploads, upload size limits, attachments, permitted file extensions and formatting.',
+    'file' => 'webfm.admin.inc',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webfm_admin_settings'),
+    'access arguments' => array('administer webfm'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  
+  $items['admin/settings/webfm/webfm/webfm'] = array(
+    'title' => 'Settings',
+   'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  
+  $items['admin/settings/webfm/permissions'] = array(
+    'title' => 'Permissions',
+    'description' => 'Configure root directories, default file permissions for uploads, upload size limits, attachments, permitted file extensions for the roles.',
+    'file' => 'webfm.admin.inc',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webfm_admin_settings_roles'),
+    'access arguments' => array('administer webfm'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/settings/webfm/permissions/permissions'] = array(
+    'title' => 'Permissions',
+    'description' => 'Configure root directories, default file permissions for uploads, upload size limits, attachments, permitted file extensions for the roles.',
+    'file' => 'webfm.admin.inc',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webfm_admin_settings_roles'),
+    'access arguments' => array('administer webfm'),
+    'weight' => -10,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  
+  $items['admin/settings/webfm/style'] = array(
+    'title' => 'Style',
+    'description' => 'Configure the WebFM display style.',
+    'file' => 'webfm.admin.inc',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webfm_admin_settings_style'),
+    'access arguments' => array('administer webfm'),
+    'weight' => 2,
+    'type' => MENU_LOCAL_TASK,
+  );
+  
   $items['webfm_js'] = array(
     'title' => 'Web File Manager',
     'page callback' => 'webfm_ajax',
