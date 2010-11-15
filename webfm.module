@@ -2491,10 +2491,10 @@ function webfm_file_download($filepath) {
     $filename = _webfm_basename($filepath);
     //filenames in IE containing dots will screw up the
     //filename unless we add this
-    if (strstr($_SERVER['HTTP_USER_AGENT'], "MSIE")) {
-      $filename = preg_replace('/\./', '%2e', $filename, substr_count($filename, '.') - 1);
+    if (strpos($_SERVER['HTTP_USER_AGENT'], "MSIE")) {
+      $filename = rawurlencode($filename);
     }
-    
+
     //count download
     //TODO
     // Counting downloads should be an options.
