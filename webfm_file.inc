@@ -231,7 +231,7 @@ function webfm_delete_file($source, &$error) {
  *
  */
 function webfm_move($source, $dest, $uid, &$err_arr) {
-  $dest .= '/'. strrev(drupal_substr(strrev($source), 0, strpos(strrev($source), '/')));
+  $dest = rtrim($dest,'/ \/') .'/'. _webfm_basename($source);
   return webfm_rename($source, $dest, $uid, $err_arr);
 }
 
@@ -317,4 +317,23 @@ function _webfm_basename($filename) {
   else {
     return preg_replace('/^.*[\/]/', '', $filename);
   }
+}
+
+/**
+ * Rawurldecode fails if the filename is utf8
+ * Inspired by http://weierophinney.net/matthew/archives/133-PHP-decoding-of-Javascript-encodeURIComponent-values.html
+ * 
+ * @param string|array $value UTF8 encoded by encodeURIComponent()
+ */
+function _webfm_utf8urldecode($value) {
+    if (is_array($value)) {
+        foreach ($value as $key => $val) {
+            $value[$key] = _webfm_utf8urldecode($val);
+        }
+    }
+    else {
+        $value = (string)$value;
+        $value = preg_replace('/%([0-9a-f]{2})/ie', "chr(hexdec('\\1'))", $value);
+    }
+    return $value;
 }

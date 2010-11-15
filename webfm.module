@@ -1028,14 +1028,14 @@ function webfm_ajax() {
         elseif (isset($_POST["param0"])) {
           //role root must exist and this user must be a member of that role
           $webfm_roots = webfm_get_root_dirs();
-          $root_role = trim(rawurldecode($_POST["param0"]));
+          $root_role = trim(_webfm_utf8urldecode($_POST["param0"]));
           if (($root = variable_get("root_dir_". $root_role, '')) &&
           (array_key_exists($root_role, $webfm_roots))) {
             $current = "/". $root;
           }
           if (module_exists('og')) {
             $webfm_group_roots = webfm_get_group_root_dirs();
-            $root_group = trim(rawurldecode($_POST["param0"]));
+            $root_group = trim(_webfm_utf8urldecode($_POST["param0"]));
             if (($root = variable_get("root_dir_group_". $root_group, '')) &&
             (array_key_exists($root_group, $webfm_group_roots))) {
               $current = "/". $root;
@@ -1063,7 +1063,7 @@ function webfm_ajax() {
         //Read directory set in $_POST["param0"]
       case "read":
         if (isset($_POST["param0"])) {
-          $param0 = trim(rawurldecode($_POST["param0"]));
+          $param0 = trim(_webfm_utf8urldecode($_POST["param0"]));
           if (ereg('\.\.', $param0)) {
             webfm_json(array('status' => FALSE, 'data' => t('illegal read dir')));
             exit();
@@ -1093,7 +1093,7 @@ function webfm_ajax() {
       case "delete":
         // Get path of object to be deleted
         if (isset($_POST["param0"])) {
-          $param0 = trim(rawurldecode($_POST["param0"]));
+          $param0 = trim(_webfm_utf8urldecode($_POST["param0"]));
           // prevent any .. shenanigans
           if ($param0 && !ereg('\.\.', $param0)) {
             $source = $root_dir . $param0;
@@ -1155,7 +1155,7 @@ function webfm_ajax() {
         //Only admins can create directories
         if ($webfm_perm == WEBFM_ADMIN) {
           if (isset($_POST["param0"])) {
-            $source = $root_dir . trim(rawurldecode($_POST["param0"]));
+            $source = $root_dir . trim(_webfm_utf8urldecode($_POST["param0"]));
             $dest = t("New_Folder");
             $err_arr[] = array();
             // third param is right to rename if a dir of same name already
@@ -1181,10 +1181,10 @@ function webfm_ajax() {
         break;
 
         //Move a file or directory (drag and drop)
-      case "move":
+      case "move": 
         if (isset($_POST["param0"]) && isset($_POST["param1"])) {
-          $source = $root_dir . trim(rawurldecode($_POST["param0"]));
-          $dest = $root_dir . trim(rawurldecode($_POST["param1"]));
+          $source = $root_dir . trim(_webfm_utf8urldecode($_POST["param0"]));
+          $dest = $root_dir . trim(_webfm_utf8urldecode($_POST["param1"]));
           if (is_dir($source) && ($webfm_perm != WEBFM_ADMIN)) {
             //Only admins can manipulate directories
             webfm_json(array('status' => FALSE, 'data' => t('Permission denied')));
@@ -1215,11 +1215,11 @@ function webfm_ajax() {
         //Rename an existing file or directory
       case "rename":
         if (isset($_POST["param0"]) && isset($_POST["param1"])) {
-          $source = $root_dir . trim(rawurldecode($_POST["param0"]));
-          $dest = $root_dir . trim(rawurldecode($_POST["param1"]));
+          $source = $root_dir . trim(_webfm_utf8urldecode($_POST["param0"]));
+          $dest = $root_dir . trim(_webfm_utf8urldecode($_POST["param1"]));
           // prevent any ../ shenanigans
           if (!ereg('\.\.', $dest) &&
-          dirname(rawurldecode($_POST["param0"])) == dirname(rawurldecode($_POST["param1"]))) {
+          dirname(_webfm_utf8urldecode($_POST["param0"])) == dirname(_webfm_utf8urldecode($_POST["param1"]))) {
             $err_arr[] = array();
             //rename permissions inside webfm_rename
             $ret = webfm_rename($source, $dest, ($webfm_perm == WEBFM_USER) ? $user->uid : 1, $err_arr);
@@ -1238,8 +1238,8 @@ function webfm_ajax() {
         //Search current directory for filename
       case "search":
         if (isset($_POST["param0"]) && isset($_POST["param1"])) {
-          $source = trim(rawurldecode($_POST["param0"]));
-          $searchpattern = trim(rawurldecode($_POST["param1"]));
+          $source = trim(_webfm_utf8urldecode($_POST["param0"]));
+          $searchpattern = trim(_webfm_utf8urldecode($_POST["param1"]));
           if ($searchpattern != "") {
             $regexpsearch = '';
             @clearstatcache();
@@ -1256,7 +1256,7 @@ function webfm_ajax() {
         //Get file metadata
       case "getmeta":
         if (isset($_POST["param0"])) {
-          $fid = rawurldecode($_POST["param0"]);
+          $fid = _webfm_utf8urldecode($_POST["param0"]);
           if (($file = webfm_get_file_record($fid)) !== FALSE) {
             //presence of fid used to grant js metadata access
             if ($webfm_perm == WEBFM_ADMIN ||
@@ -1281,7 +1281,7 @@ function webfm_ajax() {
               else {
                 $meta['un'] = t('Anonymous');
               }
-              $meta['n'] = strrev(drupal_substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+              $meta['n'] = _webfm_basename($file->fpath);
               $meta['t'] = $file->ftitle;
               $meta['d'] = $file->fdesc;
               $meta['l'] = $file->flang;
@@ -1322,7 +1322,7 @@ function webfm_ajax() {
         if (isset($_POST["param0"]) && isset($_POST["param1"])) {
           //permission check in webfm_putmeta so single access to webfm_file table
           //Set WEBFM_ADMIN to uid=1 for purpose of file ownership
-          $ret = webfm_putmeta(rawurldecode($_POST["param0"]), rawurldecode($_POST["param1"]), ($webfm_perm == WEBFM_ADMIN)?1:$user->uid, $err);
+          $ret = webfm_putmeta(_webfm_utf8urldecode($_POST["param0"]), _webfm_utf8urldecode($_POST["param1"]), ($webfm_perm == WEBFM_ADMIN)?1:$user->uid, $err);
           webfm_json(array('status' => $ret, 'data' => $err));
         }
         else {
@@ -1334,7 +1334,7 @@ function webfm_ajax() {
         //Get file permissions
       case "getperm":
         if (isset($_POST["param0"])) {
-          $fid = rawurldecode($_POST["param0"]);
+          $fid = _webfm_utf8urldecode($_POST["param0"]);
           if (($file = webfm_get_file_record($fid)) !== FALSE) {
             if ($webfm_perm == WEBFM_ADMIN ||
             $user->uid == $file->uid   ||
@@ -1342,7 +1342,7 @@ function webfm_ajax() {
               $perm = array();
               $perm['id'] = $file->fid;
               $perm['u'] = $file->uid;
-              $perm['n'] = strrev(drupal_substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+              $perm['n'] = _webfm_basename($file->fpath);
               $perm['p'] = $file->perm;
               webfm_json(array('status' => TRUE, 'data' => $perm));
             }
@@ -1363,14 +1363,14 @@ function webfm_ajax() {
         //Change file permissions
       case "putperm":
         if (isset($_POST["param0"]) && isset($_POST["param1"])) {
-          $fid = rawurldecode($_POST["param0"]);
+          $fid = _webfm_utf8urldecode($_POST["param0"]);
           if (($file = webfm_get_file_record($fid)) !== FALSE) {
             if ($webfm_perm == WEBFM_ADMIN ||
             $user->uid == $file->uid   ||
             webfm_file_mod_access($file)) {
               $perm = array();
               $msg = '';
-              $perm['perm'] = (int)rawurldecode($_POST["param1"]);
+              $perm['perm'] = (int)_webfm_utf8urldecode($_POST["param1"]);
               $status = FALSE;
               // Validate permission value
               if ($perm['perm'] >= 0 && $perm['perm'] <= WEBFM_MAX_FILE_ACCESS) {
@@ -1410,7 +1410,7 @@ function webfm_ajax() {
           // from the database before and those which are not yet attached (during
           // a preview). Those fids are transfered through param1.
           if (isset($_POST["param1"])) {
-            $fids = trim(drupal_strtolower(rawurldecode($_POST["param1"])));
+            $fids = trim(drupal_strtolower(_webfm_utf8urldecode($_POST["param1"])));
             webfm_json(array('status' => TRUE, 'data' => webfm_get_temp_attachments($fids), 'admin' => 'attach'));
             exit();
             break;
@@ -1422,7 +1422,7 @@ function webfm_ajax() {
           // interpreted as nid=0. But now with comments, we *have* entries with nid=0
           // in the table, so avoid fetching those.
           // For new nodes and comments we can't get attachments from the database.
-          $node_str = trim(drupal_strtolower(rawurldecode($_POST["param0"])));
+          $node_str = trim(drupal_strtolower(_webfm_utf8urldecode($_POST["param0"])));
           // We edit an existing node: Fetch from database.
           if (strpos($node_str, '/edit')) {
             $node_str = str_replace('/edit', '', $node_str);
@@ -1457,7 +1457,7 @@ function webfm_ajax() {
       case "attachfile":
         if (isset($_POST["param0"])) {
           // param0 = fid
-          $fid = rawurldecode($_POST["param0"]);
+          $fid = _webfm_utf8urldecode($_POST["param0"]);
           if (($_file = webfm_get_file_record($fid)) !== FALSE) {
 
             if ($webfm_perm == WEBFM_ADMIN   ||
@@ -1491,10 +1491,10 @@ function webfm_ajax() {
         //Only admins can insert files into database
         if ($webfm_perm == WEBFM_ADMIN) {
           if (isset($_POST["param0"]) && isset($_POST["param1"])) {
-            $source = $root_dir . trim(rawurldecode($_POST["param0"]));
+            $source = $root_dir . trim(_webfm_utf8urldecode($_POST["param0"]));
             $err_arr[] = array();
             $result = FALSE;
-            switch (trim(rawurldecode($_POST["param1"]))) {
+            switch (trim(_webfm_utf8urldecode($_POST["param1"]))) {
               case "file":
                 //dir insert methods already return class object
                 $ret = webfm_insert_file($source, $err_arr);
@@ -1540,7 +1540,7 @@ function webfm_ajax() {
         //Only admins can remove files from database
         if ($webfm_perm == WEBFM_ADMIN) {
           if (isset($_POST["param0"])) {
-            if ($ret = trim(rawurldecode($_POST["param0"]))) {
+            if ($ret = trim(_webfm_utf8urldecode($_POST["param0"]))) {
               $ret = webfm_dbdelete_file($ret);
               webfm_json(array('status' => $ret, 'data' => t('webfm_dbdelete_file() success')));
             }
@@ -1560,8 +1560,8 @@ function webfm_ajax() {
 
       case "version":
         if (isset($_POST["param0"]) && isset($_POST["param1"])) {
-          $op = trim(rawurldecode($_POST["param0"]));
-          $filename = trim(rawurldecode($_POST["param1"]));
+          $op = trim(_webfm_utf8urldecode($_POST["param0"]));
+          $filename = trim(_webfm_utf8urldecode($_POST["param1"]));
           if (strcmp($_SESSION['temp_upload']->filename, $filename) === 0) {
             $ver_data = array();
             if (($ret = webfm_version_upload($op, $msg)) != FALSE)
@@ -2365,7 +2365,7 @@ class webfm_fdesc {
           }
           if (is_file($dir . DIRECTORY_SEPARATOR . $readdir) && ($readdir == _webfm_basename($file->fpath))) {
             $this->id = $file->fid;
-            $this->n = strrev(drupal_substr(strrev($file->fpath), 0, strpos(strrev($file->fpath), '/')));
+            $this->n = _webfm_basename($file->fpath);
             $this->p = $dir;
             $this->e = array_pop(explode('.', $this->n));
             $this->s = $file->fsize;
@@ -2659,7 +2659,7 @@ function webfm_send_file($fid, $download = FALSE, $bypass_invoke = FALSE) {
     //this is so admin users can still access non-indexed files all files
     $f = new stdClass();
     $str_arr = array();
-    $str_arr = preg_split('/~/', rawurldecode($fid), -1, PREG_SPLIT_NO_EMPTY);
+    $str_arr = preg_split('/~/', _webfm_utf8urldecode($fid), -1, PREG_SPLIT_NO_EMPTY);
     $f->fpath = file_directory_path() ."/". implode('/', $str_arr);
   }
 
@@ -2793,9 +2793,9 @@ function webfm_dbupdate_file($fid, $path = FALSE, $metadata = array()) {
 
   $values = array_values($metadata);
   $values[] = $fid; //tack on the fid at the end for the last param for the update query - i.e. WHERE fid = %d
-
+  
   $result = db_query($query, $values);
-
+  
   if ($result === FALSE) {
     drupal_set_message(t('webfm_dbupdate_file() err: fid=%fid', array('%fid' => $fid)), 'error');
     return FALSE;
@@ -2854,7 +2854,7 @@ function webfm_get_extensions_regex($rid) {
 function webfm_enum_validate($file, &$err_msg) {
   global $user;
 
-  $name = $file->filename ? $file->filename : strrev(drupal_substr(strrev($file->filepath), 0, strpos(strrev($file->filepath), '/')));
+  $name = $file->filename ? $file->filename : _webfm_basename($file->filepath);
   if (drupal_strlen($name) > 255) {
     $err_msg[] = 'file name has invalid length';
     return FALSE;
@@ -3009,9 +3009,9 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
       foreach ($fields as $field) {
         // Parse webfm_file_key/metadata pairs
         trim($field);
-        $key = rawurldecode(drupal_substr($field, 0, 1));
+        $key = _webfm_utf8urldecode(drupal_substr($field, 0, 1));
         $separator = drupal_substr($field, 1, 1);
-        $value = rawurldecode(drupal_substr($field, 2, min((drupal_strlen($field) - 2), $metadata_key_arr[$key]['size'])));
+        $value = _webfm_utf8urldecode(drupal_substr($field, 2, min((drupal_strlen($field) - 2), $metadata_key_arr[$key]['size'])));
         if (array_key_exists($key, $metadata_key_arr) && ($separator == ":")) {
           if ($key == 'u') {
             // Special handling for uid changes (admins only)
@@ -3391,4 +3391,3 @@ function webfm_pathauto_bulkupdate() {
     'Bulk generation of webfm file path completed, one alias generated.',
     'Bulk generation of webfm file paths completed, @count aliases generated.'));
 }
-
