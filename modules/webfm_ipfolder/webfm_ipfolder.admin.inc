@@ -5,7 +5,7 @@
  * @file
  * Administrative interface for managing the IP-Ranges.
  *
- * Can be found at admin/settings/webfm_ipfolder/.
+ * Can be found at admin/settings/webfm/permissions/ipfolder.
  */
 
 /**
@@ -20,7 +20,7 @@ function webfm_ipfolder_ips() {
     '#description' => "<b>". t("Instructions:") ."</b><br/> &nbsp; - ".
   t("Click on an ip range to modify the authenticator assignment.") ."<br/> &nbsp; - ".
   t("The title fields are sortable.") ."<br/><br/>".
-                      "<b>". t("Your IP: @s", array('@s' => $_SERVER['REMOTE_ADDR'])) ."</b>".
+                      "<b>". t("Your IP: @s", array('@s' => ip_address())) ."</b>".
                       '<br /><br/>'.
   t('Please note that users with the <em>administer webfm</em> rights will be able to download the files anyway.'),
     '#collapsible' => TRUE,
@@ -44,9 +44,9 @@ function webfm_ipfolder_ips() {
       $ip_title = $data->ip1 . $ip2_text;
 
       $row = array();
-      $row['iprange'] = l($ip_title, "admin/settings/webfm_ipfolder/edit/". $data->id);
-      $row['folder'] = l($data->folder, "admin/settings/webfm_ipfolder/edit/". $data->id);
-      $row['del'] = l(t('Delete'), "admin/settings/webfm_ipfolder/delete/". $data->id);
+      $row['iprange'] = l($ip_title, "admin/settings/webfm/permissions/ipfolder/edit/". $data->id);
+      $row['folder'] = l($data->folder, "admin/settings/webfm/permissions/ipfolder/edit/". $data->id);
+      $row['del'] = l(t('Delete'), "admin/settings/webfm/permissions/ipfolder/delete/". $data->id);
       $rows[] = array("data" => $row);
     }
 
@@ -100,7 +100,7 @@ function webfm_ipfolder_ips_delete() {
   $id = $args[1];
   if (!is_numeric($id)) {
     drupal_set_message(t("Please select your IP-Range again"));
-    drupal_goto('admin/settings/webfm_ipfolder');
+    drupal_goto('admin/settings/webfm/permissions/ipfolder');
     return;
   }
 
@@ -108,7 +108,7 @@ function webfm_ipfolder_ips_delete() {
   if (db_affected_rows() == 0) {
     drupal_set_message(mysql_error(), 'error');
   }
-  drupal_goto('admin/settings/webfm_ipfolder');
+  drupal_goto('admin/settings/webfm/permissions/ipfolder');
 }
 
 
@@ -120,15 +120,16 @@ function webfm_ipfolder_ips_delete() {
 function webfm_ipfolder_ips_edit() {
   $args = func_get_args();
   $id = $args[1];
+
   if (!is_numeric($id)) {
     drupal_set_message(t("Please select your IP-Range again"));
-    drupal_goto('admin/settings/webfm_ipfolder');
+    drupal_goto('admin/settings/webfm/permissions/ipfolder');
     return;
   }
 
-  $result = db_query_range("SELECT * FROM {webfm_ipfolder} WHERE id = '%d'", 0, 1, array($id));
+  $result = db_query_range("SELECT * FROM {webfm_ipfolder} WHERE id = '%d'",  array($id), 0, 1);
   if (!$result) {
-    drupal_goto('admin/settings/webfm_ipfolder');
+    drupal_goto('admin/settings/webfm/permissions/ipfolder');
   }
 
   $data = db_fetch_object($result);
@@ -169,7 +170,7 @@ function webfm_ipfolder_ips_edit() {
 
   $form['#validate'][] = 'webfm_ipfolder_ips_validate';
   $form['#submit'][] = 'webfm_ipfolder_ips_submit_edit';
-  $form['#redirect'][] = 'admin/settings/webfm_ipfolder';
+  $form['#redirect'][] = 'admin/settings/webfm/permissions/ipfolder';
   return system_settings_form($form);
 }
 

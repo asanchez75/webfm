@@ -11,7 +11,7 @@
 function webfm_ipfolder_help($path, $arg) {
   switch ($path) {
     case 'admin/help#webfm_ipfolder':
-      return '<p>'. t('This module extends the Web File Manager. It allows to block or allow certain IP Ranges access to specified folders. <br /> In the !configuration you can provide IP Ranges and folder names.<br /> Depending on your !settings the selected IP Range will be allowed or blocked. By default it <b>blocks</b> access to all folders.', array('!configuration' => l(t('configuration'), 'admin/settings/webfm_ipfolder'), '!settings' => l(t('settings'), 'admin/settings/webfm_ipfolder/webfm_ipfolder_settings'))) .'</p>';
+      return '<p>'. t('This module extends the Web File Manager. It allows to block or allow certain IP Ranges access to specified folders. <br /> In the !configuration you can provide IP Ranges and folder names.<br /> Depending on your !settings the selected IP Range will be allowed or blocked. By default it <b>blocks</b> access to all folders.', array('!configuration' => l(t('configuration'), 'admin/settings/webfm/permissions/ipfolder'), '!settings' => l(t('settings'), 'admin/settings/webfm/webfm/ipfolder_settings'))) .'</p>';
     case 'admin/modules#description':
       return t('Enable the Web File Manager Extension to allow IP based folder blocking.');
   }
@@ -67,16 +67,16 @@ function webfm_ipfolder_file_download($filepath) {
  */
 function webfm_ipfolder_menu() {
   $items = array();
-  $items['admin/settings/webfm_ipfolder'] = array(
-  'title' => 'WebFM IP based folder access',
+  $items['admin/settings/webfm/permissions/ipfolder'] = array(
+  'title' => 'IP based folder access',
   'description' => 'Configure IP based folder access.',
   'file' => 'webfm_ipfolder.admin.inc',
   'page callback' => 'drupal_get_form',
   'page arguments' => array('webfm_ipfolder_ips'),
   'access arguments' => array('administer webfm'),
-  'type' =>  MENU_NORMAL_ITEM,
+  'type' =>  MENU_LOCAL_TASK,
   );
-  $items['admin/settings/webfm_ipfolder/edit'] = array(
+  $items['admin/settings/webfm/permissions/ipfolder/edit'] = array(
   'title' => t('WebFM IP based folder access -- Modify'),
   'page callback' => 'drupal_get_form',
   'page arguments' => array('webfm_ipfolder_ips_edit'),
@@ -85,7 +85,7 @@ function webfm_ipfolder_menu() {
   'file' => 'webfm_ipfolder.admin.inc',
   'type' => MENU_CALLBACK,
   );
-  $items['admin/settings/webfm_ipfolder/delete'] = array(
+  $items['admin/settings/webfm/permissions/ipfolder/delete'] = array(
   'title' => t('WebFM IP based folder access -- Delete'),
   'page callback' => 'drupal_get_form',
   'page arguments' => array('webfm_ipfolder_ips_delete'),
@@ -94,14 +94,15 @@ function webfm_ipfolder_menu() {
   'file' => 'webfm_ipfolder.admin.inc',
   'type' => MENU_CALLBACK,
   );
-  $items['admin/settings/webfm_ipfolder/webfm_ipfolder_settings'] = array(
-  'title' => 'Default behavior',
+  $items['admin/settings/webfm/webfm/ipfolder_settings'] = array(
+  'title' => 'IP based folder access',
   'description' => 'Configure IP based folder access - default behavior',
   'file' => 'webfm_ipfolder.admin.inc',
   'page callback' => 'drupal_get_form',
   'page arguments' => array('webfm_ipfolder_settings'),
   'access arguments' => array('administer webfm'),
-  'type' =>  MENU_NORMAL_ITEM,
+  'type' =>  MENU_LOCAL_TASK,
+  'weight' => 1,
   ); 
   return $items;
 }
