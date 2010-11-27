@@ -351,6 +351,7 @@ function webfm_comment(&$comment, $op) {
     case 'insert':
       if ($_POST['attachlist']) {
         $files = explode(',', $_POST['attachlist']);
+        array_walk($files, 'intval'); //Don't trust your Inputs. Forcing all values to int.
         $i = 0;
         foreach ($files as $fid) {
           if ($fid)
@@ -365,6 +366,7 @@ function webfm_comment(&$comment, $op) {
       // and therefore will delete existing attachments from the node.
       if (user_access('access webfm') && array_key_exists('attachlist', $_POST)) {
         $files = explode(',', $_POST['attachlist']);
+        array_walk($files, 'intval');//Don't trust your Inputs. Forcing all values to int.
         webfm_dbupdate_attach(0, $files, $cid);
       }
       break;
@@ -406,8 +408,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
         // we preview e.g. a comment where this node is shown, too, but then
         // the attachlist is not ours. So we check for webfm_files *before*
         // checking for $_POST to get around this.
-        if (!user_access('access webfm') && (variable_get("webfm_attach_$node->type", 1) == 1)
-        && user_access('view webfm attachments')) {
+        if (!user_access('access webfm') && (variable_get("webfm_attach_$node->type", 1) == 1) && user_access('view webfm attachments')) {
           $node->webfm_files =  webfm_get_attachments($node->nid);
         }
         if (isset($node->webfm_files) && is_array($node->webfm_files)) {
@@ -448,6 +449,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
       unset($node->attachlist);
       if ($_POST['attachlist']) {
         $files = explode(',', $_POST['attachlist']);
+        array_walk($files, 'intval');//Don't trust your Inputs. Forcing all values to int.
         $i = 0;
         foreach ($files as $fid) {
           if ($fid)
@@ -471,6 +473,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
       // and therefore will delete existing attachments from the node.
       if (user_access('access webfm') && array_key_exists('attachlist', $_POST)) {
         $files = explode(',', $_POST['attachlist']);
+        array_walk($files, 'intval');//Don't trust your Inputs. Forcing all values to int.
         webfm_dbupdate_attach($node->nid, $files);
       }
       break;
@@ -662,7 +665,10 @@ function webfm_attach_attached_form($node) {
   //    Use default_value here, too, so that it can still be changed if we get
   //    a form_validate error *after* a successful preview.
   if ($_POST['attachlist']) {
-    $form['new']['attachlist']['#default_value'] = $_POST['attachlist'];
+    $attachlist = explode(',',$_POST['attachlist']);
+    array_walk($attachlist, 'intval');//Don't trust your Inputs. Forcing all values to int.
+    $attachlist = implode(',',$attachlist);
+    $form['new']['attachlist']['#default_value'] = $attachlist;
   }
 
   return $form;
@@ -1047,8 +1053,9 @@ function webfm_ajax() {
           exit();
           break;
         }
-        if (isset($_POST["param1"]))
-        unset($_SESSION['tree_'. $current]);
+        if (isset($_POST["param1"])) {
+          unset($_SESSION['tree_'. $current]);
+        }
         if (!is_dir($root_dir . $current)) {
           webfm_json(array('status' => FALSE, 'data' => t('unknown role')));
         }
@@ -2334,7 +2341,9 @@ function webfm_get_attachments($nid, $selector = 'nid') {
  */
 function webfm_get_temp_attachments($fids) {
   $files = array();
-  $fids_arr = split(',', $fids);
+  $fids_arr = explode(',', $fids);
+  array_walk($fids_arr,'intval'); //Don't trust your inputs. Force all values to int
+  
   $file_result = db_query('SELECT * FROM {webfm_file} WHERE fid in ('. db_placeholders($fids_arr) .')', $fids_arr);
   while ($file_record = db_fetch_object($file_result)) {
     $_file = new webfm_fdesc($file_record);
