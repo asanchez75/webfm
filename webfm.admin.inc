@@ -11,7 +11,7 @@
  */
 function webfm_admin_settings() {
   $form = array();
-  
+
   $form['webfm_root_dir'] = array('#type' => 'textfield',
                                   '#title' => t('WebFM root directory'),
                                   '#default_value' => variable_get('webfm_root_dir', ''),
@@ -32,7 +32,7 @@ function webfm_admin_settings() {
                                         '#description' => t('The maximum allowed image size (e.g. 640x480). Set to 0 for no restriction.'),
                                         '#field_suffix' => '<kbd>'. t('WIDTHxHEIGHT') .'</kbd>',
   );
-  
+
   $form['cron'] = array( '#type' => 'fieldset',
                           '#title' => t('Cron'),
                           '#collapsible' => FALSE,
@@ -54,7 +54,7 @@ function webfm_admin_settings() {
                                                                    <br />This feature allows files loaded via ftp or ssh to a WebFM directory to be
                                                                    <br />automatically inserted into the database when the cron task is executed.'),
   );
-   
+
   $form['debug'] =  array('#type' => 'fieldset',
                           '#title' => t('Debug'),
                           '#collapsible' => TRUE,
@@ -65,7 +65,7 @@ function webfm_admin_settings() {
                                         '#default_value' => variable_get('webfm_debug', FALSE),
                                         '#description' => t('Check this box for javascript debug messaging.')
   );
-  
+
   $form['#validate'] = array('webfm_admin_settings_validate');
   return system_settings_form($form);
 }
@@ -208,7 +208,7 @@ function webfm_admin_settings_roles() {
                                  <br />Only the highest value of all of the users roles will be enforced.')
     );
   }
-  
+
   if (module_exists('og')) {
     // Per group settings
     $groups = og_all_groups_options();
@@ -222,13 +222,13 @@ function webfm_admin_settings_roles() {
       if (variable_get("root_dir_group_". $gid, '') == '') {
         drupal_set_message(t('Group root directory not set for @group group', array('@group' => $group)), 'error');
       }
-      
+
       $form["settings_group_". $gid] = array( '#type' => 'fieldset',
                                               '#title' => t('Settings for @group group', array('@group' => $group)),
                                               '#collapsible' => TRUE,
                                               '#collapsed' => FALSE,
       );
-      
+
       $form["settings_group_". $gid]["root_dir_group_". $gid] = array('#type' => 'textfield',
                                                                       '#title' => t('Group Root directory'),
                                                                       '#default_value' => variable_get("root_dir_group_". $gid, ''),
@@ -300,7 +300,7 @@ function webfm_admin_settings_roles_validate($form, &$form_state) {
       form_set_error('webfm_uploadsize_'. $rid, t('The %role maximum file size per upload is greater than the total file size allowed per user', array('%role' => $role)));
     }
   }
-  
+
   if (module_exists('og')) {
     foreach ($form_state['values']['groups'] as $gid => $group)  {
       $group_root_dir_name = $form_state['values']['root_dir_group_'. $gid];
@@ -341,20 +341,32 @@ function webfm_admin_settings_style() {
                                       '#description' => t('Set the order of day/month in date fields.')
   );
 
-  $form['webfm_display_title'] = array('#type' => 'checkbox',
-          '#title' => t('Display metadata title'),
-          '#default_value' => variable_get('webfm_display_title', ''),
-          '#description' => t('Check this box to display the metadata title in the browser instead of the filename.
-                               <br />If a metadata title doesn\'t exist, the filename is used and rename functions normally.
-                               <br />If metadata title is used, renaming is available inside the metadata editor.')
-  );
+  //Display Options
+  $form['disp_opt'] = array('#type' => 'fieldset',
+                            '#title' => t('Directory Listing Options'),
+                            '#collapsible' => FALSE,
+                            '#collapsed' => FALSE);
 
-  $form['webfm_display_owner'] = array('#type' => 'checkbox',
-          '#title' => t('Display file owner column in browser'),
-          '#default_value' => variable_get('webfm_display_owner', ''),
-          '#description' => t('Check this box to display the file owner column in the browser.')
-  );
+  $form['disp_opt']['webfm_display_title'] = array('#type' => 'checkbox',
+                                                   '#title' => t('Display metadata title'),
+                                                   '#default_value' => variable_get('webfm_display_title', ''),
+                                                   '#description' => t('Check this box to display the metadata title in the browser instead of the filename.
+                                                                        <br />If a metadata title doesn\'t exist, the filename is used and rename functions normally.
+                                                                        <br />If metadata title is used, renaming is available inside the metadata editor.'));
 
+  $form['disp_opt']['webfm_display_date'] = array('#type' => 'checkbox',
+                                                  '#title' => t('Display date modified column'),
+                                                  '#default_value' => variable_get('webfm_display_date', true));
+
+  $form['disp_opt']['webfm_display_size'] = array('#type' => 'checkbox',
+                                                  '#title' => t('Display size column'),
+                                                  '#default_value' => variable_get('webfm_display_size', true));
+
+  $form['disp_opt']['webfm_display_owner'] = array('#type' => 'checkbox',
+                                                   '#title' => t('Display owner column'),
+                                                   '#default_value' => variable_get('webfm_display_owner', true));
+
+  //Attachments
   $form['attach'] = array('#type' => 'fieldset',
           '#title' => t('WebFM Attachments'),
           '#collapsible' => FALSE,
