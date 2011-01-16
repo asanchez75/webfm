@@ -2749,31 +2749,49 @@ function webfm_dbinsert_file($file, &$error, $metadata = array()) {
   unset($metadata['fid']);
 
   // fill $metadata values not supplied in 3rd arg
-  if (!isset($metadata['uid']))
-  $metadata['uid'] = $user->uid;
-  if (!isset($metadata['fsize']))
-  $metadata['fsize'] = @filesize($file->filepath);
-  if (!isset($metadata['fcreatedate']))
-  $metadata['fcreatedate'] = @filemtime($file->filepath);
-  if (!isset($metadata['perm']))
-  $metadata['perm'] = webfm_default_file_perm();
-  if (!isset($metadata['fmime']))
-  $metadata['fmime'] = file_get_mimetype($file->filepath);
-  if (!isset($metadata['fdesc']))
-  $metadata['fdesc'] = '';
+  if (!isset($metadata['uid'])) {
+    $metadata['uid'] = $user->uid;
+  }
+  if (!isset($metadata['fsize'])) {
+    $metadata['fsize'] = @filesize($file->filepath);
+  }  
+  if (!isset($metadata['fcreatedate'])) {
+    $metadata['fcreatedate'] = @filemtime($file->filepath);
+  }
+  if (!isset($metadata['perm'])) {
+    $metadata['perm'] = webfm_default_file_perm();
+  }
+  if (!isset($metadata['fmime'])) {
+    $metadata['fmime'] = file_get_mimetype($file->filepath);
+  }
+  if (!isset($metadata['fdesc'])) {
+    $metadata['fdesc'] = '';
+  }
+  
 
   //create a string of fields for the query
   $fields = implode(', ', array_keys($metadata));
 
+  $metadata_key_arr = _webfm_metadata_array();
+  $printfvalues = array();
+  //create a string of field value items in printf format
 
-
-  //build printf style list of values
   foreach ($metadata as $key => $value) {
-    if (is_numeric($value)) {
-      $printfvalues[] = '%d';
+    if (array_key_exists($key, $metadata_key_arr)) {
+      if ($metadata_key_arr[$key]['dbhandler'] == 'integer') {
+        $printfvalues[] = '%d';
+      }
+      if ($metadata_key_arr[$key]['dbhandler'] == 'string') {
+        $printfvalues[] = "'%s'";
+      }
     }
     else {
-      $printfvalues[] = "'%s'";
+      if (is_numeric($value)) {
+        $printfvalues[] = '%d';
+      }
+      else {
+        $printfvalues[] = "'%s'";
+      }
     }
   }
   //create a srting of printf style values
@@ -2817,30 +2835,44 @@ function webfm_dbinsert_file($file, &$error, $metadata = array()) {
  * @return bool - TRUE if success - else FALSE
  */
 function webfm_dbupdate_file($fid, $path = FALSE, $metadata = array()) {
+  $metadata_key_arr = _webfm_metadata_array();
+  
   if ($path) {
     //add additional values to $metadata
     $metadata['fpath'] = $path;
   }
-
-  $pieces = array();
+  
+  $printfvalues = array();
   //create a string of field value items in printf format
   foreach ($metadata as $key => $value) {
-    if (is_numeric($value)) {
-      $pieces[] = $key . " = %d ";
+  if (array_key_exists($key, $metadata_key_arr)) {
+      if ($metadata_key_arr[$key]['dbhandler'] == 'integer') {
+        $printfvalues[] = $key ." = %d";
+      }
+      if ($metadata_key_arr[$key]['dbhandler'] == 'string') {
+        $printfvalues[] = $key ." = '%s'";
+      }
     }
     else {
-      $pieces[] .= $key . " = '%s' ";
+      if (is_numeric($value)) {
+        $printfvalues[] = $key ."='%d'";
+      }
+      else {
+        $printfvalues[] = $key ."='%s'";
+      }
     }
   }
-  $pieces = implode(', ', $pieces);
+  $printfvalues = implode(', ', $printfvalues);
 
-  $query = "UPDATE {webfm_file} SET ". $pieces;
-  $query .= " WHERE fid = %d";
+  $result = FALSE;
+  if (!empty($printfvalues)) {
+    $query = "UPDATE {webfm_file} SET ". $printfvalues;
+    $query .= " WHERE fid = %d";
 
-  $values = array_values($metadata);
-  $values[] = $fid; //tack on the fid at the end for the last param for the update query - i.e. WHERE fid = %d
-
-  $result = db_query($query, $values);
+    $values = array_values($metadata);
+    $values[] = $fid; //tack on the fid at the end for the last param for the update query - i.e. WHERE fid = %d
+    $result = db_query($query, $values);
+  }
 
   if ($result === FALSE) {
     drupal_set_message(t('webfm_dbupdate_file() err: fid=%fid', array('%fid' => $fid)), 'error');
@@ -3048,34 +3080,67 @@ function webfm_get_file_record($fid = '', $path = '') {
   return FALSE;
 }
 
-function webfm_putmeta($fid, $metadata, $user, &$err) {
-  //editable metadata columns of webfm_file table
-  static $metadata_key_arr = array();
-  if (!count($metadata_key_arr)) {
-    $metadata_key_arr = array( 't' => array('field' => 'ftitle', 'size' => 255),
-                               'd' => array('field' => 'fdesc', 'size' => 1024),
-                               'l' => array('field' => 'flang', 'size' => 16),
-                               'p' => array('field' => 'fpublisher', 'size' => 255),
-                               'f' => array('field' => 'fformat', 'size' => 255),
-                               'u' => array('field' => 'uid', 'size' => 10));
+/**
+ * Returns an array with informatin about the editable fields of the webfm meta data
+ * input table.
+ * 
+ * @param bool $shorthands Whether or not to use the shorthand fieldnames in the array
+ * 
+ * @return array Array with webfms legal metadata fields and its data type
+ */
+function _webfm_metadata_array($shorthands = FALSE) {
+
+  if ($shorthands) {
+    $metadata_key_arr = array( 't' => array('field' => 'ftitle', 'size' => 255, 'dbhandler' => 'string'), //title of file
+                               'd' => array('field' => 'fdesc', 'size' => 1024, 'dbhandler' => 'string'), //description field
+                               'l' => array('field' => 'flang', 'size' => 16, 'dbhandler' => 'string'),  //language of file
+                               'p' => array('field' => 'fpublisher', 'size' => 255, 'dbhandler' => 'string'), //publisher of file
+                               'f' => array('field' => 'fformat', 'size' => 255, 'dbhandler' => 'string'), //file format
+                               'u' => array('field' => 'uid', 'size' => 10, 'dbhandler' => 'integer'),//user uid associtated with the file
+    );
   }
+  else {
+    $metadata_key_arr = array(  'ftitle' => array('size' => 255, 'dbhandler' => 'string'), //title of file
+                                'fdesc' => array('size' => 1024, 'dbhandler' => 'string'), //description field
+                                'flang' => array('size' => 16, 'dbhandler' => 'string'),  //language of file
+                                'fpublisher' => array('size' => 255, 'dbhandler' => 'string'), //publisher of file
+                                'fformat' => array('size' => 255, 'dbhandler' => 'string'), //file format
+                                'uid' => array('size' => 10, 'dbhandler' => 'integer'), //user uid associtated with the file
+    );
+  }
+  return $metadata_key_arr;
+}
+
+/**
+ * Function writes provided metadata to database 
+ * 
+ * @param int $fid Webfm-File-ID
+ * @param array $metadata User provided metadata
+ * @param int $user uid of user executing this
+ * @param string $err Array that contains error messages
+ * 
+ * @return boolean TRUE|FALSE Depending on success of operation
+ */
+function webfm_putmeta($fid, $metadata, $user, &$err) { 
   $err = "";
   if (($file = webfm_get_file_record($fid)) != FALSE) {
-    if ($user == 1          ||
-    $user == $file->uid ||
-    webfm_file_mod_access($file)) {
-      $fields = explode(',', $metadata);
-      $metadata = array();
+    if ($user == 1 ||  $user == $file->uid || webfm_file_mod_access($file)) {
+      $fields = explode(',', $metadata); //User provided metadata.
+      $metadata = array(); //Clea metdata
+      $metadata_key_arr = _webfm_metadata_array(true); //Get legal keys
+
       foreach ($fields as $field) {
-        // Parse webfm_file_key/metadata pairs
+        // Parse webfm_file_key/metadata pairs to enforce safe data
         trim($field);
         $key = _webfm_utf8urldecode(drupal_substr($field, 0, 1));
         $separator = drupal_substr($field, 1, 1);
-        $value = _webfm_utf8urldecode(drupal_substr($field, 2, min((drupal_strlen($field) - 2), $metadata_key_arr[$key]['size'])));
+        $value = _webfm_utf8urldecode(drupal_substr($field, 2, drupal_strlen($field) - 2));
+        
         if (array_key_exists($key, $metadata_key_arr) && ($separator == ":")) {
           if ($key == 'u') {
             // Special handling for uid changes (admins only)
             if ($user == 1) {
+              $value = strip_tags(drupal_substr($value, 0, $metadata_key_arr[$key]['size']));
               $uid_val = strval($value);
               if (is_numeric($uid_val) && (drupal_strlen($uid_val) << 11)) {
                 // Check that requested uid exists
@@ -3100,10 +3165,12 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
             }
           }
           else {
+            $value = strip_tags(check_markup(drupal_substr($value, 0, $metadata_key_arr[$key]['size'])));
             $metadata[$metadata_key_arr[$key]['field']] = strval($value);
           }
         }
       }
+      
       if (count($metadata)) {
         $ret = webfm_dbupdate_file($fid, '', $metadata);
         if ($ret) {
