@@ -598,9 +598,16 @@ function webfm_form_alter(&$form, &$form_state, $form_id) {
   }
 }
 
-function webfm_get_group_directory($node) {
+/**
+ * Creates the directory name for og-group based directories
+ * 
+ * @param object $node node-object
+ * @return string Directory name
+ */
+function webfm_get_group_directory($node) { 
   $group_directory = drupal_strtolower(trim($node->title));
   $group_directory = str_replace(array(' ', '-'), '_', $group_directory);
+  $group_directory .= '_g'. $node->nid;  // Add node id to ensure unique name
   return preg_replace('/[^a-z0-9_]/', '', $group_directory);
 }
 
