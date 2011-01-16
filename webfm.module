@@ -2200,7 +2200,8 @@ class webfm_build_dir_list {
 
         while (($readdir = readdir($handle)) !== FALSE) {
           // check that directory element is readable and not in black list
-          if (!in_array(drupal_strtolower($readdir), $bl)) {
+           
+          if (!in_array(drupal_strtolower($readdir), $bl) AND is_link($full_path . '/' . $readdir) == FALSE) {
             if (is_dir($full_path . '/' . $readdir)) {
               $_dirs[] = $readdir;
             }
@@ -2327,12 +2328,21 @@ function webfm_tree($rootpath, $path) {
   return $_SESSION['tree_'. $path];
 }
 
-// Function to recursively read the complete directory tree
+// 
+/**
+ * Function to recursively read the complete directory tree
+ *
+ * @param unknown_type $dir
+ * @param unknown_type $full
+ *
+ * @return 
+ */
 function recurse_build_tree($dir, $full) {
+  $bl = array('.', '..', '.htaccess');
   if ($handle = opendir($dir)) {
     while (FALSE !== ($readdir = readdir($handle))) {
-      if (($readdir != '.') && ($readdir != '..')) {
-        $path = $dir .'/'. $readdir;
+      $path = $dir .'/'. $readdir;
+      if(!in_array(drupal_strtolower($readdir), $bl) AND !is_link($path)) {
         //directories are array keys with an array value or a NULL value for
         //empty directories (note that a file cannot have a NULL value)
         if (is_dir($path)) {
@@ -2340,8 +2350,9 @@ function recurse_build_tree($dir, $full) {
         }
         if ($full == TRUE) {
           //files are non-NULL, non-array key values
-          if (is_file($path))
-          $tree[] = $readdir;
+          if (is_file($path)) {
+            $tree[] = $readdir;
+          }
         }
       }
     }

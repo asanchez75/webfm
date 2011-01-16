@@ -269,8 +269,8 @@ function webfm_insert_dir($path, $recur, &$err_arr) {
   if ($handle = opendir($path)) {
     $bl = array('.', '..', '.svn', '.htaccess');
     while (false !== ($file = readdir($handle))) {
-      if (!in_array(drupal_strtolower($file), $bl)) {
-        $file_path = $path .'/'. $file;
+      $file_path = $path .'/'. $file;
+      if (!in_array(drupal_strtolower($file), $bl) and !is_link($file_path)) {       
         if (is_file($file_path)) {
           // file
           if (webfm_insert_file($file_path, $err)) {
