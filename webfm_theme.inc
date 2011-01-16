@@ -10,7 +10,7 @@
 
 /**
  * Displays file attachments in table
- * 
+ *
  * @return
  *        string HtMl of attachments-table themed via the theme('table'... function.
  */
@@ -24,7 +24,7 @@ function theme_webfm_attachments($files) {
   if ($enable_size = variable_get('webfm_attach_size', '')) {
     array_push($header, t('Size'));
   }
-  
+
   $rows = array();
   foreach ($files as $file) {
     // 0 =inline : 1 = attach

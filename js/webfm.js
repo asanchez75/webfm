@@ -418,7 +418,7 @@ function webfmLayout() {
       Webfm.menuHT.put('det', new Webfm.menuElement(Webfm.menu_msg.det, Webfm.menuDetach, ''));
       Webfm.menuHT.put('det', new Webfm.menuElement(Webfm.menu_msg.paste, Webfm.menuPasteHref, ''));
     } catch(err) {
-      alert("Menu Create err\n" + err);
+      alert( Drupal.t("Creating Menu failed. \n") + err);
     }
     // attach-list anchored to 'webfm-attach' div in webfm_form_alter()
     Webfm.attachObj = new Webfm.attach('webfm-attach');
@@ -510,7 +510,7 @@ Webfm.commonInterface = function (parent) {
     Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg.perm, Webfm.menuGetPerm, Webfm.menuFilePerm));
     Webfm.menuHT.put('file', new Webfm.menuElement(Webfm.menu_msg.paste, Webfm.menuPasteHref, ''));
   } catch (err) {
-    alert("Menu Create err\n" + err);
+    alert(Drupal.t("Creating Menu failed. \n") + err);
   }
 
   //build metadata hashtable
@@ -644,7 +644,7 @@ Webfm.jsUpload.prototype.oncomplete = function (data) {
 
 //Handler for the form redirection error.
 Webfm.jsUpload.prototype.onerror = function (error) {
-  alert('An error occurred:\n\n' + error);
+  alert(Drupal.t("An error occurred:\n\n") + error);
   Webfm.progressObj.hide();
 
   if(this.confirm) {

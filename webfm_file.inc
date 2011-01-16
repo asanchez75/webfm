@@ -153,7 +153,6 @@ function webfm_rename_db_dir_recur($source, $dest, $ret, &$err_arr) {
           if (!(webfm_rename_db_file($source_item, $dest_item, $err_arr))) {
             $ret = FALSE;
           }
-          
         }
         elseif (is_dir($source_item)) {
           $ret = webfm_rename_db_dir_recur($source_item, $dest_item, $ret, $err_arr);
@@ -231,7 +230,7 @@ function webfm_delete_file($source, &$error) {
  *
  */
 function webfm_move($source, $dest, $uid, &$err_arr) {
-  $dest = rtrim($dest,'/ \/') .'/'. _webfm_basename($source);
+  $dest = rtrim($dest, '/ \/') .'/'. _webfm_basename($source);
   return webfm_rename($source, $dest, $uid, $err_arr);
 }
 
@@ -322,7 +321,7 @@ function _webfm_basename($filename) {
 /**
  * Rawurldecode fails if the filename is utf8
  * Inspired by http://weierophinney.net/matthew/archives/133-PHP-decoding-of-Javascript-encodeURIComponent-values.html
- * 
+ *
  * @param string|array $value UTF8 encoded by encodeURIComponent()
  */
 function _webfm_utf8urldecode($value) {

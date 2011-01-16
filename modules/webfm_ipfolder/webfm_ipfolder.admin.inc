@@ -57,7 +57,7 @@ function webfm_ipfolder_ips() {
   else {
     $form['ip_list']['notfound'] = array('#value' => t("There are no folders or IPs to list."));
   }
-  
+
   $form['conf'] = array(
   '#type' => 'fieldset',
   '#title' => t('WebFile manager IP based folder access'),
@@ -87,7 +87,7 @@ function webfm_ipfolder_ips() {
 
   $form['#validate'][] = 'webfm_ipfolder_ips_validate';
   $form['#submit'][] = 'webfm_ipfolder_ips_submit';
-  
+
   return system_settings_form($form);
 }
 
@@ -182,7 +182,7 @@ function webfm_ipfolder_ips_edit() {
  * @param $form_id
  * @param $form_state
  */
-function webfm_ipfolder_ips_validate($form_id, &$form_state) {
+function webfm_ipfolder_ips_validate($form, &$form_state) {
   // IF IP1 contains a value but doesn't match the IP address format, then display an error.
   $form_state['values']['ip1'] = trim($form_state['values']['ip1'], ".");
   $form_state['values']['ip2'] = trim($form_state['values']['ip2'], ".");
@@ -208,7 +208,7 @@ function webfm_ipfolder_ips_validate($form_id, &$form_state) {
  * @param $form_state
  * @param $op
  */
-function webfm_ipfolder_ips_submit($form_id, &$form_state, $op="insert") {
+function webfm_ipfolder_ips_submit($form, &$form_state, $op="insert") {
   $ip2 = sprintf('%u', ip2long(trim($form_state['values']["ip2"], ".")));
   $ip1 = sprintf('%u', ip2long(trim($form_state['values']["ip1"], ".")));
 
@@ -238,12 +238,12 @@ function webfm_ipfolder_ips_submit($form_id, &$form_state, $op="insert") {
 
 /**
  * Submit reciever function for webfm_ipfolder_ips_edit().
- * 
+ *
  * @param $form_id
  * @param $form_state
  */
-function webfm_ipfolder_ips_submit_edit($form_id, &$form_state) {
-  webfm_ipfolder_ips_submit($form_id, $form_state, "update");
+function webfm_ipfolder_ips_submit_edit($form, &$form_state) {
+  webfm_ipfolder_ips_submit($form, $form_state, "update");
 }
 
 /**
@@ -259,13 +259,12 @@ function webfm_ipfolder_settings() {
   '#collapsed' => FALSE,
   '#required' => FALSE,
   );
-  
   $form['conf']['webfm_ipfolder_bydefault'] = array(
   '#type' => 'radios',
   '#title' => t('Default behavior'),
   '#default_value' => variable_get('webfm_ipfolder_bydefault', FALSE),
   '#options' => array(t('Block access to all folders, but not to IP/folder-Pairs specifed.'), t('Allow access to all folders, but restrict access for the IP/folder-Pairs as specified.')),
   );
-  
+
   return system_settings_form($form);
 }

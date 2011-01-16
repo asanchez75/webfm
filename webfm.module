@@ -6,8 +6,7 @@
  * in a subdirectory of the site file system path.
  */
 
-$modulepath = drupal_get_path('module', 'webfm');
-require_once "./" . $modulepath . "/webfm_file.inc";
+module_load_include('inc', 'webfm', 'webfm_file');
 
 define('WEBFM_FLUSH', -1);
 
@@ -664,9 +663,9 @@ function webfm_attach_attached_form($node) {
   //    Use default_value here, too, so that it can still be changed if we get
   //    a form_validate error *after* a successful preview.
   if ($_POST['attachlist']) {
-    $attachlist = explode(',',$_POST['attachlist']);
+    $attachlist = explode(',', $_POST['attachlist']);
     array_walk($attachlist, 'intval');//Don't trust your Inputs. Forcing all values to int.
-    $attachlist = implode(',',$attachlist);
+    $attachlist = implode(',', $attachlist);
     $form['new']['attachlist']['#default_value'] = $attachlist;
   }
 
@@ -1019,14 +1018,14 @@ function webfm_ajax() {
         if (count($trees)) {
           // Set current directory to requested (if valid) or the first tree root.
           $current = key(reset($trees));
-          if(isset($_POST["param1"]) ) {
+          if (isset($_POST["param1"]) ) {
             $req_current = trim(_webfm_utf8urldecode($_POST["param1"]));
-            $found = false;
+            $found = FAlSE;
             foreach ($trees as $key => $tree ) {
               foreach ($tree as $rPath => $info ) {
                 if (webfm_check_path($req_current, $rPath)) {
                   $current = $req_current;
-                  $found = true;
+                  $found = TRUE;
                   break;
                 }
               }
@@ -1036,7 +1035,8 @@ function webfm_ajax() {
             }
           }
           webfm_json(array('status' => TRUE, 'tree' => $trees, 'current' => $current, 'admin' => $webfm_perm == WEBFM_ADMIN, 'err' => $err));
-        } else {
+        }
+        else {
           webfm_json(array('status' => FALSE, 'err' => t('No trees found')));
         }
         exit();
@@ -1919,11 +1919,11 @@ function webfm_inline_js($base_url, $base_path, $clean_url, $uid) {
   $js .= 'Webfm.options.breadcrumbRoot=null;';
   $js .= 'Webfm.options.displayColumns.name=true;';
   $js .= 'Webfm.options.displayColumns.modified=';
-  $js .= (variable_get('webfm_display_date', true)) ? 'true;' : 'false;';
+  $js .= (variable_get('webfm_display_date', TRUE)) ? 'true;' : 'false;';
   $js .= 'Webfm.options.displayColumns.size=';
-  $js .= (variable_get('webfm_display_size', true)) ? 'true;' : 'false;';
+  $js .= (variable_get('webfm_display_size', TRUE)) ? 'true;' : 'false;';
   $js .= 'Webfm.options.displayColumns.owner=';
-  $js .= (variable_get('webfm_display_owner', true)) ? 'true;' : 'false;';
+  $js .= (variable_get('webfm_display_owner', TRUE)) ? 'true;' : 'false;';
 
   drupal_add_js($js, 'inline');
 }
@@ -2372,7 +2372,7 @@ function webfm_get_attachments($nid, $selector = 'nid') {
 function webfm_get_temp_attachments($fids) {
   $files = array();
   $fids_arr = explode(',', $fids);
-  array_walk($fids_arr,'intval'); //Don't trust your inputs. Force all values to int
+  array_walk($fids_arr, 'intval'); //Don't trust your inputs. Force all values to int
 
   $file_result = db_query('SELECT * FROM {webfm_file} WHERE fid in ('. db_placeholders($fids_arr) .')', $fids_arr);
   while ($file_record = db_fetch_object($file_result)) {
@@ -2612,7 +2612,7 @@ function _webfm_check_access($filepath = NULL, $f = NULL) {
   }
 
   //at first: get the file object
-  if(!is_null($filepath) and is_null($f)) {
+  if (!is_null($filepath) and is_null($f)) {
     $f = webfm_get_file_record(NULL, $filepath);
   }
   if (!is_object($f)) {
@@ -2890,21 +2890,18 @@ function webfm_get_extensions_regex($rid) {
 }
 
 /**
- * 
  * Check file extension against whitelist.
- * 
+ *
  * @param object $file
  * @param array $err_msg Error Messages that occured.
- * 
  * @return bool true if file extension is okay
  */
 function webfm_enum_validate($file, &$err_msg) {
   global $user;
 
-  if(empty($file->filename)) {
+  if (empty($file->filename)) {
     $file->filename = strrev(drupal_substr(strrev($file->filepath), 0, strpos(strrev($file->filepath), '/')));
   }
-  
   if (drupal_strlen($file->filename) > 255) {
     $err_msg[] = t('%filename exceeds the maximum name length', array('%filename' => drupal_substr($file->filename, 0, 252) .'...'));
     return FALSE;
@@ -2930,39 +2927,37 @@ function webfm_enum_validate($file, &$err_msg) {
   else {
     $mimetype = mime_content_type($file->filepath);
   }
-  
-  if (strpos($mimetype,'image') !== FALSE AND strpos(file_get_mimetype($file->filepath),'image') !== FALSE) {
+
+  if (strpos($mimetype, 'image') !== FALSE AND strpos(file_get_mimetype($file->filepath), 'image') !== FALSE) {
     //both our $mimetype-check and drupal report this to be an image
     //we double check with getimagesize
     if (!@getimagesize($file->filepath)) {
       $extension_error = TRUE;
     }
   }
-  elseif (strpos($mimetype,'image') !== FALSE OR strpos(file_get_mimetype($file->filepath),'image') !== FALSE) {
+  elseif (strpos($mimetype, 'image') !== FALSE OR strpos(file_get_mimetype($file->filepath), 'image') !== FALSE) {
     //only one of the checks thinks this is an image.
     //this covers both cases:
     // * javascript/text-file with a wrong extension
     // * image file with a wrong, e.g. "txt" extension
     $extension_error = TRUE;
-   }
+  }
 
-
-  
   $webfm_access_roles = webfm_get_access_roles();//load all existing roles
   foreach ($user->roles as $rid => $name) {
     if (array_key_exists($rid, $webfm_access_roles)) {
       $regex = webfm_get_extensions_regex($rid);
       $uploadsize = variable_get("webfm_uploadsize_". $rid, 1) * 1024 * 1024;
       $usersize = variable_get("webfm_usersize_". $rid, 1) * 1024 * 1024;
-  
+
       if (!preg_match($regex, $file->filename)) {
         $error['extension']++;
       }
-  
+
       if ($uploadsize && $file->filesize > $uploadsize) {
         $error['uploadsize']++;
       }
-  
+
       if ($usersize && $total_usersize + $file->filesize > $usersize) {
         $error['usersize']++;
       }
@@ -2998,7 +2993,7 @@ function webfm_enum_validate($file, &$err_msg) {
 function webfm_upload_validate($file, &$err_msg) {
 
   $valid = webfm_enum_validate($file, $err_msg);
-  
+
   return $valid ? TRUE : FALSE;
 }
 
@@ -3483,33 +3478,28 @@ function webfm_pathauto_bulkupdate() {
  *
  * @return String  The HTML outout to display webfm.
  */
-function webfm_custom_layout( $path = NULL,
-                              $displayTree = NULL,
-                              $displayDir = NULL,
-                              $breadcrumbRoot = NULL,
-                              $displayColumns = NULL  ) {
-  global $user;
-
+function webfm_custom_layout($path = NULL, $displayTree = NULL, $displayDir = NULL, $breadcrumbRoot = NULL, $displayColumns = NULL) {
   // Test if user has Webfm access
-  if(($user->uid == 1) || user_access('administer webfm')) {
+  if (user_access('administer webfm')) {
     // Admins have total access
     $webfm_perm = WEBFM_ADMIN;
-  } else if(user_access('access webfm')) {
+  }
+  elseif (user_access('access webfm')) {
     $webfm_perm = WEBFM_USER;
-  } else {
-    return t('WebFM File Access Denied.');
+  }
+  else {
+    return t('Access Denied.');
   }
 
   // Create current directory path based on admin or normal user
   $webfm_root_path = webfm_get_root_path();
-  if($webfm_root_path == NULL ) {
+  if ($webfm_root_path == NULL) {
     //WebFM root dir must exist
-    drupal_set_message(
-           t('The WebFM root directory must be set in the admin settings.'), 'error');
+    drupal_set_message(t('The WebFM root directory must be set in the admin settings.'), 'error');
     return;
   }
   if ($webfm_perm == WEBFM_ADMIN) {
-    $path = $webfm_root_path .$path;
+    $path = $webfm_root_path . $path;
   }
 
   // Construct the Javascript options needed for display
@@ -3517,31 +3507,32 @@ function webfm_custom_layout( $path = NULL,
   if ($path) {
     $options .= "Webfm.current='$path';";
   }
-  if ( isset($displayTree) ) {
-    $options .= "Webfm.options.displayTree=" . ($displayTree ? "true" : "false") .";";
+  if (isset($displayTree)) {
+    $options .= "Webfm.options.displayTree=". ($displayTree ? "true" : "false") .";";
   }
-  if ( isset($displayDir) ) {
-    $options .= "Webfm.options.displayDir=" . ($displayDir ? "true" : "false") . ";";
+  if (isset($displayDir)) {
+    $options .= "Webfm.options.displayDir=". ($displayDir ? "true" : "false") .";";
   }
   if ($breadcrumbRoot) {
     $options .= "Webfm.options.breadcrumbRoot='$breadcrumbRoot';";
   }
-  if ( $displayColumns ) {
+  if ($displayColumns) {
     $validColumns = array("name", "modified", "size", "owner");
-    foreach ( $displayColumns as $column => $state ) {
-      if ( in_array($column, $validColumns) ) {
-        $options .= "Webfm.options.displayColumns.$column=" .
-                               ($state ? "true" : "false") . ";";
-      } else {
-        drupal_set_message(t('Invalid column name, %name, specified.',
-                           array('%name' => $column)), 'warning');
+    foreach ($displayColumns as $column => $state) {
+      if (in_array($column, $validColumns) ) {
+        $options .= "Webfm.options.displayColumns.". $column ."=";
+        $options .= $state ? "true" : "false";
+        $options .= ";";
+      }
+      else {
+        drupal_set_message(t('Invalid column name, %name, specified.', array('%name' => $column)), 'warning');
       }
     }
   }
 
   $output = webfm_main();
-  if ( $options ) {
+  if ($options) {
     drupal_add_js($options, 'inline');
   }
   return $output;
- }
+}

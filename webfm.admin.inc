@@ -356,15 +356,15 @@ function webfm_admin_settings_style() {
 
   $form['disp_opt']['webfm_display_date'] = array('#type' => 'checkbox',
                                                   '#title' => t('Display date modified column'),
-                                                  '#default_value' => variable_get('webfm_display_date', true));
+                                                  '#default_value' => variable_get('webfm_display_date', TRUE));
 
   $form['disp_opt']['webfm_display_size'] = array('#type' => 'checkbox',
                                                   '#title' => t('Display size column'),
-                                                  '#default_value' => variable_get('webfm_display_size', true));
+                                                  '#default_value' => variable_get('webfm_display_size', TRUE));
 
   $form['disp_opt']['webfm_display_owner'] = array('#type' => 'checkbox',
                                                    '#title' => t('Display owner column'),
-                                                   '#default_value' => variable_get('webfm_display_owner', true));
+                                                   '#default_value' => variable_get('webfm_display_owner', TRUE));
 
   //Attachments
   $form['attach'] = array('#type' => 'fieldset',

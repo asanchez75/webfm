@@ -8,8 +8,8 @@
  * Variables:
  * - $links: debug, settings and help links according to permissions
  * - $upload: upload fieldset if the user is permitted access
- * 
- * @see webfm_theme(), webfm-popup.tpl.php 
+ *
+ * @see webfm_theme(), webfm-popup.tpl.php
  */
 ?>
 <div class="more-help-link">
