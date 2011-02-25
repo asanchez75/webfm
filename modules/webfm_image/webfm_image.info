@@ -1,4 +1,3 @@
-; $Id$
 name = WebFM Image
 description = Extends the WebFM contextmenu for resizing image files
 package = WebFM

@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * This module implements a user accessible heirarchical file system located

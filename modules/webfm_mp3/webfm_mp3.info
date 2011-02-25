@@ -1,4 +1,3 @@
-; $Id$
 name = WebFM mp3
 description = Extends the WebFM contextmenu for mp3 playback
 package = WebFM

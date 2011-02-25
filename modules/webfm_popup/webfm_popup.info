@@ -1,4 +1,3 @@
-; $Id$
 name = WebFM Popup
 description = Places the WebFM browser into a popup window for Rich Text Editors
 package = WebFM

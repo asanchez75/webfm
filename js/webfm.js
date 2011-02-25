@@ -1,4 +1,3 @@
-/* $Id$ */
 
 /*jslint browser: true, devel: true, windows: true, forin: true, nomen: true, regexp: true, newcap: true, immed: true */
 
