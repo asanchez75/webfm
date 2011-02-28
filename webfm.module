@@ -421,7 +421,7 @@ function webfm_nodeapi(&$node, $op, $teaser) {
         if (isset($show_files) && is_array($show_files)) {
           $node->content['webfm_attachments'] = array(
             '#value' => theme('webfm_attachments', $show_files),
-            '#weight' => module_exists('content') ? content_extra_field_weight($node->type, 'webfm_attachments') : 10,
+            '#weight' => module_exists('content') ? content_extra_field_weight($node->type, 'webfm_attachments') : 15,
           );
 
           drupal_add_css(drupal_get_path('module', 'webfm') . '/css/webfm.css');
@@ -485,10 +485,10 @@ function webfm_nodeapi(&$node, $op, $teaser) {
  * Implementation of hook_content_extra_fields().
  */
 function webfm_content_extra_fields($type) {
-  $extras['webfm-attach'] = array(
+  $extras['webfm_attachments'] = array(
     'label' => t('Webfm Attachments'),
     'description' => t('Displays the attachments as table'),
-    'weight' => 10,
+    'weight' => 15,
   );
   return $extras;
 }
@@ -540,7 +540,7 @@ function webfm_form_alter(&$form, &$form_state, $form_id) {
 
       // Attachments fieldset
       $form['webfm-attach']['#theme'] = 'webfm_upload_form';
-      $form['webfm-attach']['#weight'] = module_exists('content') ? content_extra_field_weight($node->type, 'webfm_attachments') : 10;
+      $form['webfm-attach']['#weight'] = module_exists('content') ? content_extra_field_weight($node->type, 'webfm_attachments') : 15;
       $form['webfm-attach']['attach'] = array(
         '#type' => 'fieldset',
         '#title' => t('WebFM Attachments'),
