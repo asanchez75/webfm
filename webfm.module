@@ -3293,7 +3293,7 @@ function webfm_check_attach_order($nid, $fids, $cid = 0) {
     $selector = 'cid';
   }
   //check array against db result
-  $query = "SELECT fid FROM {webfm_attach} WHERE '%s' = %d ORDER BY weight";
+  $query = "SELECT fid FROM {webfm_attach} WHERE %s = %d ORDER BY weight";
   $result = db_query($query, $selector, $id);
 
   $match = TRUE;
@@ -3368,7 +3368,7 @@ function webfm_dbinsert_attach($nid, $fid, $weight, $cid = 0) {
  */
 function webfm_dbdelete_attachments($id, $selector = 'nid') {
   $type = ($selector == 'nid') ? 'node' : 'comment';
-  $query = "DELETE FROM {webfm_attach} WHERE '%s' = %d";
+  $query = "DELETE FROM {webfm_attach} WHERE %s = %d";
   $result = db_query($query, $selector, $id);
   if ($result === FALSE) {
     drupal_set_message(t('Failed to remove file attachments for deleted %type %id', array('%type' => $type, '%id' => $id)));
