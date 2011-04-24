@@ -154,7 +154,7 @@ function webfm_admin_settings_roles() {
 
   foreach ($roles as $rid => $role) {
     if (variable_get("root_dir_". $rid, '') == '') {
-      drupal_set_message(t('Role root directory not set for @role role', array('@role' => $role)), 'error');
+      drupal_set_message(t('Role root directory not set for @role role', array('@role' => $role)), 'error', FALSE);
     }
 
     $form["settings_role_". $rid] =

@@ -153,6 +153,39 @@ function webfm_perm() {
 }
 
 /**
+ * Implementation of hook_requirements().
+ * 
+ * Webfm uses the fileinfo extension in order to check for the actual mimetype of the file.
+ * 
+ * @param string $phase The phase in which hook_requirements is run - 'runtime': the runtime requirements are being checked and shown on the status report page
+ *
+ * @return array
+ */
+function webfm_requirements($phase) {
+  $requirements = array();
+  
+  if ($phase == 'runtime') {
+    if (!extension_loaded('fileinfo') OR !function_exists('mime_content_type')) {
+          $requirements['webfm'] = array(
+          	'title' => t('File Information Extension'),
+          	'value' => t('Disabled'),
+            'description' => t('In order to check whether the uploaded file acutally is of the type its file extension suggests. !Webfm uses the !phpfileinfo in order to do that.', array('!Webfm' => l('Web File Manager', 'admin/settings/webfm'), '!phpfileinfo' => l('php fileinfo extension', 'http://php.net/manual/en/book.fileinfo.php'))),
+          	'severity' => REQUIREMENT_WARNING,
+          );
+    }
+    else {
+      $requirements['webfm'] = array(
+          	'title' => t('File Information Extension'),
+          	'value' => t('Enabled'),
+           	'severity' => REQUIREMENT_OK,
+          );
+    }
+  }
+  
+  return $requirements;
+}
+
+/**
  * Implementation of hook_menu().
  */
 function webfm_menu() {
@@ -2956,10 +2989,7 @@ function webfm_enum_validate($file, &$err_msg) {
     return FALSE;
   }
 
-  if (user_access('administer webfm')) {
-    return TRUE;
-  }
-
+ 
   //Check for possible imagefile exploit
   //Trying to determine the files mimetype with php
   //Later we compare the determined mimetype to the one drupal determines.
@@ -2968,13 +2998,18 @@ function webfm_enum_validate($file, &$err_msg) {
   $extension_error = FALSE;
   if (extension_loaded('fileinfo')) {
     //use Fileinfo extension
-    static $finfo = FALSE;
-    if ($finfo || $finfo = @finfo_open(FILEINFO_MIME_TYPE)) {
-      $mimetype = $finfo->file($file->filepath);
+    static $finfohandle = FALSE;
+    if ($finfohandle || $finfohandle = @finfo_open(FILEINFO_MIME_TYPE)) {
+      $mimetype = finfo_file($finfohandle,$file->filepath);
     }
   }
-  else {
+  elseif(function_exists('mime_content_type')) {
     $mimetype = mime_content_type($file->filepath);
+  }
+  else {
+    //worst case: Fileinfoextenison is not present in any form and we
+    // just using drupals assesment based upon the fileextension
+    $mimetype = file_get_mimetype($file->filepath);
   }
 
   if (strpos($mimetype, 'image') !== FALSE AND strpos(file_get_mimetype($file->filepath), 'image') !== FALSE) {
