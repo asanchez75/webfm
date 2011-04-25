@@ -1969,11 +1969,16 @@ function webfm_inline_js($base_url, $base_path, $clean_url, $uid) {
 
 /**
  * Helper function to check for root path at base of input path
+ * 
+ * @param string $path - Path to be checked, should be below root
+ * @param string $root - Corresponding root-path, should be above path
+ *
+ * @return string $path if $path is below $root | void if $path is not below $root
+ *
  */
 function webfm_check_path($path, $root) {
   if (strncmp($path, $root, drupal_strlen($root)) == 0) {
-    if ((drupal_strlen($path) == drupal_strlen($root)) ||
-    (drupal_substr($path, drupal_strlen($root), 1) == '/')) {
+    if ((drupal_strlen($path) == drupal_strlen($root)) || (drupal_substr($path, drupal_strlen($root), 1) == '/')) {
       return $path;
     }
   }
@@ -2191,107 +2196,96 @@ class webfm_build_dir_list {
       $path = '/'. $path;
     }
     $full_path = $root . $path;
+    if (!is_dir($full_path)) {
+      return;
+    }
 
-    if (is_dir($full_path)) {
-      // Test access rights
-      $perm_flag = FALSE;
-      if ($perm == WEBFM_ADMIN) {
-        // WEBFM_ADMIN always has access
-        if (webfm_check_path($path, $webfm_root_path)) {
+    // Test access rights
+    $perm_flag = FALSE;
+    if ($perm == WEBFM_ADMIN) {
+      // WEBFM_ADMIN always has access
+      if (webfm_check_path(realpath($full_path), realpath($root))) {
+        $perm_flag = TRUE;
+      }
+    }
+    else {
+      // If WEBFM_USER, test that read path is inside a legit root dir
+      $webfm_roots = webfm_get_root_dirs();
+      foreach ($webfm_roots as $key => $sub_root) {
+        // The read path must be contained within a legitimate role root dir for this user
+        if ($sub_root && webfm_check_path($path, $sub_root)) {
           $perm_flag = TRUE;
+          break;
         }
       }
-      else {
-        // If WEBFM_USER, test that read path is inside a legit root dir
-        $webfm_roots = webfm_get_root_dirs();
-        foreach ($webfm_roots as $key => $sub_root) {
-          // The read path must be contained within a legitimate role root dir for this user
-          if ($sub_root && webfm_check_path($path, $sub_root)) {
-            $perm_flag = TRUE;
-            break;
+    }
+    if (!$perm_flag && module_exists('og')) {
+      $webfm_group_roots = webfm_get_group_root_dirs();
+      foreach ($webfm_group_roots as $key => $sub_root) {
+        // The read path must be contained within a legitimate group root dir for this user
+        if ($sub_root && webfm_check_path($path, $sub_root)) {
+          $perm_flag = TRUE;
+          break;
+        }
+      }
+    }
+
+    if ($perm_flag && $handle = opendir($full_path)) {
+      // breadcrumb keeps file-sys root hidden
+      $non_root_arr = explode('/', trim($path, '/'));
+      foreach ($non_root_arr as $piece) {
+        $this->breadcrumb[] = $piece;
+      }
+
+      while (($readdir = readdir($handle)) !== FALSE) {
+        // check that directory element is readable and not in black list
+         
+        if (!in_array(drupal_strtolower($readdir), $bl) AND is_link($full_path . '/' . $readdir) == FALSE) {
+          if (is_dir($full_path . '/' . $readdir)) {
+            $_dirs[] = $readdir;
+          }
+          elseif (is_file($full_path . '/' . $readdir)) {
+            $_fils[] = $readdir;
           }
         }
       }
-      if (!$perm_flag && module_exists('og')) {
-        $webfm_group_roots = webfm_get_group_root_dirs();
-        foreach ($webfm_group_roots as $key => $sub_root) {
-          // The read path must be contained within a legitimate group root dir for this user
-          if ($sub_root && webfm_check_path($path, $sub_root)) {
-            $perm_flag = TRUE;
-            break;
-          }
-        }
-      }
+      closedir($handle);
+    }
 
-      if ($perm_flag && $handle = opendir($full_path)) {
-        // breadcrumb keeps file-sys root hidden
-        $non_root_arr = explode('/', trim($path, '/'));
-        foreach ($non_root_arr as $piece) {
-          $this->breadcrumb[] = $piece;
-        }
-
-        while (($readdir = readdir($handle)) !== FALSE) {
-          // check that directory element is readable and not in black list
-           
-          if (!in_array(drupal_strtolower($readdir), $bl) AND is_link($full_path . '/' . $readdir) == FALSE) {
-            if (is_dir($full_path . '/' . $readdir)) {
-              $_dirs[] = $readdir;
-            }
-            elseif (is_file($full_path . '/' . $readdir)) {
-              $_fils[] = $readdir;
-            }
-          }
-        }
-        closedir($handle);
+    if (is_array($_dirs)) {
+      foreach ($_dirs as $dir) {
+        $dd = new stdClass();
+        $dd->n = $dir;
+        $dd->p = $path . "/" . $dir;
+        $dd->m = (filemtime($full_path . '/'. $dir)) ? @filemtime($full_path . '/' . $dir) : "";
+        $this->dirs[] = $dd;
       }
-
-      if (is_array($_dirs)) {
-        foreach ($_dirs as $dir) {
-          $dd = new stdClass();
-          $dd->n = $dir;
-          $dd->p = $path . "/" . $dir;
-          $dd->m = (filemtime($full_path . '/'. $dir)) ? @filemtime($full_path . '/' . $dir) : "";
-          $this->dirs[] = $dd;
-        }
-      }
-      if (is_array($_fils)) {
-        foreach ($_fils as $filename) {
-          $file = $full_path . '/' . $filename;
-          if ($_file = webfm_get_file_record('', $file)) {
-            if (($perm == WEBFM_ADMIN) ||
-            ($_file->uid == $user->uid) ||
-            ((int)$_file->perm & WEBFM_FILE_ACCESS_ROLE_FULL) ||
-            ((int)$_file->perm & WEBFM_FILE_ACCESS_ROLE_VIEW)) {
-              $fd = new stdClass();
-              $fd->id = $_file->fid;
-              if ((int)$_file->perm & WEBFM_FILE_ACCESS_ROLE_FULL) {
-                // A bit of a hack for js functionality but safe since this is
-                // always validated on server side
-                $fd->u = $user->uid;
-              }
-              else {
-                $fd->u = $_file->uid;
-              }
-              if ($_file->uid > 0) {
-                $_query = 'SELECT name FROM {users} WHERE uid = %d';
-                $fd->un = db_result(db_query($_query, $_file->uid));
-              }
-              else {
-                $fd->un = t('Anonymous');
-              }
-              $fd->m = @filemtime($file);
-              $fd->s = @filesize($file);
+    }
+    if (is_array($_fils)) {
+      foreach ($_fils as $filename) {
+        $file = $full_path . '/' . $filename;
+        if ($_file = webfm_get_file_record('', $file)) {
+          if (($perm == WEBFM_ADMIN) ||
+          ($_file->uid == $user->uid) ||
+          ((int)$_file->perm & WEBFM_FILE_ACCESS_ROLE_FULL) ||
+          ((int)$_file->perm & WEBFM_FILE_ACCESS_ROLE_VIEW)) {
+            $fd = new stdClass();
+            $fd->id = $_file->fid;
+            if ((int)$_file->perm & WEBFM_FILE_ACCESS_ROLE_FULL) {
+              // A bit of a hack for js functionality but safe since this is
+              // always validated on server side
+              $fd->u = $user->uid;
             }
             else {
-              // permission denied to view this file
-              continue;
+              $fd->u = $_file->uid;
             }
-          }
-          elseif ($perm == WEBFM_ADMIN) {
-            $fd = new stdClass();
-            $fd->id = 0; //invalid fid signals no db entry
-            $fd->u = ''; //file has no owner
-            $fd->un = '';
+            if ($_file->uid > 0) {
+              $_query = 'SELECT name FROM {users} WHERE uid = %d';
+              $fd->un = db_result(db_query($_query, $_file->uid));
+            }
+            else {
+              $fd->un = t('Anonymous');
+            }
             $fd->m = @filemtime($file);
             $fd->s = @filesize($file);
           }
@@ -2299,31 +2293,44 @@ class webfm_build_dir_list {
             // permission denied to view this file
             continue;
           }
+        }
+        elseif ($perm == WEBFM_ADMIN) {
+          $fd = new stdClass();
+          $fd->id = 0; //invalid fid signals no db entry
+          $fd->u = ''; //file has no owner
+          $fd->un = '';
+          $fd->m = @filemtime($file);
+          $fd->s = @filesize($file);
+        }
+        else {
+          // permission denied to view this file
+          continue;
+        }
 
-          if (variable_get('webfm_display_title', '') && $_file->ftitle) {
-            $fd->ftitle = urldecode($_file->ftitle);
-          }
-          $fd->n = $filename;
-          $fd->p = $path;
-          $fd->i = 0;
+        if (variable_get('webfm_display_title', '') && $_file->ftitle) {
+          $fd->ftitle = urldecode($_file->ftitle);
+        }
+        $fd->n = $filename;
+        $fd->p = $path;
+        $fd->i = 0;
 
-          if (strpos($filename, ".") === FALSE) {
-            $fd->e = "";
-          }
-          else {
-            $fd->e = array_pop(explode('.', $filename));
-            $mime_type = file_get_mimetype($file);
-            if (preg_match('/^image/', $mime_type)) {
-              if (!function_exists('exif_imagetype')) {
-                if ((list($width, $height, $type, $attr) = @getimagesize($file)) !== FALSE) {
-                  //if valid width/height...
-                  if (($width != 0) && ($height != 0)) {
-                    //return type
-                    $fd->i = $type;
-                  }
+        if (strpos($filename, ".") === FALSE) {
+          $fd->e = "";
+        }
+        else {
+          $fd->e = array_pop(explode('.', $filename));
+          $mime_type = file_get_mimetype($file);
+          if (preg_match('/^image/', $mime_type)) {
+            if (!function_exists('exif_imagetype')) {
+              if ((list($width, $height, $type, $attr) = @getimagesize($file)) !== FALSE) {
+                //if valid width/height...
+                if (($width != 0) && ($height != 0)) {
+                  //return type
+                  $fd->i = $type;
                 }
               }
-              elseif ($i = @exif_imagetype($file)) {
+            }
+            elseif ($i = @exif_imagetype($file)) {
                 $fd->i = $i;
               }
             }
@@ -2331,7 +2338,6 @@ class webfm_build_dir_list {
           $this->files[] = $fd;
         }
       }
-    }
   }
 
   function get_dir_listing() {
