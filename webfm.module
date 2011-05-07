@@ -167,17 +167,17 @@ function webfm_requirements($phase) {
   if ($phase == 'runtime') {
     if (!extension_loaded('fileinfo') OR !function_exists('mime_content_type')) {
           $requirements['webfm'] = array(
-          	'title' => t('File Information Extension'),
-          	'value' => t('Disabled'),
+            'title' => t('File Information Extension'),
+            'value' => t('Disabled'),
             'description' => t('In order to check whether the uploaded file acutally is of the type its file extension suggests. !Webfm uses the !phpfileinfo in order to do that.', array('!Webfm' => l('Web File Manager', 'admin/settings/webfm'), '!phpfileinfo' => l('php fileinfo extension', 'http://php.net/manual/en/book.fileinfo.php'))),
-          	'severity' => REQUIREMENT_WARNING,
+            'severity' => REQUIREMENT_WARNING,
           );
     }
     else {
       $requirements['webfm'] = array(
-          	'title' => t('File Information Extension'),
-          	'value' => t('Enabled'),
-           	'severity' => REQUIREMENT_OK,
+        'title' => t('File Information Extension'),
+        'value' => t('Enabled'),
+        'severity' => REQUIREMENT_OK,
           );
     }
   }
@@ -2398,7 +2398,7 @@ function recurse_build_tree($dir, $full) {
   if ($handle = opendir($dir)) {
     while (FALSE !== ($readdir = readdir($handle))) {
       $path = $dir .'/'. $readdir;
-      if(!in_array(drupal_strtolower($readdir), $bl) AND !is_link($path)) {
+      if (!in_array(drupal_strtolower($readdir), $bl) AND !is_link($path)) {
         //directories are array keys with an array value or a NULL value for
         //empty directories (note that a file cannot have a NULL value)
         if (is_dir($path)) {
@@ -3024,10 +3024,10 @@ function webfm_enum_validate($file, &$err_msg) {
     //use Fileinfo extension
     static $finfohandle = FALSE;
     if ($finfohandle || $finfohandle = @finfo_open(FILEINFO_MIME_TYPE)) {
-      $mimetype = finfo_file($finfohandle,$file->filepath);
+      $mimetype = finfo_file($finfohandle, $file->filepath);
     }
   }
-  elseif(function_exists('mime_content_type')) {
+  elseif (function_exists('mime_content_type')) {
     $mimetype = mime_content_type($file->filepath);
   }
   else {
@@ -3345,15 +3345,15 @@ function webfm_dbupdate_attach($nid, $fids, $cid = 0 ) {
 function webfm_check_attach_order($nid, $fids, $cid = 0) {
   if ($cid == 0 ) {
     $id = $nid;
-    $selector = 'nid';
+    $query = "SELECT fid FROM {webfm_attach} WHERE nid = %d ORDER BY weight";
   }
   else {
     $id = $cid;
-    $selector = 'cid';
+    $query = "SELECT fid FROM {webfm_attach} WHERE cid = %d ORDER BY weight";
   }
   //check array against db result
-  $query = "SELECT fid FROM {webfm_attach} WHERE %s = %d ORDER BY weight";
-  $result = db_query($query, $selector, $id);
+  
+  $result = db_query($query, $id);
 
   $match = TRUE;
   $i = 0;
@@ -3426,9 +3426,16 @@ function webfm_dbinsert_attach($nid, $fid, $weight, $cid = 0) {
  *
  */
 function webfm_dbdelete_attachments($id, $selector = 'nid') {
-  $type = ($selector == 'nid') ? 'node' : 'comment';
-  $query = "DELETE FROM {webfm_attach} WHERE %s = %d";
-  $result = db_query($query, $selector, $id);
+  if ($selector == 'nid') {
+    $type = 'node';
+    $query = "DELETE FROM {webfm_attach} WHERE nid = %d";
+  }
+  else {
+    $type = 'comment';
+    $query = "DELETE FROM {webfm_attach} WHERE cid = %d";
+  }
+  
+  $result = db_query($query, $id);
   if ($result === FALSE) {
     drupal_set_message(t('Failed to remove file attachments for deleted %type %id', array('%type' => $type, '%id' => $id)));
     return FALSE;
