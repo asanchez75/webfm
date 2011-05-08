@@ -154,16 +154,16 @@ function webfm_perm() {
 
 /**
  * Implementation of hook_requirements().
- * 
+ *
  * Webfm uses the fileinfo extension in order to check for the actual mimetype of the file.
- * 
+ *
  * @param string $phase The phase in which hook_requirements is run - 'runtime': the runtime requirements are being checked and shown on the status report page
  *
  * @return array
  */
 function webfm_requirements($phase) {
   $requirements = array();
-  
+
   if ($phase == 'runtime') {
     if (!extension_loaded('fileinfo') OR !function_exists('mime_content_type')) {
           $requirements['webfm'] = array(
@@ -181,7 +181,7 @@ function webfm_requirements($phase) {
           );
     }
   }
-  
+
   return $requirements;
 }
 
@@ -504,10 +504,10 @@ function webfm_nodeapi(&$node, $op, $teaser) {
       if (user_access('access webfm') && array_key_exists('attachlist', $_POST)) {
         $files = explode(',', $_POST['attachlist']);
         array_walk($files, 'intval');//Don't trust your Inputs. Forcing all values to int.
-        webfm_dbupdate_attach($node->nid, $files); 
-        
+        webfm_dbupdate_attach($node->nid, $files);
+
         //If this field is set to syncing we keep the POST Data othrwise we drop it
-        $i18nsync_nodeapi = variable_get('i18nsync_nodeapi_' . $node->type, FALSE); 
+        $i18nsync_nodeapi = variable_get('i18nsync_nodeapi_' . $node->type, FALSE);
         if (!in_array('webfm_attachments_sync', $i18nsync_nodeapi)) {
           unset($_POST['attachlist']);
         }
@@ -521,10 +521,10 @@ function webfm_nodeapi(&$node, $op, $teaser) {
 }
 
 /**
- * 
+ *
  * Function adds the checkbox the the i18nsync-fieldlist in the form alter.
- * 
- * 
+ *
+ *
  * @param array $fields fields provided by i18n
  * @param string $type nodetype
  */
@@ -650,11 +650,11 @@ function webfm_form_alter(&$form, &$form_state, $form_id) {
 
 /**
  * Creates the directory name for og-group based directories
- * 
+ *
  * @param object $node node-object
  * @return string Directory name
  */
-function webfm_get_group_directory($node) { 
+function webfm_get_group_directory($node) {
   $group_directory = drupal_strtolower(trim($node->title));
   $group_directory = str_replace(array(' ', '-'), '_', $group_directory);
   $group_directory .= '_g'. $node->nid;  // Add node id to ensure unique name
@@ -924,10 +924,10 @@ function webfm_upload() {
             $msg = '';
             if (($fid = webfm_version_upload(WEBFM_REPLACE_RENAME, $msg)) !== FALSE) {
               // file was inserted into the database
-              drupal_set_message($msg);
+              drupal_set_message(check_plain($msg));
             }
             else {
-              drupal_set_message($msg, 'error');
+              drupal_set_message(check_plain($msg), 'error');
             }
           }
         }
@@ -939,7 +939,7 @@ function webfm_upload() {
           }
           else {
             file_delete($file->filepath);
-            drupal_set_message($db_err, 'error');
+            drupal_set_message(check_plain($db_err), 'error');
           }
         }
         else {
@@ -951,7 +951,7 @@ function webfm_upload() {
           file_delete($file->filepath);
         }
         foreach ($err_arr as $err) {
-          drupal_set_message($err, 'error');
+          drupal_set_message(check_plain($err), 'error');
         }
       }
     }
@@ -1987,7 +1987,7 @@ function webfm_inline_js($base_url, $base_path, $clean_url, $uid) {
 
 /**
  * Helper function to check for root path at base of input path
- * 
+ *
  * @param string $path - Path to be checked, should be below root
  * @param string $root - Corresponding root-path, should be above path
  *
@@ -2257,7 +2257,6 @@ class webfm_build_dir_list {
 
       while (($readdir = readdir($handle)) !== FALSE) {
         // check that directory element is readable and not in black list
-         
         if (!in_array(drupal_strtolower($readdir), $bl) AND is_link($full_path . '/' . $readdir) == FALSE) {
           if (is_dir($full_path . '/' . $readdir)) {
             $_dirs[] = $readdir;
@@ -2384,14 +2383,13 @@ function webfm_tree($rootpath, $path) {
   return $_SESSION['tree_'. $path];
 }
 
-// 
 /**
  * Function to recursively read the complete directory tree
  *
  * @param unknown_type $dir
  * @param unknown_type $full
  *
- * @return 
+ * @return array tree-elements
  */
 function recurse_build_tree($dir, $full) {
   $bl = array('.', '..', '.htaccess');
@@ -2821,7 +2819,7 @@ function webfm_dbinsert_file($file, &$error, $metadata = array()) {
   }
   if (!isset($metadata['fsize'])) {
     $metadata['fsize'] = @filesize($file->filepath);
-  }  
+  }
   if (!isset($metadata['fcreatedate'])) {
     $metadata['fcreatedate'] = @filemtime($file->filepath);
   }
@@ -2834,11 +2832,9 @@ function webfm_dbinsert_file($file, &$error, $metadata = array()) {
   if (!isset($metadata['fdesc'])) {
     $metadata['fdesc'] = '';
   }
-  
 
   //create a string of fields for the query
   $fields = implode(', ', array_keys($metadata));
-
   $metadata_key_arr = _webfm_metadata_array();
   $printfvalues = array();
   //create a string of field value items in printf format
@@ -2903,12 +2899,12 @@ function webfm_dbinsert_file($file, &$error, $metadata = array()) {
  */
 function webfm_dbupdate_file($fid, $path = FALSE, $metadata = array()) {
   $metadata_key_arr = _webfm_metadata_array();
-  
+
   if ($path) {
     //add additional values to $metadata
     $metadata['fpath'] = $path;
   }
-  
+
   $printfvalues = array();
   //create a string of field value items in printf format
   foreach ($metadata as $key => $value) {
@@ -3013,7 +3009,7 @@ function webfm_enum_validate($file, &$err_msg) {
     return FALSE;
   }
 
- 
+
   //Check for possible imagefile exploit
   //Trying to determine the files mimetype with php
   //Later we compare the determined mimetype to the one drupal determines.
@@ -3152,9 +3148,9 @@ function webfm_get_file_record($fid = '', $path = '') {
 /**
  * Returns an array with informatin about the editable fields of the webfm meta data
  * input table.
- * 
+ *
  * @param bool $shorthands Whether or not to use the shorthand fieldnames in the array
- * 
+ *
  * @return array Array with webfms legal metadata fields and its data type
  */
 function _webfm_metadata_array($shorthands = FALSE) {
@@ -3181,16 +3177,16 @@ function _webfm_metadata_array($shorthands = FALSE) {
 }
 
 /**
- * Function writes provided metadata to database 
- * 
+ * Function writes provided metadata to database
+ *
  * @param int $fid Webfm-File-ID
  * @param array $metadata User provided metadata
  * @param int $user uid of user executing this
  * @param string $err Array that contains error messages
- * 
+ *
  * @return boolean TRUE|FALSE Depending on success of operation
  */
-function webfm_putmeta($fid, $metadata, $user, &$err) { 
+function webfm_putmeta($fid, $metadata, $user, &$err) {
   $err = "";
   if (($file = webfm_get_file_record($fid)) != FALSE) {
     if ($user == 1 ||  $user == $file->uid || webfm_file_mod_access($file)) {
@@ -3204,7 +3200,7 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
         $key = _webfm_utf8urldecode(drupal_substr($field, 0, 1));
         $separator = drupal_substr($field, 1, 1);
         $value = _webfm_utf8urldecode(drupal_substr($field, 2, drupal_strlen($field) - 2));
-        
+
         if (array_key_exists($key, $metadata_key_arr) && ($separator == ":")) {
           if ($key == 'u') {
             // Special handling for uid changes (admins only)
@@ -3239,7 +3235,7 @@ function webfm_putmeta($fid, $metadata, $user, &$err) {
           }
         }
       }
-      
+
       if (count($metadata)) {
         $ret = webfm_dbupdate_file($fid, '', $metadata);
         if ($ret) {
@@ -3352,7 +3348,6 @@ function webfm_check_attach_order($nid, $fids, $cid = 0) {
     $query = "SELECT fid FROM {webfm_attach} WHERE cid = %d ORDER BY weight";
   }
   //check array against db result
-  
   $result = db_query($query, $id);
 
   $match = TRUE;
@@ -3434,7 +3429,7 @@ function webfm_dbdelete_attachments($id, $selector = 'nid') {
     $type = 'comment';
     $query = "DELETE FROM {webfm_attach} WHERE cid = %d";
   }
-  
+
   $result = db_query($query, $id);
   if ($result === FALSE) {
     drupal_set_message(t('Failed to remove file attachments for deleted %type %id', array('%type' => $type, '%id' => $id)));
