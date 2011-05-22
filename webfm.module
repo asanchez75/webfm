@@ -1951,7 +1951,7 @@ function theme_webfm_upload_form($form) {
 function webfm_inline_js($base_url, $base_path, $clean_url, $uid) {
   $js =   'function getBaseUrl(){return '. drupal_to_js($base_url) .';} ';
   $js .=  'function getWebfmIconDir(){return ';
-  $js .=  drupal_to_js($base_url .'/'. variable_get('webfm_icon_dir', drupal_get_path('module', 'webfm') -'/image/icon'));
+  $js .=  drupal_to_js($base_url .'/'. variable_get('webfm_icon_dir', drupal_get_path('module', 'webfm').'/image/icon'));
   $js .=  ';} ';
   $js .= 'function getWebfmCleanUrl(){return ';
   $js .=  drupal_to_js($clean_url);
@@ -1996,7 +1996,7 @@ function webfm_inline_js($base_url, $base_path, $clean_url, $uid) {
  */
 function webfm_check_path($path, $root) {
   if (strncmp($path, $root, drupal_strlen($root)) == 0) {
-    if ((drupal_strlen($path) == drupal_strlen($root)) || (drupal_substr($path, drupal_strlen($root), 1) == '/')) {
+    if ((drupal_strlen($path) == drupal_strlen($root)) || (drupal_substr($path, drupal_strlen($root), 1) == DIRECTORY_SEPARATOR)) {
       return $path;
     }
   }
@@ -2142,7 +2142,7 @@ function webfm_path_access($path) {
   $webfm_roots = webfm_get_root_dirs();
   foreach ($webfm_roots as $key => $sub_root) {
     // The read path must be contained within a legitimate role root dir for this user
-    if (webfm_check_path($path, $root_dir . $sub_root)) {
+    if (webfm_check_path(realpath($path), realpath($root_dir . $sub_root))) {
       return TRUE;
     }
   }
@@ -2151,7 +2151,7 @@ function webfm_path_access($path) {
     $webfm_group_roots = webfm_get_group_root_dirs();
     foreach ($webfm_group_roots as $key => $sub_root) {
       // The read path must be contained within a legitimate role root dir for this user
-      if (webfm_check_path($path, $root_dir . $sub_root)) {
+      if (webfm_check_path(realpath($path), realpath($root_dir . $sub_root))) {
         return TRUE;
       }
     }
@@ -2210,9 +2210,16 @@ class webfm_build_dir_list {
     $_fils = array();
     // Admins do not have webfm root hidden
     $root = ($perm == WEBFM_ADMIN)? file_directory_path() : file_directory_path() . webfm_get_root_path();
-    if (drupal_substr($path, 0, 1) != '/') {
+    
+    $path_start = drupal_substr($path, 0, 1); 
+    if ($path_start  == DIRECTORY_SEPARATOR && $path_start != '/') {
+      $path = ltrim($path,DIRECTORY_SEPARATOR);
       $path = '/'. $path;
     }
+    elseif ($path_start != DIRECTORY_SEPARATOR && $path_start != '/') {
+      $path = '/'. $path;
+    }
+    
     $full_path = $root . $path;
     if (!is_dir($full_path)) {
       return;
@@ -2231,7 +2238,7 @@ class webfm_build_dir_list {
       $webfm_roots = webfm_get_root_dirs();
       foreach ($webfm_roots as $key => $sub_root) {
         // The read path must be contained within a legitimate role root dir for this user
-        if ($sub_root && webfm_check_path($path, $sub_root)) {
+        if ($sub_root && webfm_check_path(realpath($full_path), realpath($root.$sub_root))) {
           $perm_flag = TRUE;
           break;
         }
@@ -2241,7 +2248,7 @@ class webfm_build_dir_list {
       $webfm_group_roots = webfm_get_group_root_dirs();
       foreach ($webfm_group_roots as $key => $sub_root) {
         // The read path must be contained within a legitimate group root dir for this user
-        if ($sub_root && webfm_check_path($path, $sub_root)) {
+        if ($sub_root && webfm_check_path(realpath($full_path), realpath($root.$sub_root))) {
           $perm_flag = TRUE;
           break;
         }
@@ -2250,7 +2257,7 @@ class webfm_build_dir_list {
 
     if ($perm_flag && $handle = opendir($full_path)) {
       // breadcrumb keeps file-sys root hidden
-      $non_root_arr = explode('/', trim($path, '/'));
+      $non_root_arr = explode('/', trim($path, DIRECTORY_SEPARATOR .' /'));
       foreach ($non_root_arr as $piece) {
         $this->breadcrumb[] = $piece;
       }
@@ -2557,7 +2564,7 @@ class webfm_searchFiles {
   }
 
   function searchFilesRecur($root_dir, $dir, $searchpattern) {
-    $dir = rtrim($dir, '/');
+    $dir = rtrim($dir, DIRECTORY_SEPARATOR.' / \\');
     //hide filesys root by not returning full path
     $full_dir = $root_dir . $dir;
     $handle = @opendir($full_dir);
@@ -3002,7 +3009,7 @@ function webfm_enum_validate($file, &$err_msg) {
   global $user;
 
   if (empty($file->filename)) {
-    $file->filename = strrev(drupal_substr(strrev($file->filepath), 0, strpos(strrev($file->filepath), '/')));
+    $file->filename = strrev(drupal_substr(strrev($file->filepath), 0, strpos(strrev($file->filepath), DIRECTORY_SEPARATOR)));
   }
   if (drupal_strlen($file->filename) > 255) {
     $err_msg[] = t('%filename exceeds the maximum name length', array('%filename' => drupal_substr($file->filename, 0, 252) .'...'));

@@ -229,7 +229,7 @@ function webfm_delete_file($source, &$error) {
  *
  */
 function webfm_move($source, $dest, $uid, &$err_arr) {
-  $dest = rtrim($dest, '/ \/') .'/'. _webfm_basename($source);
+  $dest = rtrim($dest, '/ \/ '. DIRECTORY_SEPARATOR) .'/'. _webfm_basename($source);
   return webfm_rename($source, $dest, $uid, $err_arr);
 }
 
