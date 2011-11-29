@@ -2885,7 +2885,7 @@ function webfm_dbinsert_file($file, &$error, $metadata = array()) {
     $query = "SELECT fid FROM {webfm_file} WHERE fpath = '%s'";
     $result = db_query($query, $file->filepath);
     if (($result !== FALSE) && ($row = db_fetch_object($result))) {
-      _webfm_file_alias("insert", $metadata, $row->fid);
+      _webfm_file_alias('insert', $row->fid);
       return $row->fid;
     }
     else {
@@ -2949,7 +2949,7 @@ function webfm_dbupdate_file($fid, $path = FALSE, $metadata = array()) {
     return FALSE;
   }
 
-  _webfm_file_alias('update', $metadata, $fid);
+  _webfm_file_alias('update', $fid);
 
   return TRUE;
 }
@@ -2962,16 +2962,21 @@ function webfm_dbupdate_file($fid, $path = FALSE, $metadata = array()) {
  * @param $fid File ID
  * @return NULL
  */
-function _webfm_file_alias($op, $metadata, $fid) {
-  if (!module_exists('pathauto')) return NULL;
+function _webfm_file_alias($op, $fid) {
+  if (!module_exists('pathauto')) {
+      return NULL;
+  }
+
   switch ($op) {
     case "insert":
     case "update":
-      $webfmfile = $metadata;
-      $webfmfile['fid'] = $fid;
-      $pathauto_path = drupal_get_path('module', 'pathauto');
-      require_once("$pathauto_path/pathauto.inc");
-      $alias = pathauto_create_alias('webfm', $op, pathauto_get_placeholders('webfm', $webfmfile), 'webfm_send/'. $webfmfile['fid'], 'webfm');
+      module_load_include('inc', 'pathauto');
+      $webfmfile = webfm_get_file_record($fid);
+      $webfmfile = (object)$webfmfile;
+
+      $placeholders = pathauto_get_placeholders('webfm', $webfmfile);
+      $source = 'webfm_send/'. $webfmfile->fid;
+      pathauto_create_alias('webfm', $op, $placeholders, $source, $webfmfile->fid, 'webfm');
       break;
   }
 }
@@ -3524,7 +3529,6 @@ function webfm_token_values($type, $object = NULL) {
     case 'webfm':
       if (!empty($object)) {
         $webfmfile = (object)$object;
-
         $values['webfmid'] = $webfmfile->fid;
         $values['filename'] = _webfm_basename($webfmfile->fpath);
         if (variable_get('webfm_root_dir', NULL)) {
@@ -3585,8 +3589,8 @@ function webfm_pathauto_bulkupdate() {
   while ($fids = db_fetch_object($result)) {
     $webfmfile = webfm_get_file_record($fids->fid);
     $placeholders = pathauto_get_placeholders('webfm', $webfmfile);
-    $src = 'webfm_send/'. $webfmfile->fid;
-    if ($alias = pathauto_create_alias('webfm', 'bulkupdate', $placeholders, $src, 'webfm')) {
+    $source = 'webfm_send/'. $webfmfile->fid;
+    if (pathauto_create_alias('webfm', 'bulkupdate', $placeholders, $source, $webfmfile->fid, 'webfm')) {
       $count++;
     }
   }
