@@ -506,8 +506,9 @@ function webfm_nodeapi(&$node, $op, $teaser) {
         array_walk($files, 'intval');//Don't trust your Inputs. Forcing all values to int.
         webfm_dbupdate_attach($node->nid, $files);
 
+        //if i18nsync is not there this will just return an empty array
+        $i18nsync_nodeapi = variable_get('i18nsync_nodeapi_' . $node->type, array()); 
         //If this field is set to syncing we keep the POST Data othrwise we drop it
-        $i18nsync_nodeapi = variable_get('i18nsync_nodeapi_' . $node->type, FALSE);
         if (!in_array('webfm_attachments_sync', $i18nsync_nodeapi)) {
           unset($_POST['attachlist']);
         }
