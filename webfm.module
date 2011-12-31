@@ -2705,26 +2705,27 @@ function _webfm_check_access($filepath = NULL, $f = NULL) {
     return TRUE;
   }
 
-  if ( user_access('access webfm') AND (webfm_file_view_access($f) OR webfm_file_mod_access($f)) ) {
+  if (user_access('access webfm') AND (webfm_file_view_access($f) OR webfm_file_mod_access($f))) {
     return TRUE;
   }
 
-  if ( user_access('access webfm') OR user_access('view webfm attachments') ) {
+  if (user_access('view webfm attachments')) {
     $webfm_attach_result = db_query('SELECT nid,cid FROM {webfm_attach} WHERE fid = %d', $f->fid);
+    //we loop over all nodes this file is attached to until we find one which the user has access to
     while ($webfm_attach_data = db_fetch_array($webfm_attach_result)) {
 
       //handle files attached to comments
       if ($webfm_attach_data['cid'] != 0) {
         // For a comment, a user must be able to view the parent node and have "access_comments".
-        if ( !user_access('access comments') ) {
+        if (!user_access('access comments')) {
           continue;
         }
-        $comment = _comment_load($dbfid['cid']);
+        $comment = _comment_load($webfm_attach_data['cid']);
         $webfm_attach_data['nid'] = $comment->nid;
       }
 
       //handle files attached to nodes
-      $node = node_load($dbfid['nid']);
+      $node = node_load($webfm_attach_data['nid']);
       if (node_access('view', $node)) {
         return TRUE;
       }
