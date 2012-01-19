@@ -725,7 +725,11 @@ function webfm_attach_attached_form($node) {
     array_walk($attachlist, 'intval');//Don't trust your Inputs. Forcing all values to int.
     $attachlist = implode(',', $attachlist);
     $form['new']['attachlist']['#default_value'] = $attachlist;
-  }
+  } elseif (isset($node->attachlist) and empty($node->attachlist)) {
+    // this case applies when we are previewing but no attachments are left in the list
+    // we then set this to a space because the value get reset to the original value
+    // if the default_value is empty
+    $form['new']['attachlist']['#default_value'] = ' ';
 
   return $form;
 }
