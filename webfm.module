@@ -992,7 +992,7 @@ function webfm_reload_upload($url, $confirm_form = '') {
  * Ajax post requests
  */
 function webfm_ajax() {
-  global $user, $node;
+  global $user, $node, $base_url;
 
   //3 possible outcomes - the user is either an admin, user or prohibited
   if (($user->uid == 1) || user_access('administer webfm')) {
@@ -1507,6 +1507,8 @@ function webfm_ajax() {
           // in the table, so avoid fetching those.
           // For new nodes and comments we can't get attachments from the database.
           $node_str = trim(drupal_strtolower(_webfm_utf8urldecode($_POST["param0"])));
+          $node_str = trim(str_replace($base_url, '', $node_str), '/');
+          $node_str = drupal_get_normal_path($node_str);
           // We edit an existing node: Fetch from database.
           if (strpos($node_str, '/edit')) {
             $node_str = str_replace('/edit', '', $node_str);
