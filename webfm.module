@@ -730,7 +730,7 @@ function webfm_attach_attached_form($node) {
     // we then set this to a space because the value get reset to the original value
     // if the default_value is empty
     $form['new']['attachlist']['#default_value'] = ' ';
-
+  }
   return $form;
 }
 
