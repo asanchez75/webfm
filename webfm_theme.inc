@@ -61,3 +61,29 @@ function theme_webfm_attachments($files) {
     return theme('table', $header, $rows, array('class' => 'webfm-attach-list'));
   }
 }
+
+
+/**
+ * Displays attachments as a list for use inline with hook_link
+ * 
+ * @param $files
+ * 
+ * @return
+ */
+function theme_webfm_attachments_link($files) {
+    global $base_url;
+    
+    $list = array();
+    foreach ($files as $file) {
+        $item = array();
+        $icon_path = $base_url .'/'. variable_get('webfm_icon_dir', drupal_get_path('module', 'webfm') .'/image/icon')  .'/'. _webfm_get_icon($file->e);
+        $filename = $file->ftitle ? $file->ftitle : $file->n;
+        $item['title'] = '<img src="'. $icon_path .'" alt="'.t('File').'" title="'.t('Download !filename',array('!filename' => $filename)).'" /> '.$filename;
+        $item['href'] = 'webfm_send/'. $file->id;
+        $item['html'] = TRUE;
+        
+        $list[] = $item;
+    }
+    
+    return theme('links',$list,array('class' => 'webfm_attachments_links'));
+}

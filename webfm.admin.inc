@@ -399,6 +399,11 @@ function webfm_admin_settings_style() {
           '#default_value' => variable_get('webfm_attach_size', ''),
           '#description' => t('Check this box to add a file size column to the attachment table.')
   );
+  $form['attach']['webfm_attachments_links'] = array('#type' => 'checkbox',
+          '#title' => t('Display list of attached files in links instead of counter'),
+          '#default_value' => variable_get('webfm_attachments_links', FALSE),
+          '#description' => t('Check this box to the list file of files to the link list. For example in the short version of the node.'),
+  );
 
   $form['ie'] = array('#type' => 'fieldset',
             '#title' => t('IE Drag-and-Drop Normalization'),

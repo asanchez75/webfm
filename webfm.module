@@ -124,11 +124,20 @@ function webfm_link($type, $node = NULL, $teaser = FALSE) {
   // Display a link with the number of attachments
   if ($teaser && variable_get('webfm_attach_body', FALSE) && $type == 'node' && isset($node->webfm_files) && user_access('view webfm attachments')) {
     if ($num_files = count($node->webfm_files)) {
-      $links['webfm_attachments'] = array(
-      'title' => format_plural($num_files, '1 attachment', '@count attachments'),
-      'href' => "node/$node->nid",
-      'attributes' => array('title' => t('Read full article to view attachments.')),
-      'fragment' => 'attachments');
+        if(variable_get('webfm_attachments_links', FALSE)) {
+            $links['webfm_attachments'] = array(
+                    'html' => TRUE,
+                    'title' => theme('webfm_attachments_link',$node->webfm_files),
+                );
+        }
+        else {
+            $links['webfm_attachments'] = array(
+                'title' => format_plural($num_files, '1 attachment', '@count attachments'),
+                'href' => "node/$node->nid",
+                'attributes' => array('title' => t('Read full article to view attachments.')),
+                'fragment' => 'attachments'
+                );
+        }
     }
   }
   return $links;
@@ -760,14 +769,18 @@ function webfm_attach_box() {
  */
 function webfm_theme() {
   return array(
-    'webfm_browser' => array(
-      'arguments' => array('links' => NULL, 'upload' => NULL),
-      'template' => 'webfm-browser',
-  ),
-    'webfm_attachments' => array(
-      'file' => 'webfm_theme.inc',
-      'arguments' => array('files'),
-  ),
+      'webfm_browser' => array(
+          'arguments' => array('links' => NULL, 'upload' => NULL),
+          'template' => 'webfm-browser',
+          ),
+      'webfm_attachments' => array(
+          'file' => 'webfm_theme.inc',
+          'arguments' => array('files'),
+          ),
+      'webfm_attachments_link' => array(
+          'file' => 'webfm_theme.inc',
+          'arguments' => array('files'),
+          ),
   );
 }
 
