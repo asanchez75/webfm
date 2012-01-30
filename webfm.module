@@ -124,7 +124,8 @@ function webfm_link($type, $node = NULL, $teaser = FALSE) {
   // Display a link with the number of attachments
   if ($teaser && variable_get('webfm_attach_body', FALSE) && $type == 'node' && isset($node->webfm_files) && user_access('view webfm attachments')) {
     if ($num_files = count($node->webfm_files)) {
-        if(variable_get('webfm_attachments_links', FALSE)) {
+        $available_types = array_keys(array_filter(variable_get('webfm_attachments_links', array())));
+        if(in_array($node->type, $available_types)) {
             $links['webfm_attachments'] = array(
                     'html' => TRUE,
                     'title' => theme('webfm_attachments_link',$node->webfm_files),
