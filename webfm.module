@@ -2646,17 +2646,17 @@ function webfm_file_download($filepath) {
 
     //prepare headers
     $header = array();
-    if (_webfm_attach_new_window()) {
+    if (_webfm_force_download()) {
+      $header[] = 'Pragma: no-cache';
+      $header[] = 'Cache-Control: no-cache, must-revalidate';
+      $header[] = 'Content-Disposition: attachment; filename="'. $filename .'";' ;
+    }
+    else {
       $header[] = 'Pragma: public'; // required
       $header[] = 'Expires: 0';
       $header[] = 'Cache-Control: must-revalidate, post-check=0, pre-check=0';
       $header[] = 'Content-Transfer-Encoding: binary';
       $header[] = 'Content-Disposition: inline; filename="'. $filename .'";' ;
-    }
-    else {
-      $header[] = 'Pragma: no-cache';
-      $header[] = 'Cache-Control: no-cache, must-revalidate';
-      $header[] = 'Content-Disposition: attachment; filename="'. $filename .'";' ;
     }
 
     $header[] = 'Content-Type: '. file_get_mimetype($filename);
@@ -2671,28 +2671,33 @@ function webfm_file_download($filepath) {
 }
 
 /**
- * Returns or sets status whether or not the attachment should be opend in a new window
+ * Returns or sets status whether or not the attachment should be a forced download
  *
  * @param boolean $status set status to TRUE - open in a new window or to FALSE - open inline
- * @return boolen TRUE - open in a new window|FALSE - open inline
+ * @return boolen TRUE - force download|FALSE - open inline
  */
-function _webfm_attach_new_window($status = NULL) {
-  static $webfm_attach_new_window = NULL;
+function _webfm_force_download($status = NULL) {
+  static $wwebfm_force_download = NULL;
 
-  if (is_null($webfm_attach_new_window)) {
-    $webfm_attach_new_window = variable_get('webfm_attach_new_window', FALSE);
+  if (is_null($webfm_force_download)) {
+      if(variable_get('webfm_attach_new_window', 0) == 2) {
+          $webfm_force_download = TRUE;
+      }
+      else {
+          $webfm_force_download = FALSE;
+      }
   }
 
   if (!is_null($status)) {
     if (!status) {
-      $webfm_attach_new_window = FALSE;
+      $webfm_force_download = FALSE;
     }
     else {
-      $webfm_attach_new_window = TRUE;
+      $webfm_force_download = TRUE;
     }
   }
 
-  return $webfm_attach_new_window;
+  return $webfm_force_download;
 }
 
 /**
@@ -2820,7 +2825,7 @@ function webfm_send_file($fid, $download = FALSE, $bypass_invoke = FALSE) {
   }
 
   //keep in mind if we need to open this in a new window
-  _webfm_attach_new_window($download);
+  _webfm_force_download($download);
 
   //make sure no injection happen, because file_download handles $_GET['file']
   unset($_GET['file']);

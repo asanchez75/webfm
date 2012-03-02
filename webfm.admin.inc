@@ -377,9 +377,10 @@ function webfm_admin_settings_style() {
           '#description' => t('Check this box to append file attachments table to the node body.
                                <br />This setting does not affect the attachment block.')
   );
-  $form['attach']['webfm_attach_new_window'] = array('#type' => 'checkbox',
-          '#title' => t('Open attachments in a new browser window'),
-          '#default_value' => variable_get('webfm_attach_new_window', '')
+  $form['attach']['webfm_attach_new_window'] = array('#type' => 'radios',
+          '#title' => t('Downloading attachments'),
+          '#default_value' => variable_get('webfm_attach_new_window', 0),
+          '#options' => array(0 => t('Open attachments in the same browser window'), 1 => t('Open attachments in a new browser window'), 2 => ('Force download of attachments')),
   );
   $form['attach']['attrib'] = array('#type' => 'fieldset',
           '#title' => t('Attachment List Properties'),
