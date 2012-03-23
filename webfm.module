@@ -175,7 +175,7 @@ function webfm_requirements($phase) {
   $requirements = array();
 
   if ($phase == 'runtime') {
-    if (!extension_loaded('fileinfo') OR !function_exists('mime_content_type')) {
+    if (!extension_loaded('fileinfo') AND !function_exists('mime_content_type')) {
           $requirements['webfm'] = array(
             'title' => t('File Information Extension'),
             'value' => t('Disabled'),
