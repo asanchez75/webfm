@@ -3069,8 +3069,10 @@ function webfm_enum_validate($file, &$err_msg) {
   if (extension_loaded('fileinfo')) {
     //use Fileinfo extension
     static $finfohandle = FALSE;
-    if ($finfohandle || $finfohandle = @finfo_open(FILEINFO_MIME_TYPE)) {
+    if ($finfohandle || $finfohandle = @finfo_open(FILEINFO_MIME)) {
       $mimetype = finfo_file($finfohandle, $file->filepath);
+      $mimetype = explode(";",$mimetype);
+      $mimetype = $mimetype[0];
     }
   }
   elseif (function_exists('mime_content_type')) {
