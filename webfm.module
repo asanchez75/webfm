@@ -2677,7 +2677,7 @@ function webfm_file_download($filepath) {
  * @return boolen TRUE - force download|FALSE - open inline
  */
 function _webfm_force_download($status = NULL) {
-  static $wwebfm_force_download = NULL;
+  static $webfm_force_download = NULL;
 
   if (is_null($webfm_force_download)) {
       if(variable_get('webfm_attach_new_window', 0) == 2) {
@@ -2689,14 +2689,13 @@ function _webfm_force_download($status = NULL) {
   }
 
   if (!is_null($status)) {
-    if (!status) {
+    if(!$status) {
       $webfm_force_download = FALSE;
     }
     else {
       $webfm_force_download = TRUE;
     }
   }
-
   return $webfm_force_download;
 }
 
@@ -2803,10 +2802,10 @@ function _webfm_managed_by_webfm($fullfilepath) {
  * ...is a urlencoded path that must be converted and concatenated to base file dir
  *
  * @param int $fid - file id
- * @param bool $download - TRUE=download / FALSE=stream
+ * @param bool $download - TRUE=download / NULL=stream
  * @param bool $bypass_invoke TRUE=do no invoke webfm_send hook  / FALSE=invoke
  */
-function webfm_send_file($fid, $download = FALSE, $bypass_invoke = FALSE) {
+function webfm_send_file($fid, $download = NULL, $bypass_invoke = FALSE) {
   //at first we try to get our file record
   $f = webfm_get_file_record($fid, NULL);
 
