@@ -44,7 +44,7 @@ function theme_webfm_attachments($files) {
     }
 
     $href = array(
-      'data' => l('<img src="'. $icon_path .'" alt="'.t('File').'" title="'.t('Download !filename',array('!filename' => $filename)).'" /> ', 'webfm_send/'. $file->id, array('attributes' => array('title' => 'Download '. $filename, 'target' => $target), 'html' => TRUE)) . l($filename, 'webfm_send/'. $file->id, array('attributes' => array('title' => t('Open @filename', array('@filename' => $filename)), 'target' => $target))) . $description,
+      'data' => l('<img src="'. $icon_path .'" alt="'.t('File').'" title="'.t('Download !filename',array('!filename' => $filename)).'" /> ', 'webfm_send/'. $file->id .'/1', array('attributes' => array('title' => 'Download '. $filename, 'target' => $target), 'html' => TRUE)) . l($filename, 'webfm_send/'. $file->id, array('attributes' => array('title' => t('Open @filename', array('@filename' => $filename)), 'target' => $target))) . $description,
       'class' => 'att-title'
     );
 
