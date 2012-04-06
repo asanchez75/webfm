@@ -179,7 +179,7 @@ function webfm_requirements($phase) {
           $requirements['webfm'] = array(
             'title' => t('File Information Extension'),
             'value' => t('Disabled'),
-            'description' => t('In order to check whether the uploaded file acutally is of the type its file extension suggests. !Webfm uses the !phpfileinfo in order to do that.', array('!Webfm' => l('Web File Manager', 'admin/settings/webfm'), '!phpfileinfo' => l('php fileinfo extension', 'http://php.net/manual/en/book.fileinfo.php'))),
+            'description' => t('In order to check whether the uploaded file actually is of the type its file extension suggests. !Webfm uses the !phpfileinfo in order to do that.', array('!Webfm' => l('Web File Manager', 'admin/settings/webfm'), '!phpfileinfo' => l('php fileinfo extension', 'http://php.net/manual/en/book.fileinfo.php'))),
             'severity' => REQUIREMENT_WARNING,
           );
     }
