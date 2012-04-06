@@ -51,8 +51,8 @@ function webfm_ipfolder_update_6200() {
 
   switch ($db_type) {
     case 'pgsql':
-      db_change_column($ret, 'webfm_ipfolder', 'ip1', 'ip1', 'BIGINT', array('not null' => TRUE,));
-      db_change_column($ret, 'webfm_ipfolder', 'ip2', 'ip2', 'BIGINT', array('not null' => TRUE,));
+      db_change_column($ret, 'webfm_ipfolder', 'ip1', 'ip1', 'BIGINT', array('not null' => TRUE));
+      db_change_column($ret, 'webfm_ipfolder', 'ip2', 'ip2', 'BIGINT', array('not null' => TRUE));
       break;
 
     case 'mysql':

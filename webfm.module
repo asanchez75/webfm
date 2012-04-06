@@ -125,10 +125,10 @@ function webfm_link($type, $node = NULL, $teaser = FALSE) {
   if ($teaser && variable_get('webfm_attach_body', FALSE) && $type == 'node' && isset($node->webfm_files) && user_access('view webfm attachments')) {
     if ($num_files = count($node->webfm_files)) {
         $available_types = array_keys(array_filter(variable_get('webfm_attachments_links', array())));
-        if(in_array($node->type, $available_types)) {
+        if (in_array($node->type, $available_types)) {
             $links['webfm_attachments'] = array(
                     'html' => TRUE,
-                    'title' => theme('webfm_attachments_link',$node->webfm_files),
+                    'title' => theme('webfm_attachments_link', $node->webfm_files),
                 );
         }
         else {
@@ -735,7 +735,8 @@ function webfm_attach_attached_form($node) {
     array_walk($attachlist, 'intval');//Don't trust your Inputs. Forcing all values to int.
     $attachlist = implode(',', $attachlist);
     $form['new']['attachlist']['#default_value'] = $attachlist;
-  } elseif (isset($node->attachlist) and empty($node->attachlist)) {
+  }
+  elseif (isset($node->attachlist) and empty($node->attachlist)) {
     // this case applies when we are previewing but no attachments are left in the list
     // we then set this to a space because the value get reset to the original value
     // if the default_value is empty
@@ -1972,7 +1973,7 @@ function theme_webfm_upload_form($form) {
 function webfm_inline_js($base_url, $base_path, $clean_url, $uid) {
   $js =   'function getBaseUrl(){return '. drupal_to_js($base_url) .';} ';
   $js .=  'function getWebfmIconDir(){return ';
-  $js .=  drupal_to_js($base_url .'/'. variable_get('webfm_icon_dir', drupal_get_path('module', 'webfm').'/image/icon'));
+  $js .=  drupal_to_js($base_url .'/'. variable_get('webfm_icon_dir', drupal_get_path('module', 'webfm') .'/image/icon'));
   $js .=  ';} ';
   $js .= 'function getWebfmCleanUrl(){return ';
   $js .=  drupal_to_js($clean_url);
@@ -2234,7 +2235,7 @@ class webfm_build_dir_list {
     
     $path_start = drupal_substr($path, 0, 1); 
     if ($path_start  == DIRECTORY_SEPARATOR && $path_start != '/') {
-      $path = ltrim($path,DIRECTORY_SEPARATOR);
+      $path = ltrim($path, DIRECTORY_SEPARATOR);
       $path = '/'. $path;
     }
     elseif ($path_start != DIRECTORY_SEPARATOR && $path_start != '/') {
@@ -2259,7 +2260,7 @@ class webfm_build_dir_list {
       $webfm_roots = webfm_get_root_dirs();
       foreach ($webfm_roots as $key => $sub_root) {
         // The read path must be contained within a legitimate role root dir for this user
-        if ($sub_root && webfm_check_path(realpath($full_path), realpath($root.$sub_root))) {
+        if ($sub_root && webfm_check_path(realpath($full_path), realpath($root . $sub_root))) {
           $perm_flag = TRUE;
           break;
         }
@@ -2269,7 +2270,7 @@ class webfm_build_dir_list {
       $webfm_group_roots = webfm_get_group_root_dirs();
       foreach ($webfm_group_roots as $key => $sub_root) {
         // The read path must be contained within a legitimate group root dir for this user
-        if ($sub_root && webfm_check_path(realpath($full_path), realpath($root.$sub_root))) {
+        if ($sub_root && webfm_check_path(realpath($full_path), realpath($root . $sub_root))) {
           $perm_flag = TRUE;
           break;
         }
@@ -2585,7 +2586,7 @@ class webfm_searchFiles {
   }
 
   function searchFilesRecur($root_dir, $dir, $searchpattern) {
-    $dir = rtrim($dir, DIRECTORY_SEPARATOR.' / \\');
+    $dir = rtrim($dir, DIRECTORY_SEPARATOR .' / \\');
     //hide filesys root by not returning full path
     $full_dir = $root_dir . $dir;
     $handle = @opendir($full_dir);
@@ -2680,7 +2681,7 @@ function _webfm_force_download($status = NULL) {
   static $webfm_force_download = NULL;
 
   if (is_null($webfm_force_download)) {
-      if(variable_get('webfm_attach_new_window', 0) == 2) {
+      if (variable_get('webfm_attach_new_window', 0) == 2) {
           $webfm_force_download = TRUE;
       }
       else {
@@ -2689,7 +2690,7 @@ function _webfm_force_download($status = NULL) {
   }
 
   if (!is_null($status)) {
-    if(!$status) {
+    if (!$status) {
       $webfm_force_download = FALSE;
     }
     else {
@@ -2727,7 +2728,7 @@ function _webfm_check_access($filepath = NULL, $f = NULL) {
   }
 
   //If it is the users own file: Allow.
-  if($f->uid === $user->uid) {
+  if ($f->uid === $user->uid) {
       return TRUE;
   }
 
@@ -3070,7 +3071,7 @@ function webfm_enum_validate($file, &$err_msg) {
     static $finfohandle = FALSE;
     if ($finfohandle || $finfohandle = @finfo_open(FILEINFO_MIME)) {
       $mimetype = finfo_file($finfohandle, $file->filepath);
-      $mimetype = explode(";",$mimetype);
+      $mimetype = explode(";", $mimetype);
       $mimetype = $mimetype[0];
     }
   }

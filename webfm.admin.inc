@@ -404,7 +404,7 @@ function webfm_admin_settings_style() {
   $node_types = array_map('check_plain', node_get_types('names'));
   $form['attach']['webfm_attachments_links'] = array(
     '#type' => 'checkboxes',
-    '#title' => t('Display list of attached files in links instead of counter '),
+    '#title' => t('Display list of attached files in links instead of counter.'),
     '#required' => FALSE,
     '#default_value' => variable_get('webfm_attachments_links', array()),
     '#options' => $node_types,

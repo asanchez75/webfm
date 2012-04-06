@@ -44,7 +44,7 @@ function theme_webfm_attachments($files) {
     }
 
     $href = array(
-      'data' => l('<img src="'. $icon_path .'" alt="'.t('File').'" title="'.t('Download !filename',array('!filename' => $filename)).'" /> ', 'webfm_send/'. $file->id .'/1', array('attributes' => array('title' => 'Download '. $filename, 'target' => $target), 'html' => TRUE)) . l($filename, 'webfm_send/'. $file->id, array('attributes' => array('title' => t('Open @filename', array('@filename' => $filename)), 'target' => $target))) . $description,
+      'data' => l('<img src="'. $icon_path .'" alt="'. t('File') .'" title="'. t('Download !filename', array('!filename' => $filename)) .'" /> ', 'webfm_send/'. $file->id .'/1', array('attributes' => array('title' => 'Download '. $filename, 'target' => $target), 'html' => TRUE)) . l($filename, 'webfm_send/'. $file->id, array('attributes' => array('title' => t('Open @filename', array('@filename' => $filename)), 'target' => $target))) . $description,
       'class' => 'att-title'
     );
 
@@ -89,12 +89,12 @@ function theme_webfm_attachments_link($files) {
         $item = array();
         $icon_path = $base_url .'/'. variable_get('webfm_icon_dir', drupal_get_path('module', 'webfm') .'/image/icon')  .'/'. _webfm_get_icon($file->e);
         $filename = $file->ftitle ? $file->ftitle : $file->n;
-        $item['title'] = '<img src="'. $icon_path .'" alt="'.t('File').'" title="'.t('Download !filename',array('!filename' => $filename)).'" /> '.$filename;
+        $item['title'] = '<img src="'. $icon_path .'" alt="'. t('File') .'" title="'. t('Download !filename', array('!filename' => $filename)) .'" /> '. $filename;
         $item['href'] = 'webfm_send/'. $file->id;
         $item['html'] = TRUE;
         $item['attributes'] = array('target' => $target);
         $list[] = $item;
     }
     
-    return theme('links',$list,array('class' => 'webfm_attachments_links'));
+    return theme('links', $list, array('class' => 'webfm_attachments_links'));
 }
