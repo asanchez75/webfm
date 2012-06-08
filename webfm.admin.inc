@@ -258,7 +258,7 @@ function webfm_admin_settings_roles_validate($form, &$form_state) {
     $valid_webfm_root = TRUE;
   }
 
-  $exceed_max_msg = t('Your PHP settings limit the maximum file size per upload to %size MB.', array('%size' => file_upload_max_size())) .'<br/>';
+  $exceed_max_msg = t('Your PHP settings limit the maximum file size per upload to %size.', array('%size' => format_size(file_upload_max_size()))) .'<br/>';
   $more_info = t("Depending on your sever environment, these settings may be changed in the system-wide php.ini file, a php.ini file in your Drupal root directory, in your Drupal site's settings.php file, or in the .htaccess file in your Drupal root directory.");
   $max_upload_size = file_upload_max_size()/(1024*1024);
 
