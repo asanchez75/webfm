@@ -154,7 +154,7 @@ function webfm_admin_settings_roles() {
 
   foreach ($roles as $rid => $role) {
     if (variable_get("root_dir_". $rid, '') == '') {
-      drupal_set_message(t('Role root directory not set for @role role', array('@role' => $role)), 'error', FALSE);
+      drupal_set_message(t('Role root directory not set for @role role', array('@role' => $role)), 'error webfmerror', FALSE);
     }
 
     $form["settings_role_". $rid] =
@@ -250,6 +250,7 @@ function webfm_admin_settings_roles_validate($form, &$form_state) {
   $valid_webfm_root = FALSE;
   $webfm_root_dir_name = variable_get('webfm_root_dir', NULL);
   $webfm_root_dir = file_directory_path() ."/". $webfm_root_dir_name;
+  drupal_get_messages('error webfmerror', TRUE);
 
   if (empty($webfm_root_dir_name) OR !file_check_directory($webfm_root_dir)) {
     form_set_error(t('The webfm root directory name is not valid.'));
