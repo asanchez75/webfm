@@ -219,7 +219,7 @@ function webfm_admin_settings_roles() {
     );
     foreach ($groups as $gid => $group) {
       if (variable_get("root_dir_group_". $gid, '') == '') {
-        drupal_set_message(t('Group root directory not set for @group group', array('@group' => $group)), 'error');
+        drupal_set_message(t('Group root directory not set for @group group', array('@group' => $group)), 'error webfmerror');
       }
 
       $form["settings_group_". $gid] = array( '#type' => 'fieldset',
