@@ -1,5 +1,4 @@
-; $Id:
 name = Web File Manager
 description = Hierarchical AJAX file system manager
 package = WebFM
-core = 6.x
+core = 7.x

@@ -9,7 +9,7 @@
  * Implementation of hook_install().
  */
 function webfm_install() {
-  drupal_install_schema('webfm');
+  //drupal_install_schema('webfm');
 }
 
 /**
@@ -49,7 +49,7 @@ function webfm_uninstall() {
     }
   }
 
-  $types = node_get_types();
+  $types = _node_types_build()->types;;
   foreach ($types as $type) {
     if ($type->type) {
       variable_del('webfm_attach_'. $type->type);
@@ -97,18 +97,4 @@ function webfm_schema() {
     'primary key' => array('nid', 'fid', 'cid' ),
   );
   return $schema;
-}
-
-/**
- * Add column for comment id in webfm_attach table.
- */
-function webfm_update_1() {
-  $ret = array();
-  // Add the new column to store a comment id.
-  db_add_field($ret, 'webfm_attach', 'cid', array('type' => 'int', 'not null' => TRUE, 'default' => '0'));
-
-  // Make it a primary key.
-  db_drop_primary_key($ret, 'webfm_attach');
-  db_add_primary_key($ret, 'webfm_attach', array('nid', 'cid', 'fid'));
-  return $ret;
 }
